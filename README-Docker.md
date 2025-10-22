@@ -27,8 +27,8 @@ Ensure your `.env` file contains the required environment variables:
 OPENAI_API_KEY=your_openai_api_key_here
 
 # Microsoft OAuth Configuration
-MICROSOFT_CLIENT_ID=63bd4522-368b-4bd7-a84d-9c7f205cd2a6
-MICROSOFT_CLIENT_SECRET=g-C8Q~ZCcJmuHOt~wEJinGVfiZGYd9gzEy6Wfb5Y
+MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
+MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret_here
 MICROSOFT_TENANT=c9b18954-8964-4212-8168-f54fa673490b
 
 # Langfuse configuration
