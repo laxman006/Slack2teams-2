@@ -1,0 +1,17 @@
+{
+  "feedback_history": {
+    "9d6c1c5d-8b31-4746-8a41-2624b8366f4c": {
+      "negative_count": 0,
+      "positive_count": 1,
+      "total_count": 1,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-21T19:34:45.490249"
+        }
+      ]
+    }
+  }
+}

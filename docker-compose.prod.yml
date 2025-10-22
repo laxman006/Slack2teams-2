@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: slack2teams-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./:/var/www/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slack2teams-backend-prod
+    environment:
+      # Production environment variables
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      MICROSOFT_CLIENT_ID: "${MICROSOFT_CLIENT_ID}"
+      MICROSOFT_CLIENT_SECRET: "${MICROSOFT_CLIENT_SECRET}"
+      MICROSOFT_TENANT: "${MICROSOFT_TENANT}"
+      LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY}"
+      LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY}"
+      LANGFUSE_HOST: "http://langfuse:3000"
+      JSON_MEMORY_FILE: "/app/data/chat_history.json"
+      CHROMA_DB_PATH: "/app/data/chroma_db"
+      # Production settings
+      PYTHONUNBUFFERED: "1"
+      ENVIRONMENT: "production"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Langfuse for observability
+  # Uncomment this section if you want to use Langfuse in production
+  # langfuse:
+  #   image: ghcr.io/langfuse/langfuse:latest
+  #   container_name: slack2teams-langfuse-prod
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: "postgresql://user:password@db:5432/langfuse"
+  #     NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
+  #     NEXTAUTH_URL: "https://newcf3.cloudfuze.com"
+  #   depends_on:
+  #     - db
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   restart: unless-stopped
+
+  # Optional: PostgreSQL database for Langfuse
+  # Uncomment this section if you use Langfuse
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: slack2teams-db-prod
+  #   environment:
+  #     POSTGRES_DB: langfuse
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #   volumes:
+  #     - db_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U user -d langfuse"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+
+# Define named volumes for data persistence
+volumes:
+  db_data: # For Langfuse PostgreSQL data
