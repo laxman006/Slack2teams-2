@@ -29,7 +29,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Microsoft OAuth Configuration
 MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
 MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret_here
-MICROSOFT_TENANT=c9b18954-8964-4212-8168-f54fa673490b
+MICROSOFT_TENANT=your_microsoft_tenant_id_here
 
 # Langfuse configuration
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key_here

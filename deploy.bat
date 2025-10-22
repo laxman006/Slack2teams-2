@@ -23,9 +23,9 @@ if not exist .env (
         echo OPENAI_API_KEY=your_openai_api_key_here
         echo.
         echo # Microsoft OAuth Configuration
-        echo MICROSOFT_CLIENT_ID=bbcae20e-887b-466f-9888-3301e2a18a5c
+        echo MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
         echo MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret_here
-        echo MICROSOFT_TENANT=c9b18954-8964-4212-8168-f54fa673490b
+        echo MICROSOFT_TENANT=your_microsoft_tenant_id_here
         echo.
         echo # Langfuse configuration for observability
         echo LANGFUSE_PUBLIC_KEY=your_langfuse_public_key_here
