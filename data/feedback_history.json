@@ -226,6 +226,19 @@
           "timestamp": "2025-10-23T12:55:32.354281"
         }
       ]
+    },
+    "af5bd0a5-81a4-4540-9bda-ebcb4c58119e": {
+      "negative_count": 0,
+      "positive_count": 1,
+      "total_count": 1,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-23T17:58:47.459832"
+        }
+      ]
     }
   }
 }

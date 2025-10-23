@@ -1037,6 +1037,14 @@ async def test_endpoint():
     """Test endpoint to verify backend connectivity."""
     return {"message": "Backend is working", "status": "success"}
 
+@router.get("/auth/config")
+async def get_auth_config():
+    """Get OAuth configuration for frontend."""
+    return {
+        "client_id": MICROSOFT_CLIENT_ID,
+        "tenant": MICROSOFT_TENANT
+    }
+
 @router.post("/test-post")
 async def test_post_endpoint(data: dict):
     """Test POST endpoint to verify CORS and connectivity."""
@@ -1048,15 +1056,15 @@ async def microsoft_oauth_callback(request: MicrosoftCallbackRequest):
     try:
         # Get Microsoft OAuth configuration
         client_id = MICROSOFT_CLIENT_ID
-        client_secret = MICROSOFT_CLIENT_SECRET
         tenant = MICROSOFT_TENANT
         
         # Exchange authorization code for access token
         token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
         
+        # For confidential clients (Web apps), we use client_secret
         token_data = {
             "client_id": client_id,
-            "client_secret": client_secret,
+            "client_secret": MICROSOFT_CLIENT_SECRET,
             "code": request.code,
             "redirect_uri": request.redirect_uri,
             "code_verifier": request.code_verifier,

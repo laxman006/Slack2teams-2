@@ -1250,6 +1250,7 @@
 
         if (response.ok) {
           const data = await response.json();
+          console.log('[AUTH] Received user data from backend:', data);
           
           // Clear code verifier from session storage
           sessionStorage.removeItem('code_verifier');
@@ -1262,6 +1263,7 @@
             refresh_token: data.refresh_token
           };
           
+          console.log('[AUTH] Created user object:', user);
           localStorage.setItem('user', JSON.stringify(user));
           
           // Clear URL parameters
@@ -1310,7 +1312,10 @@
       // Check if user is logged in (only if no OAuth callback)
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       
+      console.log('[AUTH] Retrieved user from localStorage:', user);
+      
       if (!user || !user.access_token) {
+        console.log('[AUTH] No user or access token found, redirecting to login');
         window.location.href = "login.html";
         return;
       }
@@ -1321,6 +1326,7 @@
         if (isValid) {
           currentUser = user;
           updateUserInfo(user);
+          console.log('[AUTH] User authenticated, loading history for user.id:', user.id);
           // Always load history, even if it fails
           loadUserChatHistory(user.id).catch(error => {
             console.error('[ERROR] Failed to load history, but continuing:', error);
@@ -1338,6 +1344,7 @@
         // Still try to use the app with cached user
         currentUser = user;
         updateUserInfo(user);
+        console.log('[AUTH] Using cached user, loading history for user.id:', user.id);
         loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
       });
     }
@@ -1393,6 +1400,13 @@
     async function loadUserChatHistory(userId) {
       try {
         console.log('[HISTORY] Loading chat history for user:', userId);
+        
+        // Check if userId is valid
+        if (!userId || userId === 'undefined' || userId === 'null') {
+          console.error('[HISTORY] Invalid user ID:', userId);
+          return;
+        }
+        
         const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
           method: 'GET',
           headers: {

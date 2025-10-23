@@ -13,7 +13,7 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 # Microsoft OAuth Configuration
 MICROSOFT_CLIENT_ID = os.getenv("MICROSOFT_CLIENT_ID")
 MICROSOFT_CLIENT_SECRET = os.getenv("MICROSOFT_CLIENT_SECRET")
-MICROSOFT_TENANT = os.getenv("MICROSOFT_TENANT", "common")
+MICROSOFT_TENANT = os.getenv("MICROSOFT_TENANT", "cloudfuze.com")
 
 if not MICROSOFT_CLIENT_ID or not MICROSOFT_CLIENT_SECRET:
     raise ValueError("MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET environment variables are required")

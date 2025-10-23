@@ -144,17 +144,37 @@
   </div>
 
   <script>
-    // Microsoft OAuth configuration
-    const MICROSOFT_CLIENT_ID = "63bd4522-368b-4bd7-a84d-9c7f205cd2a6"; // Replace with your Azure app client ID
+    // Microsoft OAuth configuration - will be loaded from environment
+    let MICROSOFT_CLIENT_ID = null;
+    let MICROSOFT_TENANT = "cloudfuze.com"; // Restrict to CloudFuze company accounts only
     const MICROSOFT_REDIRECT_URI = window.location.origin + "/index.html";
     const MICROSOFT_SCOPE = "openid email profile User.Read";
-    const MICROSOFT_TENANT = "cloudfuze.com"; // Restrict to CloudFuze company accounts only
 
     // API Base URL configuration
     function getApiBase() {
       // Use window.location.origin which automatically gives us the correct protocol and host
       // This works for both localhost (http://localhost:8002) and production (https://yourdomain.com)
       return window.location.origin;
+    }
+
+    // Load Microsoft OAuth configuration from backend
+    async function loadOAuthConfig() {
+      try {
+        const response = await fetch(`${getApiBase()}/auth/config`);
+        if (response.ok) {
+          const config = await response.json();
+          MICROSOFT_CLIENT_ID = config.client_id;
+          MICROSOFT_TENANT = config.tenant || "cloudfuze.com";
+          console.log('[AUTH] Loaded OAuth config:', { client_id: MICROSOFT_CLIENT_ID, tenant: MICROSOFT_TENANT });
+        } else {
+          throw new Error('Failed to load OAuth configuration');
+        }
+      } catch (error) {
+        console.error('[AUTH] Error loading OAuth config:', error);
+        // Fallback to hardcoded values for development
+        MICROSOFT_CLIENT_ID = "861e696d-f41c-41ee-a7c2-c838fd185d6d";
+        console.log('[AUTH] Using fallback client ID');
+      }
     }
 
     // PKCE helper functions
@@ -482,7 +502,10 @@
     }
 
     // Initialize when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Load OAuth configuration first
+      await loadOAuthConfig();
+      
       // Debug information
       console.log('Login page initialized');
       console.log('Current hostname:', window.location.hostname);
