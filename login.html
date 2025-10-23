@@ -115,6 +115,12 @@
         font-size: 24px;
       }
     }
+
+    /* Loading animation */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
   <link rel="icon" type="image/png" href="./images/CloudFuze-icon-64x64.png">
 </head>
@@ -177,14 +183,31 @@
     function checkAuthStatus() {
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       if (user && user.access_token) {
+        console.log('User found in localStorage, verifying token...');
+        
+        // Show loading indicator
+        showLoadingIndicator('Checking authentication...');
+        
         // Verify token is still valid
         verifyToken(user.access_token).then(isValid => {
+          hideLoadingIndicator();
           if (isValid) {
+            console.log('Token is valid, redirecting to index.html');
+            // Direct redirect without success message or delay
             window.location.href = "index.html";
           } else {
+            console.log('Token is invalid, clearing user data');
             localStorage.removeItem('user');
+            showError('Your session has expired. Please sign in again.');
           }
+        }).catch(error => {
+          console.error('Token verification failed:', error);
+          hideLoadingIndicator();
+          localStorage.removeItem('user');
+          showError('Authentication check failed. Please sign in again.');
         });
+      } else {
+        console.log('No user found in localStorage');
       }
     }
 
@@ -211,6 +234,10 @@
         showError("Please configure your Microsoft Client ID in the login.html file. Replace 'YOUR_MICROSOFT_CLIENT_ID' with your actual Azure App Client ID.");
         return;
       }
+      
+      // Clear any existing session data to ensure fresh login
+      sessionStorage.removeItem('code_verifier');
+      localStorage.removeItem('user');
       
       // Show loading state
       const button = event.target;
@@ -293,6 +320,39 @@
       document.querySelector('.login-container').appendChild(successDiv);
     }
 
+    // Loading indicator functions
+    function showLoadingIndicator(message) {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'loading-indicator';
+      loadingDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      `;
+      loadingDiv.innerHTML = `
+        <div style="width: 20px; height: 20px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        ${message}
+      `;
+      document.body.appendChild(loadingDiv);
+    }
+    
+    function hideLoadingIndicator() {
+      const loadingDiv = document.getElementById('loading-indicator');
+      if (loadingDiv) {
+        loadingDiv.remove();
+      }
+    }
+
 
     // Handle OAuth callback
     function handleOAuthCallback() {
@@ -301,11 +361,13 @@
       const error = urlParams.get('error');
 
       if (error) {
+        console.log('OAuth error:', error);
         showError('Microsoft login failed: ' + error);
         return;
       }
 
       if (code) {
+        console.log('OAuth code received, processing...');
         exchangeCodeForToken(code);
       }
     }
@@ -316,7 +378,20 @@
       const codeVerifier = sessionStorage.getItem('code_verifier');
       
       if (!codeVerifier) {
-        showError('Login failed: Code verifier not found');
+        console.log('Code verifier not found, starting fresh login flow...');
+        // Clear any existing user data
+        localStorage.removeItem('user');
+        // Clear URL parameters to avoid infinite loops
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show a brief message and then automatically start login
+        showSuccess('Starting fresh login...');
+        setTimeout(() => {
+          // Automatically trigger the login button click
+          const loginButton = document.getElementById('microsoftLogin');
+          if (loginButton) {
+            loginButton.click();
+          }
+        }, 1000);
         return;
       }
       
@@ -353,18 +428,55 @@
           
           localStorage.setItem('user', JSON.stringify(user));
           
-          // Show welcome message
-          showSuccess(`Welcome ${user.name}! Redirecting to chatbot...`);
-          
-          // Redirect after a short delay
-          setTimeout(() => {
-            window.location.href = "index.html";
-          }, 1500);
+          // Direct redirect without success message or delay
+          window.location.href = "index.html";
         } else {
           const errorText = await response.text();
+          console.log('Server error response:', errorText);
+          
+          // Check if it's a code verifier related error
+          if (errorText.includes('code_verifier') || errorText.includes('Code verifier')) {
+            console.log('Code verifier error detected, starting fresh login...');
+            // Clear any existing user data
+            localStorage.removeItem('user');
+            // Clear URL parameters to avoid infinite loops
+            window.history.replaceState({}, document.title, window.location.pathname);
+            // Show a brief message and then automatically start login
+            showSuccess('Starting fresh login...');
+            setTimeout(() => {
+              // Automatically trigger the login button click
+              const loginButton = document.getElementById('microsoftLogin');
+              if (loginButton) {
+                loginButton.click();
+              }
+            }, 1000);
+            return;
+          }
+          
           showError('Login failed: ' + (errorText || 'Unknown error'));
         }
       } catch (error) {
+        console.log('Network or other error:', error.message);
+        
+        // Check if it's a code verifier related error
+        if (error.message.includes('code_verifier') || error.message.includes('Code verifier')) {
+          console.log('Code verifier error detected in catch, starting fresh login...');
+          // Clear any existing user data
+          localStorage.removeItem('user');
+          // Clear URL parameters to avoid infinite loops
+          window.history.replaceState({}, document.title, window.location.pathname);
+          // Show a brief message and then automatically start login
+          showSuccess('Starting fresh login...');
+          setTimeout(() => {
+            // Automatically trigger the login button click
+            const loginButton = document.getElementById('microsoftLogin');
+            if (loginButton) {
+              loginButton.click();
+            }
+          }, 1000);
+          return;
+        }
+        
         showError('Login failed: ' + error.message);
       }
     }
@@ -387,6 +499,26 @@
       
       checkAuthStatus();
       handleOAuthCallback();
+    });
+
+    // Check authentication status when page becomes visible (handles browser back button)
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        console.log('Page became visible, checking auth status...');
+        checkAuthStatus();
+      }
+    });
+
+    // Also check when the page is focused (additional safety)
+    window.addEventListener('focus', function() {
+      console.log('Window focused, checking auth status...');
+      checkAuthStatus();
+    });
+
+    // Check authentication on page load (handles direct navigation)
+    window.addEventListener('load', function() {
+      console.log('Page loaded, checking auth status...');
+      checkAuthStatus();
     });
   </script>
 </body>
