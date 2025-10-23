@@ -844,8 +844,10 @@
         // Use user ID if available, otherwise fall back to session ID
         if (currentUser && currentUser.id) {
           requestBody.user_id = currentUser.id;
+          console.log("[CHAT] Using user_id:", currentUser.id);
         } else {
           requestBody.session_id = sessionId;
+          console.warn("[CHAT] No user_id available, using session_id:", sessionId);
         }
         
         console.log("[CHAT] Request body:", requestBody);
@@ -1272,7 +1274,16 @@
           // Initialize with new user
           currentUser = user;
           updateUserInfo(user);
-          loadUserChatHistory(user.id);
+          
+          // Only load history if user.id is valid
+          if (user.id) {
+            loadUserChatHistory(user.id).catch(error => {
+              console.error('[ERROR] Failed to load history:', error);
+            });
+          } else {
+            console.warn('[WARNING] User ID is undefined, skipping history load');
+          }
+          
           hideLoadingIndicator();
         } else {
           const errorText = await response.text();
@@ -1327,12 +1338,18 @@
           currentUser = user;
           updateUserInfo(user);
           console.log('[AUTH] User authenticated, loading history for user.id:', user.id);
-          // Always load history, even if it fails
-          loadUserChatHistory(user.id).catch(error => {
-            console.error('[ERROR] Failed to load history, but continuing:', error);
-          }).finally(() => {
+          
+          // Always load history, even if it fails (but only if user.id exists)
+          if (user.id) {
+            loadUserChatHistory(user.id).catch(error => {
+              console.error('[ERROR] Failed to load history, but continuing:', error);
+            }).finally(() => {
+              hideLoadingIndicator();
+            });
+          } else {
+            console.warn('[WARNING] User ID is undefined, skipping history load');
             hideLoadingIndicator();
-          });
+          }
         } else {
           hideLoadingIndicator();
           localStorage.removeItem('user');
@@ -1345,7 +1362,13 @@
         currentUser = user;
         updateUserInfo(user);
         console.log('[AUTH] Using cached user, loading history for user.id:', user.id);
-        loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
+        
+        // Only load history if user.id exists
+        if (user.id) {
+          loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
+        } else {
+          console.warn('[WARNING] User ID is undefined, skipping history load');
+        }
       });
     }
 
