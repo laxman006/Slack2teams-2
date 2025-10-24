@@ -239,6 +239,86 @@
           "timestamp": "2025-10-23T17:58:47.459832"
         }
       ]
+    },
+    "feedback_fallback_1761295398002_f0obu7twv": {
+      "negative_count": 0,
+      "positive_count": 1,
+      "total_count": 1,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-24T08:43:18.032931"
+        }
+      ]
+    },
+    "feedback_fallback_1761295406351_b52vi36wf": {
+      "negative_count": 1,
+      "positive_count": 1,
+      "total_count": 2,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_down",
+          "comment": "",
+          "timestamp": "2025-10-24T08:43:26.373401"
+        },
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-24T08:43:58.913918"
+        }
+      ]
+    },
+    "feedback_fallback_1761295409986_59l64k5hl": {
+      "negative_count": 1,
+      "positive_count": 1,
+      "total_count": 2,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_down",
+          "comment": "",
+          "timestamp": "2025-10-24T08:43:37.151803"
+        },
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-24T08:44:09.172825"
+        }
+      ]
+    },
+    "feedback_fallback_1761295421207_ywx06nvqa": {
+      "negative_count": 1,
+      "positive_count": 1,
+      "total_count": 2,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_down",
+          "comment": "",
+          "timestamp": "2025-10-24T08:43:48.330161"
+        },
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-24T08:44:14.163051"
+        }
+      ]
+    },
+    "feedback_fallback_1761295458310_iql8jb3r5": {
+      "negative_count": 0,
+      "positive_count": 1,
+      "total_count": 1,
+      "question_asked_before": false,
+      "feedback_history": [
+        {
+          "rating": "thumbs_up",
+          "comment": "",
+          "timestamp": "2025-10-24T08:44:18.328045"
+        }
+      ]
     }
   }
 }

@@ -92,63 +92,74 @@ def build_vectorstore(url: str):
     vectorstore = Chroma.from_documents(docs, embeddings, persist_directory=CHROMA_DB_PATH)
     return vectorstore
 
-def build_combined_vectorstore(url: str, pdf_directory: str, excel_directory: str = None, doc_directory: str = None):
-    """Build and persist embeddings for web content, PDF documents, Excel files, and Word documents."""
-    print("Loading web content...")
-    raw_text = load_webpage(url)
+def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None):
+    """Build and persist embeddings for enabled sources only."""
+    all_docs = []
     
-    # CRITICAL: Clean HTML tags from web content for better semantic search
-    print("Cleaning HTML tags from web content...")
-    soup = BeautifulSoup(raw_text, "html.parser")
-    clean_text = soup.get_text(separator="\n", strip=True)
-    print(f"[OK] Cleaned web content: {len(raw_text)} chars -> {len(clean_text)} chars")
+    # Process web content if URL provided
+    if url:
+        print("Loading web content...")
+        raw_text = load_webpage(url)
+        
+        # CRITICAL: Clean HTML tags from web content for better semantic search
+        print("Cleaning HTML tags from web content...")
+        soup = BeautifulSoup(raw_text, "html.parser")
+        clean_text = soup.get_text(separator="\n", strip=True)
+        print(f"[OK] Cleaned web content: {len(raw_text)} chars -> {len(clean_text)} chars")
+        
+        # Use larger chunks with more overlap for better semantic search
+        web_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1500,  # Larger chunks for more context
+            chunk_overlap=300,  # More overlap to maintain context across chunks
+            separators=["\n\n", "\n", ". ", " ", ""]  # Smart splitting by paragraphs, sentences
+        )
+        web_docs = web_splitter.create_documents([clean_text])
+        
+        # Add source metadata to web docs
+        for doc in web_docs:
+            doc.metadata["source_type"] = "web"
+            doc.metadata["source"] = "cloudfuze_blog"
+        
+        all_docs.extend(web_docs)
+        print(f"  - Web documents: {len(web_docs)}")
+    else:
+        print("Web content disabled - skipping...")
     
-    # Use larger chunks with more overlap for better semantic search
-    web_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,  # Larger chunks for more context
-        chunk_overlap=300,  # More overlap to maintain context across chunks
-        separators=["\n\n", "\n", ". ", " ", ""]  # Smart splitting by paragraphs, sentences
-    )
-    web_docs = web_splitter.create_documents([clean_text])
+    # Process PDF documents if directory provided
+    if pdf_directory and os.path.exists(pdf_directory):
+        print("Processing PDF documents...")
+        pdf_docs = process_pdf_directory(pdf_directory)
+        pdf_chunks = chunk_pdf_documents(pdf_docs, chunk_size=1000, chunk_overlap=200)
+        all_docs.extend(pdf_chunks)
+        print(f"  - PDF documents: {len(pdf_chunks)}")
+    else:
+        print("PDF processing disabled or directory not found - skipping...")
     
-    # Add source metadata to web docs
-    for doc in web_docs:
-        doc.metadata["source_type"] = "web"
-        doc.metadata["source"] = "cloudfuze_blog"
-    
-    print("Processing PDF documents...")
-    pdf_docs = process_pdf_directory(pdf_directory)
-    pdf_chunks = chunk_pdf_documents(pdf_docs, chunk_size=1000, chunk_overlap=200)
-    
-    # Process Excel files if directory exists
-    excel_chunks = []
+    # Process Excel files if directory provided
     if excel_directory and os.path.exists(excel_directory):
         print("Processing Excel documents...")
         excel_docs = process_excel_directory(excel_directory)
         excel_chunks = chunk_excel_documents(excel_docs, chunk_size=1000, chunk_overlap=200)
+        all_docs.extend(excel_chunks)
+        print(f"  - Excel documents: {len(excel_chunks)}")
     else:
-        print("Excel directory not found or not specified, skipping Excel processing...")
+        print("Excel processing disabled or directory not found - skipping...")
     
-    # Process Word documents if directory exists
-    doc_chunks = []
+    # Process Word documents if directory provided
     if doc_directory and os.path.exists(doc_directory):
         print("Processing Word documents...")
         doc_docs = process_doc_directory(doc_directory)
         doc_chunks = chunk_doc_documents(doc_docs, chunk_size=1000, chunk_overlap=200)
+        all_docs.extend(doc_chunks)
+        print(f"  - Word documents: {len(doc_chunks)}")
     else:
-        print("Word documents directory not found or not specified, skipping Word processing...")
+        print("Word document processing disabled or directory not found - skipping...")
     
-    # Combine all documents
-    all_docs = web_docs + pdf_chunks + excel_chunks + doc_chunks
     print(f"Total documents to process: {len(all_docs)}")
-    print(f"  - Web documents: {len(web_docs)}")
-    print(f"  - PDF documents: {len(pdf_chunks)}")
-    print(f"  - Excel documents: {len(excel_chunks)}")
-    print(f"  - Word documents: {len(doc_chunks)}")
     
     # Create embeddings and vectorstore
     embeddings = OpenAIEmbeddings()
     vectorstore = Chroma.from_documents(all_docs, embeddings, persist_directory=CHROMA_DB_PATH)
     
-    print("Combined knowledge base created successfully!")
+    print("Selective knowledge base created successfully!")
     return vectorstore
