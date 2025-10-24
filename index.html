@@ -421,7 +421,7 @@
     .feedback-buttons {
       display: flex;
       gap: 4px;
-      margin-top: 8px;
+      margin-top: -6px;
       align-items: center;
     }
 
@@ -457,6 +457,25 @@
 
     .feedback-btn.thumbs-down.selected {
       color: #ef4444;
+    }
+
+    /* Icon styling - make all icons light grey */
+    .copy-button img,
+    .feedback-btn img {
+      filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
+    }
+
+    .copy-button:hover img,
+    .feedback-btn:hover img {
+      filter: brightness(0) saturate(100%) invert(20%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+    }
+
+    .feedback-btn.thumbs-up.selected img {
+      filter: brightness(0) saturate(100%) invert(40%) sepia(100%) saturate(2000%) hue-rotate(90deg) brightness(90%) contrast(90%);
+    }
+
+    .feedback-btn.thumbs-down.selected img {
+      filter: brightness(0) saturate(100%) invert(30%) sepia(100%) saturate(2000%) hue-rotate(0deg) brightness(90%) contrast(90%);
     }
 
     .feedback-text {
@@ -660,9 +679,15 @@
         div.innerHTML = `
           <div class="message-content">${content}</div>
           <div class="feedback-buttons">
-            <button class="copy-button" onclick="copyMessage(this)" title="Copy message">📋</button>
-            <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">👍</button>
-            <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">👎</button>
+            <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+              <img src="./images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+              <img src="./images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+              <img src="./images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+            </button>
             <span class="feedback-text"></span>
           </div>
         `;
@@ -786,13 +811,13 @@
         await navigator.clipboard.writeText(textContent);
         
         // Show success feedback
-        const originalText = button.innerHTML;
-        button.innerHTML = '✓';
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span style="color: #10a37f;">✓</span>';
         button.classList.add('copied');
         
         // Reset after 2 seconds
         setTimeout(() => {
-          button.innerHTML = originalText;
+          button.innerHTML = originalHTML;
           button.classList.remove('copied');
         }, 2000);
         
@@ -800,16 +825,14 @@
         console.error('Failed to copy text: ', err);
         
         // Fallback: show error feedback
-        const originalText = button.innerHTML;
-        button.innerHTML = '❌ Failed';
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span style="color: #721c24;">❌</span>';
         button.style.background = '#f8d7da';
-        button.style.color = '#721c24';
         
         // Reset after 2 seconds
         setTimeout(() => {
-          button.innerHTML = originalText;
+          button.innerHTML = originalHTML;
           button.style.background = '';
-          button.style.color = '';
         }, 2000);
       }
     }
@@ -919,9 +942,15 @@
                   botDiv.innerHTML = `
                     <div class="message-content">${renderMarkdown(fullResponse)}</div>
                     <div class="feedback-buttons">
-                      <button class="copy-button" onclick="copyMessage(this)" title="Copy message">📋</button>
-                      <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">👍</button>
-                      <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">👎</button>
+                      <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+                        <img src="./images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+                      </button>
+                      <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+                        <img src="./images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+                      </button>
+                      <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+                        <img src="./images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+                      </button>
                       <span class="feedback-text"></span>
                     </div>
                   `;
