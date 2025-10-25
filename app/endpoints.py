@@ -157,7 +157,7 @@ async def chat(request: Request):
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
+        llm = ChatOpenAI(model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", temperature=0.7)
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
@@ -266,7 +266,7 @@ async def chat_stream(request: Request):
                 from langchain_core.prompts import ChatPromptTemplate
                 
                 llm = ChatOpenAI(
-                    model_name="gpt-4o-mini", 
+                    model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", 
                     streaming=True, 
                     temperature=0.7,
                     max_tokens=500
@@ -337,7 +337,7 @@ async def chat_stream(request: Request):
             
             # Create streaming LLM
             llm = ChatOpenAI(
-                model_name="gpt-4o-mini", 
+                model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", 
                 streaming=True, 
                 temperature=0.3,
                 max_tokens=1500
@@ -440,31 +440,31 @@ async def submit_feedback(request: FeedbackRequest):
             comment=request.comment
         )
         
-        # Track feedback history for smart auto-correction
-        await track_feedback_history(request.trace_id, request.rating, request.comment)
-        
-        # If thumbs down, trigger auto-correction immediately
-        if request.rating == "thumbs_down":
-            try:
-                # Get the original question and response from the trace
-                original_data = await get_trace_data(request.trace_id)
-                if original_data:
-                    # Trigger auto-correction
-                    corrected_response = await trigger_auto_correction_workflow(
-                        trace_id=request.trace_id,
-                        user_query=original_data.get("question", ""),
-                        bad_response=original_data.get("response", ""),
-                        user_comment=request.comment
-                    )
-            except Exception as e:
-                print(f"Auto-correction failed: {e}")
+        # COMMENTED OUT: Auto-correction workflow (now using manual correction)
+        # await track_feedback_history(request.trace_id, request.rating, request.comment)
+        # 
+        # # If thumbs down, trigger auto-correction immediately
+        # if request.rating == "thumbs_down":
+        #     try:
+        #         # Get the original question and response from the trace
+        #         original_data = await get_trace_data(request.trace_id)
+        #         if original_data:
+        #             # Trigger auto-correction
+        #             corrected_response = await trigger_auto_correction_workflow(
+        #                 trace_id=request.trace_id,
+        #                 user_query=original_data.get("question", ""),
+        #                 bad_response=original_data.get("response", ""),
+        #                 user_comment=request.comment
+        #             )
+        #     except Exception as e:
+        #         print(f"Auto-correction failed: {e}")
         
         if success:
             return {
                 "status": "success",
                 "message": "Feedback recorded successfully",
                 "trace_id": request.trace_id,
-                "auto_correction_triggered": request.rating == "thumbs_down"
+                "auto_correction_triggered": False  # Manual correction will be used instead
             }
         else:
             return {
@@ -611,7 +611,7 @@ async def trigger_auto_correction(trace_id: str, user_comment: str = None):
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.3)
+        llm = ChatOpenAI(model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", temperature=0.3)
         
         # For now, we'll create a generic improved response
         # In a real implementation, you'd fetch the original Q&A from Langfuse
@@ -940,7 +940,7 @@ async def generate_improved_response(user_query: str, bad_response: str, user_co
         
         # Create LLM for auto-correction
         llm = ChatOpenAI(
-            model_name="gpt-4o-mini",
+            model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",
             temperature=0.3,
             max_tokens=1000
         )
@@ -1111,3 +1111,409 @@ async def microsoft_oauth_callback(request: MicrosoftCallbackRequest):
             
     except Exception as e:
         return {"error": f"OAuth callback failed: {str(e)}"}
+
+# ---------------- Manual Correction Workflow ----------------
+
+# Batch Processing Configuration (Optimized)
+BATCH_SIZE = 5  # Process 5 traces at a time (with parallel processing)
+DELAY_BETWEEN_BATCHES = 1  # Wait 1 second between batches
+DELAY_BETWEEN_TRACES = 0   # No delay needed with parallelization (set in parallel processing)
+DELAY_BEFORE_LANGFUSE = 0.3  # Wait 300ms before each Langfuse API call
+
+@router.post("/correction/run-manual-pipeline")
+async def run_manual_correction_pipeline():
+    """
+    Manual correction workflow:
+    1. Fetch bad traces from Langfuse
+    2. Generate corrected responses using LLM with better context
+    3. Log manual_corrected_response back to same trace_id
+    """
+    return {
+        "status": "disabled",
+        "message": "Automatic Langfuse fetching is disabled. Use /correction/upload-dataset endpoint for manual processing.",
+        "corrected_count": 0
+    }
+
+async def fetch_bad_traces_from_langfuse():
+    """DISABLED: Manual loading only - no automatic Langfuse fetching."""
+    print("[INFO] Automatic Langfuse fetching disabled - use manual upload workflow")
+    return []
+
+async def generate_improved_response_with_context(user_query: str, bad_response: str, user_feedback: str = ""):
+    """Generate improved response using LLM with better context from knowledge base."""
+    try:
+        from langchain_openai import ChatOpenAI
+        
+        # Retrieve relevant documents from vectorstore for better context
+        relevant_docs = vectorstore.similarity_search(user_query, k=25)
+        
+        # Format the retrieved documents as context
+        context_text = "\n\n".join([f"Document {i+1}:\n{doc.page_content}" for i, doc in enumerate(relevant_docs)])
+        
+        # Create LLM for improved response generation
+        llm = ChatOpenAI(
+            model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",
+            temperature=0.3,
+            max_tokens=1000
+        )
+        
+        # Create improved prompt with knowledge base context
+        improvement_prompt = f"""
+You are an expert assistant specializing in Slack to Microsoft Teams migrations via CloudFuze.
+
+KNOWLEDGE BASE CONTEXT:
+{context_text}
+
+ORIGINAL USER QUESTION: {user_query}
+ORIGINAL BAD RESPONSE: {bad_response}
+USER FEEDBACK: {user_feedback}
+
+TASK: Generate an improved, accurate, and helpful response to the user's question about Slack to Microsoft Teams migration.
+
+REQUIREMENTS:
+1. Use the knowledge base context above to provide accurate information
+2. Be specific and detailed in your response
+3. Focus on Slack to Microsoft Teams migration topics only
+4. If the question is not about migration, use this exact response: "Hmm, I'm not sure about that one! 😊 I specialize in helping with Slack to Microsoft Teams migrations. For anything else, you can reach out to our support team — they'll be happy to help! You can contact them [here](https://www.cloudfuze.com/contact/)."
+5. Provide actionable steps and clear guidance
+6. Use proper formatting with headers, lists, and links where appropriate
+
+Generate a comprehensive, helpful response:
+"""
+        
+        # Generate improved response
+        response = llm.invoke(improvement_prompt)
+        improved_response = response.content if hasattr(response, 'content') else str(response)
+        
+        return improved_response
+        
+    except Exception as e:
+        print(f"Error generating improved response: {e}")
+        return None
+
+async def log_corrected_response_to_langfuse(trace_id: str, corrected_response: str, user_input: str):
+    """Log the manually corrected response as an observation in Langfuse."""
+    try:
+        if not langfuse_tracker or not langfuse_tracker.client:
+            print(f"[ERROR] Langfuse client not available for trace {trace_id}")
+            return False
+
+        # Add delay before Langfuse API call
+        await asyncio.sleep(DELAY_BEFORE_LANGFUSE)
+
+        try:
+            # ✅ Create a new generation under the existing trace using the correct Langfuse SDK API
+            generation = langfuse_tracker.client.generation(
+                trace_id=trace_id,
+                name="corrected_response",
+                model="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",
+                input=user_input,
+                output=corrected_response,
+                metadata={"correction_type": "manual_llm_correction"}
+            )
+
+            if generation:
+                print(f"[OK] Created corrected_response generation for trace {trace_id}")
+                return True
+            else:
+                print(f"[ERROR] Generation creation returned None for {trace_id}")
+                return False
+
+        except Exception as e:
+            print(f"[ERROR] Failed to create generation for {trace_id}: {e}")
+            print(f"[ERROR] Corrected response will NOT be stored - generation creation failed")
+            return False
+
+    except Exception as e:
+        print(f"Error logging corrected response to Langfuse: {e}")
+        return False
+
+async def process_single_trace(trace: dict, batch_num: int, trace_num: int, total_in_batch: int) -> dict:
+    """
+    Process a single trace: generate correction and log to Langfuse.
+    Designed for parallel execution with proper error handling.
+    """
+    try:
+        # Validate required fields
+        if not all(key in trace for key in ["id", "input", "output"]):
+            print(f"[WARNING] Skipping trace with missing required fields: {trace.get('id', 'unknown')}")
+            return {
+                "trace_id": trace.get("id", "unknown"),
+                "status": "skipped",
+                "error": "Missing required fields"
+            }
+        
+        print(f"[MANUAL-CORRECTION] Processing trace {trace['id']} ({trace_num}/{total_in_batch} in batch {batch_num})...")
+        
+        # Generate corrected response using LLM with better context
+        corrected_response = await generate_improved_response_with_context(
+            user_query=trace["input"],
+            bad_response=trace["output"],
+            user_feedback=trace.get("feedback_comment", "")
+        )
+        
+        if not corrected_response:
+            print(f"[ERROR] Failed to generate correction for trace {trace['id']}")
+            return {
+                "trace_id": trace["id"],
+                "status": "failed",
+                "error": "Failed to generate corrected response"
+            }
+        
+        # Log manual_corrected_response back to same trace_id
+        success = await log_corrected_response_to_langfuse(
+            trace_id=trace["id"],
+            corrected_response=corrected_response,
+            user_input=trace["input"]
+        )
+        
+        if success:
+            print(f"[MANUAL-CORRECTION] Successfully corrected trace {trace['id']}")
+            return {
+                "trace_id": trace["id"],
+                "status": "corrected",
+                "original_input": trace["input"][:100] + "..." if len(trace["input"]) > 100 else trace["input"]
+            }
+        else:
+            return {
+                "trace_id": trace["id"],
+                "status": "failed",
+                "error": "Failed to log to Langfuse"
+            }
+        
+    except Exception as e:
+        print(f"[MANUAL-CORRECTION] Error processing trace {trace.get('id', 'unknown')}: {e}")
+        return {
+            "trace_id": trace.get("id", "unknown"),
+            "status": "failed",
+            "error": str(e)
+        }
+
+def load_checkpoint(checkpoint_file: str) -> set:
+    """Load processed trace IDs from checkpoint file."""
+    if os.path.exists(checkpoint_file):
+        try:
+            with open(checkpoint_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return set(data.get("processed_trace_ids", []))
+        except Exception as e:
+            print(f"[WARNING] Failed to load checkpoint: {e}")
+    return set()
+
+def save_checkpoint(checkpoint_file: str, processed_ids: set):
+    """Save processed trace IDs to checkpoint file."""
+    try:
+        os.makedirs(os.path.dirname(checkpoint_file), exist_ok=True)
+        with open(checkpoint_file, 'w', encoding='utf-8') as f:
+            json.dump({"processed_trace_ids": list(processed_ids)}, f, indent=2)
+    except Exception as e:
+        print(f"[WARNING] Failed to save checkpoint: {e}")
+
+
+@router.get("/correction/config")
+async def get_correction_config():
+    """Get current batch processing configuration."""
+    return {
+        "status": "success",
+        "config": {
+            "batch_size": BATCH_SIZE,
+            "delay_between_batches": DELAY_BETWEEN_BATCHES,
+            "delay_between_traces": DELAY_BETWEEN_TRACES,
+            "delay_before_langfuse": DELAY_BEFORE_LANGFUSE
+        },
+        "description": {
+            "batch_size": "Number of traces processed in each batch",
+            "delay_between_batches": "Seconds to wait between batches",
+            "delay_between_traces": "Seconds to wait between traces in same batch",
+            "delay_before_langfuse": "Seconds to wait before each Langfuse API call"
+        }
+    }
+
+@router.get("/correction/status")
+async def get_correction_status():
+    """Get status of available bad traces for correction."""
+    try:
+        if not langfuse_tracker or not langfuse_tracker.client:
+            return {
+                "status": "error",
+                "message": "Langfuse client not available"
+            }
+        
+        # Fetch bad traces count
+        bad_traces = await fetch_bad_traces_from_langfuse()
+        
+        return {
+            "status": "success",
+            "langfuse_connected": True,
+            "bad_traces_count": len(bad_traces),
+            "bad_traces": [
+                {
+                    "id": trace["id"],
+                    "input_preview": trace["input"][:100] + "..." if len(trace["input"]) > 100 else trace["input"],
+                    "feedback_comment": trace.get("feedback_comment", ""),
+                    "timestamp": trace.get("timestamp")
+                }
+                for trace in bad_traces[:5]  # Show first 5 for preview
+            ]
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Error checking correction status: {str(e)}"
+        }
+
+@router.post("/correction/upload-dataset")
+async def upload_correction_dataset(request: Request):
+    """
+    Upload JSON dataset of bad traces for manual correction.
+    
+    Features:
+    - Parallel processing within batches for 3x faster execution
+    - Checkpoint-based resume capability for failed uploads
+    - Optimized batch configuration for better throughput
+    """
+    try:
+        data = await request.json()
+        
+        if not data or "traces" not in data:
+            return {
+                "status": "error",
+                "message": "Invalid dataset format. Expected 'traces' array."
+            }
+        
+        traces = data["traces"]
+        if not isinstance(traces, list):
+            return {
+                "status": "error",
+                "message": "Traces must be an array."
+            }
+        
+        print(f"[MANUAL-CORRECTION] Processing uploaded dataset with {len(traces)} traces...")
+        
+        # Initialize checkpointing
+        checkpoint_file = "./data/processing_checkpoint.json"
+        processed_ids = load_checkpoint(checkpoint_file)
+        
+        if processed_ids:
+            print(f"[CHECKPOINT] Resuming: {len(processed_ids)} traces already processed")
+        
+        corrected_count = 0
+        results = []
+        
+        # Filter out already processed traces
+        traces_to_process = [t for t in traces if t.get("id") not in processed_ids]
+        
+        if len(traces_to_process) < len(traces):
+            skipped = len(traces) - len(traces_to_process)
+            print(f"[CHECKPOINT] Skipping {skipped} already processed traces")
+        
+        if not traces_to_process:
+            print(f"[CHECKPOINT] All traces already processed!")
+            return {
+                "status": "success",
+                "message": "All traces already processed",
+                "total_traces": len(traces),
+                "corrected_count": len(processed_ids),
+                "results": []
+            }
+        
+        # Split traces into batches
+        batches = [traces_to_process[i:i + BATCH_SIZE] for i in range(0, len(traces_to_process), BATCH_SIZE)]
+        
+        print(f"[MANUAL-CORRECTION] Processing {len(traces_to_process)} traces in {len(batches)} batches (batch size: {BATCH_SIZE})")
+        
+        for batch_num, batch in enumerate(batches, 1):
+            print(f"\n[MANUAL-CORRECTION] ===== Batch {batch_num}/{len(batches)} ({len(batch)} traces) =====")
+            
+            # Process batch in parallel using asyncio.gather
+            tasks = [
+                process_single_trace(trace, batch_num, i+1, len(batch))
+                for i, trace in enumerate(batch)
+            ]
+            
+            # Execute all tasks in parallel with exception handling
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results and update checkpoint
+            for i, result in enumerate(batch_results):
+                if isinstance(result, Exception):
+                    # Handle exceptions from gather
+                    trace_id = batch[i].get("id", "unknown")
+                    print(f"[ERROR] Exception processing trace {trace_id}: {result}")
+                    results.append({
+                        "trace_id": trace_id,
+                        "status": "failed",
+                        "error": str(result)
+                    })
+                else:
+                    # Normal result
+                    results.append(result)
+                    
+                    # Update checkpoint and counters
+                    if result.get("status") == "corrected":
+                        corrected_count += 1
+                        processed_ids.add(result["trace_id"])
+                        # Save checkpoint after each successful correction
+                        save_checkpoint(checkpoint_file, processed_ids)
+            
+            print(f"[MANUAL-CORRECTION] Batch {batch_num} completed: {sum(1 for r in batch_results if isinstance(r, dict) and r.get('status') == 'corrected')}/{len(batch)} successful")
+            
+            # Add delay between batches (except after last batch)
+            if batch_num < len(batches):
+                print(f"[MANUAL-CORRECTION] Waiting {DELAY_BETWEEN_BATCHES}s before next batch...")
+                await asyncio.sleep(DELAY_BETWEEN_BATCHES)
+        
+        # Clear checkpoint on successful completion
+        if corrected_count == len(traces_to_process):
+            print(f"\n[CHECKPOINT] All traces processed successfully. Clearing checkpoint...")
+            try:
+                if os.path.exists(checkpoint_file):
+                    os.remove(checkpoint_file)
+            except Exception as e:
+                print(f"[WARNING] Failed to clear checkpoint: {e}")
+        
+        print(f"\n[MANUAL-CORRECTION] ===== Processing Complete =====")
+        print(f"Total traces: {len(traces)}")
+        print(f"Successfully corrected: {corrected_count}")
+        print(f"Failed: {len(results) - corrected_count}")
+        
+        return {
+            "status": "success",
+            "message": f"Dataset processing completed",
+            "total_traces": len(traces),
+            "corrected_count": corrected_count,
+            "failed_count": len(results) - corrected_count,
+            "results": results
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Dataset upload failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "status": "error",
+            "message": f"Dataset upload failed: {str(e)}"
+        }
+
+@router.delete("/correction/checkpoint")
+async def clear_checkpoint():
+    """Clear the processing checkpoint file to restart from scratch."""
+    try:
+        checkpoint_file = "./data/processing_checkpoint.json"
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+            return {
+                "status": "success",
+                "message": "Checkpoint cleared successfully"
+            }
+        else:
+            return {
+                "status": "success",
+                "message": "No checkpoint file found"
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to clear checkpoint: {str(e)}"
+        }

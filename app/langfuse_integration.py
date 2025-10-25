@@ -84,7 +84,7 @@ class LangfuseTracker:
             # Also add generation span for detailed LLM metrics
             generation = trace.generation(
                 name="chat_response",
-                model="gpt-4o-mini",
+                model="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",
                 input=question,
                 output=answer,
                 metadata={

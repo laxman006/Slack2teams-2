@@ -25,7 +25,7 @@ def setup_qa_chain(retriever):
     ])
     
     llm = ChatOpenAI(
-        model_name="gpt-4o-mini",  # Updated model name
+        model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",  # Fine-tuned model
         streaming=True, 
         temperature=0.3,  # Balanced temperature for good responses
         max_tokens=1500   # Allow longer responses for comprehensive answers

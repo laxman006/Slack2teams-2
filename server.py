@@ -14,18 +14,18 @@ async def lifespan(app: FastAPI):
     from app.mongodb_memory import mongodb_memory
     try:
         await mongodb_memory.connect()
-        print("✅ MongoDB memory storage initialized successfully")
+        print("[OK] MongoDB memory storage initialized successfully")
     except Exception as e:
-        print(f"❌ Failed to initialize MongoDB memory storage: {e}")
+        print(f"[ERROR] Failed to initialize MongoDB memory storage: {e}")
     
     yield
     
     # Shutdown
     try:
         await close_mongodb_connection()
-        print("✅ MongoDB memory storage closed")
+        print("[OK] MongoDB memory storage closed")
     except Exception as e:
-        print(f"⚠️ Error closing MongoDB memory storage: {e}")
+        print(f"[WARNING] Error closing MongoDB memory storage: {e}")
 
 app = FastAPI(lifespan=lifespan)
 
