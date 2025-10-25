@@ -239,19 +239,6 @@
           "timestamp": "2025-10-23T17:58:47.459832"
         }
       ]
-    },
-    "feedback_fallback_1761311461209_sqlvcpn8g": {
-      "negative_count": 0,
-      "positive_count": 1,
-      "total_count": 1,
-      "question_asked_before": false,
-      "feedback_history": [
-        {
-          "rating": "thumbs_up",
-          "comment": "",
-          "timestamp": "2025-10-24T18:41:01.276780"
-        }
-      ]
     }
   }
 }

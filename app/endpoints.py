@@ -317,8 +317,13 @@ async def chat_stream(request: Request):
             # This happens while the frontend shows "Thinking..." animation
             
             try:
-                # Enhanced semantic search with better coverage
-                final_docs = vectorstore.similarity_search(enhanced_query, k=25)
+                # Check if vectorstore is available
+                if vectorstore is None:
+                    print("Warning: Vectorstore not initialized. Please rebuild vectorstore manually.")
+                    final_docs = []
+                else:
+                    # Enhanced semantic search with better coverage
+                    final_docs = vectorstore.similarity_search(enhanced_query, k=25)
             except Exception as e:
                 print(f"Error during document search: {e}")
                 final_docs = []
@@ -933,7 +938,11 @@ async def generate_improved_response(user_query: str, bad_response: str, user_co
         
         # CRITICAL: Retrieve relevant documents from vectorstore for context
         # This ensures the corrected response is based on actual knowledge base
-        relevant_docs = vectorstore.similarity_search(user_query, k=25)
+        if vectorstore is None:
+            print("Warning: Vectorstore not initialized. Cannot retrieve context for improved response.")
+            relevant_docs = []
+        else:
+            relevant_docs = vectorstore.similarity_search(user_query, k=25)
         
         # Format the retrieved documents as context
         context_text = "\n\n".join([f"Document {i+1}:\n{doc.page_content}" for i, doc in enumerate(relevant_docs)])

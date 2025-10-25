@@ -19,6 +19,15 @@ services:
       - MONGODB_URL=${MONGODB_URL:-mongodb://mongodb:27017}
       - MONGODB_DATABASE=${MONGODB_DATABASE:-slack2teams}
       - MONGODB_CHAT_COLLECTION=${MONGODB_CHAT_COLLECTION:-chat_histories}
+      - INITIALIZE_VECTORSTORE=${INITIALIZE_VECTORSTORE:-false}
+      - ENABLE_WEB_SOURCE=${ENABLE_WEB_SOURCE:-false}
+      - ENABLE_PDF_SOURCE=${ENABLE_PDF_SOURCE:-false}
+      - ENABLE_EXCEL_SOURCE=${ENABLE_EXCEL_SOURCE:-false}
+      - ENABLE_DOC_SOURCE=${ENABLE_DOC_SOURCE:-false}
+      - WEB_SOURCE_URL=${WEB_SOURCE_URL:-https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100}
+      - PDF_SOURCE_DIR=${PDF_SOURCE_DIR:-./pdfs}
+      - EXCEL_SOURCE_DIR=${EXCEL_SOURCE_DIR:-./excel}
+      - DOC_SOURCE_DIR=${DOC_SOURCE_DIR:-./docs}
     volumes:
       - ./data:/app/data
       - ./images:/app/images

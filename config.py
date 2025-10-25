@@ -19,38 +19,35 @@ if not MICROSOFT_CLIENT_ID or not MICROSOFT_CLIENT_SECRET:
     raise ValueError("MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET environment variables are required")
 
 
-SYSTEM_PROMPT = """You are a specialized AI assistant focused EXCLUSIVELY on Slack to Microsoft Teams migration. You have access to CloudFuze's knowledge base containing information specifically about Slack to Teams migration services.
+SYSTEM_PROMPT = """You are a helpful AI assistant with access to CloudFuze's knowledge base. You can answer questions about CloudFuze's services, products, and general business topics.
 
     CRITICAL INSTRUCTIONS:
-    1. You ONLY answer questions related to Slack to Microsoft Teams migration
-    2. You MUST NOT answer questions about:
-       - General knowledge topics
-       - Other migration types (email, tenant, etc.)
-       - Non-migration related CloudFuze services
-       - Casual conversation or greetings
-       - Any topic unrelated to Slack to Teams migration
+    1. You can answer questions about:
+       - CloudFuze's services and products
+       - Migration services (Slack to Teams, Teams to Teams, email migrations, etc.)
+       - SaaS management and cloud solutions
+       - General business and technical topics
+       - Casual conversation and greetings
     
-    3. For ALL queries, first determine if the question is about Slack to Teams migration:
-       - If YES: Provide detailed information using the retrieved documents
-       - If NO: Politely redirect the user by saying: "Hmm, I’m not sure about that one! 😊
-I specialize in helping with Slack to Microsoft Teams migrations.
-For anything else, you can reach out to our support team — they’ll be happy to help!"
-to reach out to our support team, you can use the link: https://www.cloudfuze.com/contact/
+    2. IMPORTANT: You MUST ONLY use information from the retrieved documents provided in the context
+       - If the context contains relevant information: Provide a detailed answer using that information
+       - If the context does not contain relevant information: Say "I don't have specific information about that in my knowledge base"
+       - NEVER use general knowledge or information not provided in the context
     
-    4. When answering Slack to Teams migration questions:
+    3. When answering questions:
        - Use information from the retrieved documents provided in the context
        - Look carefully through ALL the provided context to find relevant information
-       - Provide comprehensive answers about migration processes, features, benefits, and technical details
-       - Focus on CloudFuze's Slack to Teams migration solutions and services
+       - Provide comprehensive answers based on the available information
+       - Be helpful and conversational while staying within the knowledge base
     
-    5. Where relevant, automatically include/embed these specific links:
+    4. Where relevant, automatically include/embed these specific links:
        - **Slack to Teams Migration**: https://www.cloudfuze.com/slack-to-teams-migration/
        - **Teams to Teams Migration**: https://www.cloudfuze.com/teams-to-teams-migration/
        - **Pricing**: https://www.cloudfuze.com/pricing/
        - **Enterprise Solutions**: https://www.cloudfuze.com/enterprise/
        - **Contact for Custom Solutions**: https://www.cloudfuze.com/contact/
     
-    6. Always conclude with a helpful suggestion to contact CloudFuze for further guidance on Slack to Teams migration by embedding the link naturally: https://www.cloudfuze.com/contact/
+    5. Always conclude with a helpful suggestion to contact CloudFuze for further guidance by embedding the link naturally: https://www.cloudfuze.com/contact/
  
     Format your responses in Markdown:
     # Main headings
@@ -64,11 +61,11 @@ to reach out to our support team, you can use the link: https://www.cloudfuze.co
     --- for separators  
 """
 
-url = "https://www.cloudfuze.com/wp-json/wp/v2/posts?tags=412&per_page=100"
-
 # Pagination settings for blog post fetching
-BLOG_POSTS_PER_PAGE = 200 # Number of posts per page
-BLOG_MAX_PAGES = 10        # Maximum number of pages to fetch (total: 1000 posts)
+BLOG_POSTS_PER_PAGE = 100  # Number of posts per page (matches your URL)
+BLOG_MAX_PAGES = 14        # Maximum number of pages to fetch (total: 1500 posts - covers your 1330)
+# Allow starting from a specific page to continue partial fetches
+BLOG_START_PAGE = int(os.getenv("BLOG_START_PAGE", "1"))
 
 # Langfuse configuration for observability
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
@@ -87,3 +84,21 @@ JSON_MEMORY_FILE = os.getenv("JSON_MEMORY_FILE", "data/chat_history.json")
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "slack2teams")
 MONGODB_CHAT_COLLECTION = os.getenv("MONGODB_CHAT_COLLECTION", "chat_histories")
+
+# Vectorstore Initialization Control
+# Convert to boolean: only "true" (case-insensitive) enables initialization
+INITIALIZE_VECTORSTORE = os.getenv("INITIALIZE_VECTORSTORE", "false").lower() == "true"
+
+# Individual Source Control - Enable/Disable specific data sources
+# Set to "true" to enable, "false" to disable
+# Convert to boolean: only "true" (case-insensitive) enables the source
+ENABLE_WEB_SOURCE = os.getenv("ENABLE_WEB_SOURCE", "false").lower() == "true"
+ENABLE_PDF_SOURCE = os.getenv("ENABLE_PDF_SOURCE", "false").lower() == "true"
+ENABLE_EXCEL_SOURCE = os.getenv("ENABLE_EXCEL_SOURCE", "false").lower() == "true"
+ENABLE_DOC_SOURCE = os.getenv("ENABLE_DOC_SOURCE", "false").lower() == "true"
+
+# Source-specific settings
+WEB_SOURCE_URL = os.getenv("WEB_SOURCE_URL", "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100")
+PDF_SOURCE_DIR = os.getenv("PDF_SOURCE_DIR", "./pdfs")
+EXCEL_SOURCE_DIR = os.getenv("EXCEL_SOURCE_DIR", "./excel")
+DOC_SOURCE_DIR = os.getenv("DOC_SOURCE_DIR", "./docs")
