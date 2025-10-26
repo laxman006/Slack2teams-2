@@ -157,7 +157,7 @@ async def chat(request: Request):
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", temperature=0.7)
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
@@ -266,7 +266,7 @@ async def chat_stream(request: Request):
                 from langchain_core.prompts import ChatPromptTemplate
                 
                 llm = ChatOpenAI(
-                    model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", 
+                    model_name="gpt-4o-mini", 
                     streaming=True, 
                     temperature=0.7,
                     max_tokens=500
@@ -342,7 +342,7 @@ async def chat_stream(request: Request):
             
             # Create streaming LLM
             llm = ChatOpenAI(
-                model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", 
+                model_name="gpt-4o-mini", 
                 streaming=True, 
                 temperature=0.3,
                 max_tokens=1500
@@ -616,7 +616,7 @@ async def trigger_auto_correction(trace_id: str, user_comment: str = None):
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
-        llm = ChatOpenAI(model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt", temperature=0.3)
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.3)
         
         # For now, we'll create a generic improved response
         # In a real implementation, you'd fetch the original Q&A from Langfuse
@@ -949,7 +949,7 @@ async def generate_improved_response(user_query: str, bad_response: str, user_co
         
         # Create LLM for auto-correction
         llm = ChatOpenAI(
-            model_name="ft:gpt-4o-mini-2024-07-18:cloudfuze-inc::CUCajRyt",
+            model_name="gpt-4o-mini",
             temperature=0.3,
             max_tokens=1000
         )
