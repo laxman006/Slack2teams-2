@@ -1,6 +1,10 @@
 from app.helpers import build_vectorstore, build_combined_vectorstore
 from app.pdf_processor import process_pdf_directory, chunk_pdf_documents
-from config import url, CHROMA_DB_PATH
+from config import (
+    CHROMA_DB_PATH, INITIALIZE_VECTORSTORE,
+    ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE,
+    WEB_SOURCE_URL, PDF_SOURCE_DIR, EXCEL_SOURCE_DIR, DOC_SOURCE_DIR, BLOG_START_PAGE,
+)
 import os
 import shutil
 import json
@@ -39,15 +43,31 @@ def get_directory_hash(directory):
     return hashlib.md5(combined.encode()).hexdigest()
 
 def get_current_metadata():
-    """Get current metadata of all source files and directories."""
+    """Get current metadata of enabled source files and directories."""
     metadata = {
         "timestamp": datetime.now().isoformat(),
-        "url": url,
-        "pdfs": get_directory_hash("./pdfs"),
-        "excel": get_directory_hash("./excel"),
-        "docs": get_directory_hash("./docs"),
-        "vectorstore_exists": os.path.exists(CHROMA_DB_PATH)
+        "vectorstore_exists": os.path.exists(CHROMA_DB_PATH),
+        "enabled_sources": []
     }
+    
+    # Only check enabled sources
+    if ENABLE_WEB_SOURCE:
+        metadata["url"] = WEB_SOURCE_URL
+        metadata["web_pagination"] = {"start_page": BLOG_START_PAGE}
+        metadata["enabled_sources"].append("web")
+    
+    if ENABLE_PDF_SOURCE:
+        metadata["pdfs"] = get_directory_hash(PDF_SOURCE_DIR)
+        metadata["enabled_sources"].append("pdfs")
+    
+    if ENABLE_EXCEL_SOURCE:
+        metadata["excel"] = get_directory_hash(EXCEL_SOURCE_DIR)
+        metadata["enabled_sources"].append("excel")
+    
+    if ENABLE_DOC_SOURCE:
+        metadata["docs"] = get_directory_hash(DOC_SOURCE_DIR)
+        metadata["enabled_sources"].append("docs")
+    
     return metadata
 
 def load_stored_metadata():
@@ -67,35 +87,56 @@ def save_metadata(metadata):
     with open(METADATA_FILE, 'w') as f:
         json.dump(metadata, f, indent=2)
 
-def should_rebuild_vectorstore():
-    """Check if vectorstore needs to be rebuilt based on file changes."""
-    print("[*] Checking if vectorstore rebuild is needed...")
+def get_changed_sources():
+    """Get list of sources that have changed (incremental rebuild)."""
+    print("[*] Checking for changed sources...")
     
-    # If vectorstore doesn't exist, we need to rebuild
+    # If vectorstore doesn't exist, all enabled sources need to be rebuilt
     if not os.path.exists(CHROMA_DB_PATH):
-        print("[!] Vectorstore not found - rebuild needed")
-        return True
+        print("[!] Vectorstore not found - all enabled sources need rebuild")
+        current_metadata = get_current_metadata()
+        return current_metadata.get("enabled_sources", [])
     
     # Load stored metadata
     stored_metadata = load_stored_metadata()
     if not stored_metadata:
-        print("[!] No stored metadata found - rebuild needed")
-        return True
+        print("[!] No stored metadata found - all enabled sources need rebuild")
+        current_metadata = get_current_metadata()
+        return current_metadata.get("enabled_sources", [])
     
     # Get current metadata
     current_metadata = get_current_metadata()
     
-    # Check if any source has changed
-    sources_to_check = ["pdfs", "excel", "docs", "url"]
-    for source in sources_to_check:
+    # Check which enabled sources have changed
+    enabled_sources = current_metadata.get("enabled_sources", [])
+    changed_sources = []
+    
+    print(f"[*] Checking enabled sources: {', '.join(enabled_sources)}")
+    
+    for source in enabled_sources:
         if stored_metadata.get(source) != current_metadata.get(source):
-            print(f"[!] {source} has changed - rebuild needed")
+            print(f"[!] {source} has changed")
             print(f"   Stored: {stored_metadata.get(source)}")
             print(f"   Current: {current_metadata.get(source)}")
-            return True
+            changed_sources.append(source)
+
+    # Additional check: if web pagination changed, mark web as changed
+    if "web" in enabled_sources:
+        if stored_metadata.get("web_pagination") != current_metadata.get("web_pagination"):
+            print("[!] web pagination settings have changed")
+            changed_sources.append("web")
     
-    print("[OK] No changes detected - using existing vectorstore")
-    return False
+    if changed_sources:
+        print(f"[*] Changed sources: {', '.join(changed_sources)}")
+    else:
+        print("[OK] No changes detected in enabled sources")
+    
+    return changed_sources
+
+def should_rebuild_vectorstore():
+    """Check if vectorstore needs to be rebuilt based on enabled source changes."""
+    changed_sources = get_changed_sources()
+    return len(changed_sources) > 0
 
 def load_existing_vectorstore():
     """Load existing vectorstore without rebuilding."""
@@ -116,65 +157,141 @@ def load_existing_vectorstore():
         return None
 
 def rebuild_vectorstore_if_needed():
-    """Rebuild vectorstore to ensure it includes all current PDFs, Excel files, and web content."""
+    """Rebuild vectorstore incrementally - only process changed sources."""
     print("=" * 60)
-    print("INITIALIZING CF-CHATBOT KNOWLEDGE BASE")
-    print("=" * 60)
-    print("Fetching data from all available sources...")
-    
-    # Always rebuild to ensure latest data
-    pdf_directory = "./pdfs"
-    excel_directory = "./excel"
-    doc_directory = "./docs"
-    
-    # Check what sources are available
-    sources_found = []
-    if os.path.exists(pdf_directory):
-        pdf_files = [f for f in os.listdir(pdf_directory) if f.lower().endswith('.pdf')]
-        if pdf_files:
-            sources_found.append(f"PDFs ({len(pdf_files)} files)")
-    
-    if os.path.exists(excel_directory):
-        excel_files = [f for f in os.listdir(excel_directory) if f.lower().endswith(('.xlsx', '.xls'))]
-        if excel_files:
-            sources_found.append(f"Excel files ({len(excel_files)} files)")
-    
-    if os.path.exists(doc_directory):
-        doc_files = [f for f in os.listdir(doc_directory) if f.lower().endswith(('.docx', '.doc'))]
-        if doc_files:
-            sources_found.append(f"Word documents ({len(doc_files)} files)")
-    
-    sources_found.append("Web content (CloudFuze blog)")
-    
-    print(f"Sources found: {', '.join(sources_found)}")
-    print("Building comprehensive knowledge base...")
-    
-    # Try to remove old vectorstore, but don't fail if it's in use
-    if os.path.exists(CHROMA_DB_PATH):
-        try:
-            print("Removing old vectorstore to ensure fresh build...")
-            shutil.rmtree(CHROMA_DB_PATH)
-        except PermissionError:
-            print("Warning: Could not remove old vectorstore (in use), but will rebuild anyway...")
-    
-    # Build the combined vectorstore
-    if os.path.exists(pdf_directory) or os.path.exists(excel_directory) or os.path.exists(doc_directory):
-        vectorstore = build_combined_vectorstore(url, pdf_directory, excel_directory, doc_directory)
-    else:
-        vectorstore = build_vectorstore(url)
-    
-    total_docs = vectorstore._collection.count()
-    print(f"Knowledge base built successfully!")
-    print(f"Total documents indexed: {total_docs}")
-    print("Chatbot is ready to answer questions from all sources!")
+    print("INCREMENTAL VECTORSTORE REBUILD")
     print("=" * 60)
     
-    # Save metadata after successful build
+    # Get changed sources
+    changed_sources = get_changed_sources()
+    
+    if not changed_sources:
+        print("[OK] No changes detected - using existing vectorstore")
+        return load_existing_vectorstore()
+    
+    print(f"[*] Changed sources detected: {', '.join(changed_sources)}")
+    
+    # Use incremental rebuild for changed sources only
+    vectorstore = build_incremental_vectorstore(changed_sources)
+    
+    # Save metadata after successful rebuild
     current_metadata = get_current_metadata()
     save_metadata(current_metadata)
     print("[OK] Saved vectorstore metadata for future change detection")
     
     return vectorstore
+
+def build_incremental_vectorstore(changed_sources):
+    """Build vectorstore incrementally - only process changed sources."""
+    from app.helpers import build_vectorstore, build_combined_vectorstore
+    
+    print(f"[*] Incremental rebuild for changed sources: {', '.join(changed_sources)}")
+    
+    # If no vectorstore exists, do full rebuild
+    if not os.path.exists(CHROMA_DB_PATH):
+        print("[*] No existing vectorstore - doing full rebuild")
+        return build_selective_vectorstore()
+    
+    # Load existing vectorstore
+    print("[*] Loading existing vectorstore for incremental update...")
+    existing_vectorstore = load_existing_vectorstore()
+    if not existing_vectorstore:
+        print("[!] Failed to load existing vectorstore - doing full rebuild")
+        return build_selective_vectorstore()
+    
+    # Process only changed sources
+    new_docs = []
+    
+    if "web" in changed_sources:
+        print("[*] Processing changed web content...")
+        from app.helpers import fetch_web_content
+        web_docs = fetch_web_content(WEB_SOURCE_URL)
+        new_docs.extend(web_docs)
+        print(f"[OK] Fetched {len(web_docs)} web documents")
+    
+    if "pdfs" in changed_sources:
+        print("[*] Processing changed PDF files...")
+        from app.helpers import process_pdf_files
+        pdf_docs = process_pdf_files(PDF_SOURCE_DIR)
+        new_docs.extend(pdf_docs)
+        print(f"[OK] Processed {len(pdf_docs)} PDF documents")
+    
+    if "excel" in changed_sources:
+        print("[*] Processing changed Excel files...")
+        from app.helpers import process_excel_files
+        excel_docs = process_excel_files(EXCEL_SOURCE_DIR)
+        new_docs.extend(excel_docs)
+        print(f"[OK] Processed {len(excel_docs)} Excel documents")
+    
+    if "docs" in changed_sources:
+        print("[*] Processing changed Word documents...")
+        from app.helpers import process_doc_files
+        doc_docs = process_doc_files(DOC_SOURCE_DIR)
+        new_docs.extend(doc_docs)
+        print(f"[OK] Processed {len(doc_docs)} Word documents")
+    
+    if not new_docs:
+        print("[WARNING] No new documents found for changed sources")
+        return existing_vectorstore
+    
+    # Add new documents to existing vectorstore
+    print(f"[*] Adding {len(new_docs)} new documents to existing vectorstore...")
+    try:
+        existing_vectorstore.add_documents(new_docs)
+        print("[OK] Successfully added new documents to vectorstore")
+        return existing_vectorstore
+    except Exception as e:
+        print(f"[ERROR] Failed to add documents incrementally: {e}")
+        print("[*] Falling back to full rebuild...")
+        return build_selective_vectorstore()
+
+def build_selective_vectorstore():
+    """Build vectorstore with only enabled sources."""
+    from app.helpers import build_vectorstore, build_combined_vectorstore
+    
+    # Collect enabled sources
+    enabled_dirs = []
+    enabled_sources = []
+    
+    # Check web source
+    if ENABLE_WEB_SOURCE:
+        enabled_sources.append("web")
+    
+    # Check PDF source
+    if ENABLE_PDF_SOURCE and os.path.exists(PDF_SOURCE_DIR):
+        enabled_dirs.append(PDF_SOURCE_DIR)
+        enabled_sources.append("pdf")
+    
+    # Check Excel source
+    if ENABLE_EXCEL_SOURCE and os.path.exists(EXCEL_SOURCE_DIR):
+        enabled_dirs.append(EXCEL_SOURCE_DIR)
+        enabled_sources.append("excel")
+    
+    # Check Word source
+    if ENABLE_DOC_SOURCE and os.path.exists(DOC_SOURCE_DIR):
+        enabled_dirs.append(DOC_SOURCE_DIR)
+        enabled_sources.append("doc")
+    
+    print(f"Building vectorstore with sources: {', '.join(enabled_sources)}")
+    
+    # Build based on enabled sources
+    if len(enabled_sources) == 1 and "web" in enabled_sources:
+        # Only web source enabled
+        return build_vectorstore(WEB_SOURCE_URL)
+    elif enabled_dirs:
+        # Multiple sources enabled
+        pdf_dir = PDF_SOURCE_DIR if ENABLE_PDF_SOURCE else None
+        excel_dir = EXCEL_SOURCE_DIR if ENABLE_EXCEL_SOURCE else None
+        doc_dir = DOC_SOURCE_DIR if ENABLE_DOC_SOURCE else None
+        
+        return build_combined_vectorstore(
+            WEB_SOURCE_URL if ENABLE_WEB_SOURCE else None,
+            pdf_dir, excel_dir, doc_dir
+        )
+    else:
+        # No sources enabled - create empty vectorstore
+        print("Warning: No sources enabled!")
+        return build_vectorstore(WEB_SOURCE_URL)  # Fallback to web
 
 def manage_vectorstore_backup_and_rebuild():
     """Manage vectorstore backup and rebuild with proper versioning."""
@@ -248,12 +365,68 @@ def initialize_vectorstore():
     print("=" * 60)
     return vectorstore
 
-# Initialize vectorstore smartly
-vectorstore = initialize_vectorstore()
+# Initialize vectorstore based on environment variable
+def get_vectorstore():
+    """Get vectorstore instance - always try to load existing, rebuild only if INITIALIZE_VECTORSTORE=true."""
+    
+    # First, try to load existing vectorstore (always attempt this)
+    try:
+        if os.path.exists(CHROMA_DB_PATH):
+            print("[*] Loading existing vectorstore...")
+            return load_existing_vectorstore()
+        else:
+            print("[!] No existing vectorstore found")
+            # If no vectorstore exists and INITIALIZE_VECTORSTORE=true, create one
+            if INITIALIZE_VECTORSTORE:
+                print("[*] INITIALIZE_VECTORSTORE=true - creating new vectorstore...")
+                return initialize_vectorstore()
+            else:
+                print("[*] INITIALIZE_VECTORSTORE=false - no vectorstore available")
+                return None
+    except Exception as e:
+        print(f"[!] Failed to load existing vectorstore: {e}")
+        # If loading fails and INITIALIZE_VECTORSTORE=true, try to rebuild
+        if INITIALIZE_VECTORSTORE:
+            print("[*] INITIALIZE_VECTORSTORE=true - attempting rebuild...")
+            return initialize_vectorstore()
+        else:
+            return None
 
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={
-        "k": 25  # Fetch more documents for better coverage
-    }
-)
+def check_and_rebuild_if_needed():
+    """Check if rebuild is needed and rebuild only if INITIALIZE_VECTORSTORE=true."""
+    if not INITIALIZE_VECTORSTORE:
+        print("[*] INITIALIZE_VECTORSTORE=false - skipping rebuild check")
+        return False
+    
+    print("[*] INITIALIZE_VECTORSTORE=true - checking if rebuild is needed...")
+    
+    # Check if rebuild is needed based on enabled sources
+    if should_rebuild_vectorstore():
+        print("[*] Rebuild needed - initializing vectorstore...")
+        return initialize_vectorstore()
+    else:
+        print("[OK] No rebuild needed - using existing vectorstore")
+        return True
+
+# Initialize vectorstore - always try to load existing
+vectorstore = get_vectorstore()
+
+# Check if rebuild is needed (only if INITIALIZE_VECTORSTORE=true)
+if INITIALIZE_VECTORSTORE:
+    print("[*] INITIALIZE_VECTORSTORE=true - checking for rebuild...")
+    rebuild_result = check_and_rebuild_if_needed()
+    if rebuild_result:
+        # Reload vectorstore after potential rebuild
+        vectorstore = get_vectorstore()
+
+if vectorstore:
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={
+            "k": 25  # Fetch more documents for better coverage
+        }
+    )
+    print("[OK] Vectorstore available for chatbot")
+else:
+    retriever = None
+    print("[INFO] No vectorstore available - set INITIALIZE_VECTORSTORE=true to create one")

@@ -421,7 +421,7 @@
     .feedback-buttons {
       display: flex;
       gap: 4px;
-      margin-top: 8px;
+      margin-top: -6px;
       align-items: center;
     }
 
@@ -459,6 +459,25 @@
       color: #ef4444;
     }
 
+    /* Icon styling - make all icons light grey */
+    .copy-button img,
+    .feedback-btn img {
+      filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(90%) contrast(90%);
+    }
+
+    .copy-button:hover img,
+    .feedback-btn:hover img {
+      filter: brightness(0) saturate(100%) invert(20%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+    }
+
+    .feedback-btn.thumbs-up.selected img {
+      filter: brightness(0) saturate(100%) invert(40%) sepia(100%) saturate(2000%) hue-rotate(90deg) brightness(90%) contrast(90%);
+    }
+
+    .feedback-btn.thumbs-down.selected img {
+      filter: brightness(0) saturate(100%) invert(30%) sepia(100%) saturate(2000%) hue-rotate(0deg) brightness(90%) contrast(90%);
+    }
+
     .feedback-text {
       font-size: 11px;
       color: #6c757d;
@@ -475,9 +494,12 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: rgba(255, 255, 255,0);
-      
-      
+      background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.3) 10%, 
+        rgba(255, 255, 255, 0.7) 40%, 
+        rgba(255, 255, 255, 0.9) 70%, 
+        rgba(255, 255, 255, 0.95) 100%);
       z-index: 1000;
     }
 
@@ -487,31 +509,77 @@
       display: flex;
       align-items: center;
       position: relative;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 25px;
+      padding: 8px;
+      box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(0, 0, 0, 0.08),
+        0 2px 6px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     #user-input {
       flex: 1;
-      padding: 12px 50px 12px 15px;
-      border-radius: 50px;
-      border: 1px solid #ccc;
+      padding: 8px 50px 8px 15px;
+      border-radius: 20px;
+      border: none;
       outline: none;
       font-size: 16px;
       box-sizing: border-box;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+
+    #user-input:focus {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    #user-input::placeholder {
+      color: rgba(0, 0, 0, 0.6);
     }
 
     #send-btn {
       position: absolute;
-      right: 15px;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
       padding: 10px 15px;
       border: none;
       border-radius: 50px;
       background: #0129ac;
       color: white;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 
+        0 4px 12px rgba(1, 41, 172, 0.3),
+        0 2px 6px rgba(1, 41, 172, 0.2);
+      transition: all 0.2s ease;
+    }
+
+    #send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      stroke: currentColor;
     }
 
     #send-btn:hover {
       background: #0056b3;
+      box-shadow: 
+        0 6px 16px rgba(1, 41, 172, 0.4),
+        0 3px 8px rgba(1, 41, 172, 0.3);
+      transform: translateY(-50%) translateY(-0.5px);
+    }
+
+    #send-btn:active {
+      transform: translateY(-50%) translateY(0.5px);
+      box-shadow: 
+        0 2px 8px rgba(1, 41, 172, 0.3),
+        0 1px 4px rgba(1, 41, 172, 0.2);
     }
   </style>
   <link rel="icon" type="image/png" href="./images/CloudFuze-icon-64x64.png">
@@ -549,7 +617,12 @@
   <div id="input-container">
     <div class="input-wrapper">
       <input type="text" id="user-input" placeholder="Type your question...">
-      <button id="send-btn">Send</button>
+      <button id="send-btn">
+        <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
+          <path fill="none" d="M0 0h24v24H0z"></path>
+          <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"></path>
+        </svg>
+      </button>
     </div>
   </div>
 
@@ -606,9 +679,15 @@
         div.innerHTML = `
           <div class="message-content">${content}</div>
           <div class="feedback-buttons">
-            <button class="copy-button" onclick="copyMessage(this)" title="Copy message">📋</button>
-            <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">👍</button>
-            <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">👎</button>
+            <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+              <img src="./images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+              <img src="./images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+              <img src="./images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+            </button>
             <span class="feedback-text"></span>
           </div>
         `;
@@ -668,19 +747,24 @@
     async function submitFeedback(button, rating) {
       try {
         const messageDiv = button.closest('.message.bot');
-        const traceId = messageDiv.dataset.traceId;
+        const traceId = messageDiv.dataset.traceId || messageDiv.dataset.traceid;
         
+        let finalTraceId = traceId;
         if (!traceId) {
-          console.error('No trace_id found for this message');
-          return;
+          // Generate a fallback trace_id for this specific message
+          const fallbackTraceId = 'feedback_fallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          messageDiv.dataset.traceId = fallbackTraceId;
+          finalTraceId = fallbackTraceId;
         }
         
+        const apiBase = getApiBase();
+        
         // Send feedback to backend
-        const response = await fetch(`${getApiBase()}/feedback`, {
+        const response = await fetch(`${apiBase}/feedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            trace_id: traceId,
+            trace_id: finalTraceId,
             rating: rating,
             comment: ""
           }),
@@ -727,13 +811,13 @@
         await navigator.clipboard.writeText(textContent);
         
         // Show success feedback
-        const originalText = button.innerHTML;
-        button.innerHTML = '✓';
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span style="color: #10a37f;">✓</span>';
         button.classList.add('copied');
         
         // Reset after 2 seconds
         setTimeout(() => {
-          button.innerHTML = originalText;
+          button.innerHTML = originalHTML;
           button.classList.remove('copied');
         }, 2000);
         
@@ -741,16 +825,14 @@
         console.error('Failed to copy text: ', err);
         
         // Fallback: show error feedback
-        const originalText = button.innerHTML;
-        button.innerHTML = '❌ Failed';
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<span style="color: #721c24;">❌</span>';
         button.style.background = '#f8d7da';
-        button.style.color = '#721c24';
         
         // Reset after 2 seconds
         setTimeout(() => {
-          button.innerHTML = originalText;
+          button.innerHTML = originalHTML;
           button.style.background = '';
-          button.style.color = '';
         }, 2000);
       }
     }
@@ -785,8 +867,10 @@
         // Use user ID if available, otherwise fall back to session ID
         if (currentUser && currentUser.id) {
           requestBody.user_id = currentUser.id;
+          console.log("[CHAT] Using user_id:", currentUser.id);
         } else {
           requestBody.session_id = sessionId;
+          console.warn("[CHAT] No user_id available, using session_id:", sessionId);
         }
         
         console.log("[CHAT] Request body:", requestBody);
@@ -847,7 +931,6 @@
                   const traceId = data.trace_id;
                   
                   console.log("Done received. Full response length:", fullResponse.length);
-                  console.log("Full response content:", fullResponse);
                   
                   // Check if response is empty
                   if (!fullResponse || fullResponse.trim() === '') {
@@ -859,9 +942,15 @@
                   botDiv.innerHTML = `
                     <div class="message-content">${renderMarkdown(fullResponse)}</div>
                     <div class="feedback-buttons">
-                      <button class="copy-button" onclick="copyMessage(this)" title="Copy message">📋</button>
-                      <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">👍</button>
-                      <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">👎</button>
+                      <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+                        <img src="./images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+                      </button>
+                      <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+                        <img src="./images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+                      </button>
+                      <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+                        <img src="./images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+                      </button>
                       <span class="feedback-text"></span>
                     </div>
                   `;
@@ -869,6 +958,10 @@
                   // Store trace_id on the bot message for feedback
                   if (traceId) {
                     botDiv.dataset.traceId = traceId;
+                  } else {
+                    // Generate a fallback trace_id for feedback functionality
+                    const fallbackTraceId = 'fallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    botDiv.dataset.traceId = fallbackTraceId;
                   }
                   
                   console.log("[CHAT] Streaming complete, trace_id:", traceId);
@@ -1099,8 +1192,7 @@
       }
     }
 
-    // Add double-click to start new conversation
-    messagesDiv.addEventListener('dblclick', startNewConversation);
+    // Double-click to start new conversation removed to prevent accidental chat clearing
 
     // Polyfill for POST EventSource
     class EventSourcePolyfill {
@@ -1167,7 +1259,7 @@
       const codeVerifier = sessionStorage.getItem('code_verifier');
       
       if (!codeVerifier) {
-        alert('Login failed: Code verifier not found');
+        /*alert('Login failed: Code verifier not found');*/
         window.location.href = "login.html";
         return;
       }
@@ -1189,6 +1281,7 @@
 
         if (response.ok) {
           const data = await response.json();
+          console.log('[AUTH] Received user data from backend:', data);
           
           // Clear code verifier from session storage
           sessionStorage.removeItem('code_verifier');
@@ -1201,6 +1294,7 @@
             refresh_token: data.refresh_token
           };
           
+          console.log('[AUTH] Created user object:', user);
           localStorage.setItem('user', JSON.stringify(user));
           
           // Clear URL parameters
@@ -1209,7 +1303,16 @@
           // Initialize with new user
           currentUser = user;
           updateUserInfo(user);
-          loadUserChatHistory(user.id);
+          
+          // Only load history if user.id is valid
+          if (user.id) {
+            loadUserChatHistory(user.id).catch(error => {
+              console.error('[ERROR] Failed to load history:', error);
+            });
+          } else {
+            console.warn('[WARNING] User ID is undefined, skipping history load');
+          }
+          
           hideLoadingIndicator();
         } else {
           const errorText = await response.text();
@@ -1249,7 +1352,10 @@
       // Check if user is logged in (only if no OAuth callback)
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       
+      console.log('[AUTH] Retrieved user from localStorage:', user);
+      
       if (!user || !user.access_token) {
+        console.log('[AUTH] No user or access token found, redirecting to login');
         window.location.href = "login.html";
         return;
       }
@@ -1260,12 +1366,19 @@
         if (isValid) {
           currentUser = user;
           updateUserInfo(user);
-          // Always load history, even if it fails
-          loadUserChatHistory(user.id).catch(error => {
-            console.error('[ERROR] Failed to load history, but continuing:', error);
-          }).finally(() => {
+          console.log('[AUTH] User authenticated, loading history for user.id:', user.id);
+          
+          // Always load history, even if it fails (but only if user.id exists)
+          if (user.id) {
+            loadUserChatHistory(user.id).catch(error => {
+              console.error('[ERROR] Failed to load history, but continuing:', error);
+            }).finally(() => {
+              hideLoadingIndicator();
+            });
+          } else {
+            console.warn('[WARNING] User ID is undefined, skipping history load');
             hideLoadingIndicator();
-          });
+          }
         } else {
           hideLoadingIndicator();
           localStorage.removeItem('user');
@@ -1277,7 +1390,14 @@
         // Still try to use the app with cached user
         currentUser = user;
         updateUserInfo(user);
-        loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
+        console.log('[AUTH] Using cached user, loading history for user.id:', user.id);
+        
+        // Only load history if user.id exists
+        if (user.id) {
+          loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
+        } else {
+          console.warn('[WARNING] User ID is undefined, skipping history load');
+        }
       });
     }
 
@@ -1332,6 +1452,13 @@
     async function loadUserChatHistory(userId) {
       try {
         console.log('[HISTORY] Loading chat history for user:', userId);
+        
+        // Check if userId is valid
+        if (!userId || userId === 'undefined' || userId === 'null') {
+          console.error('[HISTORY] Invalid user ID:', userId);
+          return;
+        }
+        
         const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
           method: 'GET',
           headers: {
