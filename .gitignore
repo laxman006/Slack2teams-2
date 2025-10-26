@@ -44,12 +44,6 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-data/chroma_db/
-data/chroma_db_backup/
-data/user_chat_histories.json
-data/vectorstore_metadata.json
-*.log
 
 # Environment variables
 .env
