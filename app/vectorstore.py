@@ -2,8 +2,9 @@ from app.helpers import build_vectorstore, build_combined_vectorstore
 from app.pdf_processor import process_pdf_directory, chunk_pdf_documents
 from config import (
     CHROMA_DB_PATH, INITIALIZE_VECTORSTORE,
-    ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE,
+    ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE, ENABLE_SHAREPOINT_SOURCE,
     WEB_SOURCE_URL, PDF_SOURCE_DIR, EXCEL_SOURCE_DIR, DOC_SOURCE_DIR, BLOG_START_PAGE,
+    SHAREPOINT_SITE_URL, SHAREPOINT_START_PAGE,
 )
 import os
 import shutil
@@ -68,6 +69,10 @@ def get_current_metadata():
         metadata["docs"] = get_directory_hash(DOC_SOURCE_DIR)
         metadata["enabled_sources"].append("docs")
     
+    if ENABLE_SHAREPOINT_SOURCE:
+        metadata["sharepoint"] = f"{SHAREPOINT_SITE_URL}{SHAREPOINT_START_PAGE}"
+        metadata["enabled_sources"].append("sharepoint")
+    
     return metadata
 
 def load_stored_metadata():
@@ -109,16 +114,26 @@ def get_changed_sources():
     
     # Check which enabled sources have changed
     enabled_sources = current_metadata.get("enabled_sources", [])
+    stored_enabled = stored_metadata.get("enabled_sources", [])
     changed_sources = []
     
     print(f"[*] Checking enabled sources: {', '.join(enabled_sources)}")
+    print(f"[*] Stored enabled sources: {', '.join(stored_enabled)}")
     
+    # Check if any NEW sources have been enabled
+    new_sources = set(enabled_sources) - set(stored_enabled)
+    if new_sources:
+        print(f"[!] New sources detected: {', '.join(new_sources)}")
+        changed_sources.extend(new_sources)
+    
+    # Check if any sources have changed their content
     for source in enabled_sources:
         if stored_metadata.get(source) != current_metadata.get(source):
             print(f"[!] {source} has changed")
             print(f"   Stored: {stored_metadata.get(source)}")
             print(f"   Current: {current_metadata.get(source)}")
-            changed_sources.append(source)
+            if source not in changed_sources:
+                changed_sources.append(source)
 
     # Additional check: if web pagination changed, mark web as changed
     if "web" in enabled_sources:
@@ -230,6 +245,16 @@ def build_incremental_vectorstore(changed_sources):
         new_docs.extend(doc_docs)
         print(f"[OK] Processed {len(doc_docs)} Word documents")
     
+    if "sharepoint" in changed_sources:
+        print("[*] Processing changed SharePoint content...")
+        from app.sharepoint_processor import process_sharepoint_content
+        try:
+            sharepoint_docs = process_sharepoint_content()
+            new_docs.extend(sharepoint_docs)
+            print(f"[OK] Processed {len(sharepoint_docs)} SharePoint documents")
+        except Exception as e:
+            print(f"[ERROR] SharePoint processing failed: {e}")
+    
     if not new_docs:
         print("[WARNING] No new documents found for changed sources")
         return existing_vectorstore
@@ -272,13 +297,17 @@ def build_selective_vectorstore():
         enabled_dirs.append(DOC_SOURCE_DIR)
         enabled_sources.append("doc")
     
+    # Check SharePoint source
+    if ENABLE_SHAREPOINT_SOURCE:
+        enabled_sources.append("sharepoint")
+    
     print(f"Building vectorstore with sources: {', '.join(enabled_sources)}")
     
     # Build based on enabled sources
     if len(enabled_sources) == 1 and "web" in enabled_sources:
         # Only web source enabled
         return build_vectorstore(WEB_SOURCE_URL)
-    elif enabled_dirs:
+    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE:
         # Multiple sources enabled
         pdf_dir = PDF_SOURCE_DIR if ENABLE_PDF_SOURCE else None
         excel_dir = EXCEL_SOURCE_DIR if ENABLE_EXCEL_SOURCE else None
@@ -286,7 +315,7 @@ def build_selective_vectorstore():
         
         return build_combined_vectorstore(
             WEB_SOURCE_URL if ENABLE_WEB_SOURCE else None,
-            pdf_dir, excel_dir, doc_dir
+            pdf_dir, excel_dir, doc_dir, ENABLE_SHAREPOINT_SOURCE
         )
     else:
         # No sources enabled - create empty vectorstore
