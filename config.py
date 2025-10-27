@@ -24,7 +24,7 @@ SYSTEM_PROMPT = """You are a helpful AI assistant with access to CloudFuze's kno
     CRITICAL INSTRUCTIONS:
     1. You can answer questions about:
        - CloudFuze's services and products
-       - Migration services (Slack to Teams, Teams to Teams, email migrations, etc.)
+       - Cloud Migration services 
        - SaaS management and cloud solutions
        - General business and technical topics
        - Casual conversation and greetings
@@ -96,9 +96,16 @@ ENABLE_WEB_SOURCE = os.getenv("ENABLE_WEB_SOURCE", "false").lower() == "true"
 ENABLE_PDF_SOURCE = os.getenv("ENABLE_PDF_SOURCE", "false").lower() == "true"
 ENABLE_EXCEL_SOURCE = os.getenv("ENABLE_EXCEL_SOURCE", "false").lower() == "true"
 ENABLE_DOC_SOURCE = os.getenv("ENABLE_DOC_SOURCE", "false").lower() == "true"
+ENABLE_SHAREPOINT_SOURCE = os.getenv("ENABLE_SHAREPOINT_SOURCE", "false").lower() == "true"
 
 # Source-specific settings
 WEB_SOURCE_URL = os.getenv("WEB_SOURCE_URL", "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100")
 PDF_SOURCE_DIR = os.getenv("PDF_SOURCE_DIR", "./pdfs")
 EXCEL_SOURCE_DIR = os.getenv("EXCEL_SOURCE_DIR", "./excel")
 DOC_SOURCE_DIR = os.getenv("DOC_SOURCE_DIR", "./docs")
+
+# SharePoint Configuration
+SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL", "https://cloudfuzecom.sharepoint.com/sites/DOC360")
+SHAREPOINT_START_PAGE = os.getenv("SHAREPOINT_START_PAGE", "/SitePages/Multi%20User%20Golden%20Image%20Combinations.aspx")
+SHAREPOINT_MAX_DEPTH = int(os.getenv("SHAREPOINT_MAX_DEPTH", "3"))
+SHAREPOINT_EXCLUDE_FILES = os.getenv("SHAREPOINT_EXCLUDE_FILES", "true").lower() == "true"

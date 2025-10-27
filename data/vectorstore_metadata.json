@@ -1,17 +1,8 @@
 {
-  "timestamp": "2025-10-25T13:12:17.535111",
-  "vectorstore_exists": true,
-  "enabled_sources": [
-    "web",
-    "pdfs",
-    "excel",
-    "docs"
-  ],
-  "url": "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100",
-  "web_pagination": {
-    "start_page": 1
-  },
-  "pdfs": null,
-  "excel": null,
-  "docs": null
+    "timestamp": "2025-10-27T16:33:22.553984",
+    "vectorstore_exists": true,
+    "enabled_sources": [
+        "sharepoint"
+    ],
+    "sharepoint": "https://cloudfuzecom.sharepoint.com/sites/DOC360/SitePages/Multi%20User%20Golden%20Image%20Combinations.aspx"
 }
