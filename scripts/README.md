@@ -1,4 +1,67 @@
-# 🚀 Fine-Tuning Management Scripts
+# 🚀 Scripts Directory
+
+This directory contains utility scripts for managing the CloudFuze chatbot system.
+
+## 📋 Available Scripts
+
+### 1. Auto-Correction Scripts
+- `auto_correct_low_scores.py` - **NEW!** Automatically corrects responses scored < 6 by LLM Judge
+- `process_bad_traces_and_log_to_langfuse.py` - Manual batch correction from exported traces
+
+### 2. Fine-Tuning Scripts
+- `finetune_unified.py` - Unified fine-tuning script with auto/manual modes
+- `manage_fine_tuning.py` - Manage fine-tuning jobs (start, status, cleanup)
+
+---
+
+## 🤖 Auto-Correction System
+
+### Quick Start - Automatic Correction
+
+**Run once (check now):**
+```bash
+python scripts/auto_correct_low_scores.py
+```
+
+**Run in polling mode (continuous):**
+```bash
+python scripts/auto_correct_low_scores.py --poll --interval 300
+```
+
+**Or use the helper scripts:**
+- Windows: `run_auto_correction.bat`
+- Linux/Mac: `run_auto_correction.sh`
+
+### How It Works
+
+1. ✅ Langfuse LLM Judge evaluates all thumbs-down responses
+2. ✅ Script polls for traces with score < 6
+3. ✅ Automatically generates corrections using RAG
+4. ✅ Logs as "improved_response" to same trace_id in Langfuse
+5. ✅ You review and approve good corrections
+6. ✅ Export approved corrections for fine-tuning
+
+### Options
+
+```bash
+# Dry run (test without making changes)
+python scripts/auto_correct_low_scores.py --dry-run
+
+# Custom score threshold (default: 6)
+python scripts/auto_correct_low_scores.py --min-score 7
+
+# Process more traces per run (default: 10)
+python scripts/auto_correct_low_scores.py --limit 20
+
+# Polling with custom interval (default: 300 seconds)
+python scripts/auto_correct_low_scores.py --poll --interval 600
+```
+
+**📚 See [AUTO-CORRECTION-GUIDE.md](../AUTO-CORRECTION-GUIDE.md) for detailed documentation.**
+
+---
+
+## 🔧 Fine-Tuning Management
 
 ## Quick Start
 

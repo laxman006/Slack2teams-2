@@ -46,43 +46,36 @@ def find_similar_corrected_response(question: str, threshold: float = 0.7):
     if not corrected_responses:
         return None
     
-    # Get the original questions from feedback history to match against
-    feedback_file = "./data/feedback_history.json"
-    if os.path.exists(feedback_file):
-        try:
-            with open(feedback_file, 'r', encoding='utf-8') as f:
-                feedback_history = json.load(f)
+    # Match against corrected responses directly
+    # The feedback_history.json has a nested structure with trace_ids as keys
+    try:
+        best_match = None
+        best_score = 0
+        
+        # Iterate through corrected responses to find matches
+        for corrected in corrected_responses:
+            # Get the original question if stored in corrected response
+            original_question = corrected.get('original_question', '')
+            
+            if original_question:
+                # Calculate similarity
+                similarity = SequenceMatcher(None, question.lower(), original_question.lower()).ratio()
                 
-                best_match = None
-                best_score = 0
+                if similarity > best_score and similarity >= threshold:
+                    best_score = similarity
+                    best_match = {
+                        'response': corrected.get('corrected_response'),
+                        'similarity': similarity,
+                        'original_question': original_question
+                    }
+        
+        if best_match:
+            print(f"[OK] Found corrected response (similarity: {best_match['similarity']:.2%})")
+            print(f"    Original question: {best_match['original_question']}")
+            return best_match['response']
                 
-                for feedback in feedback_history:
-                    if feedback.get('rating') == 'thumbs_down':
-                        original_question = feedback.get('question', '')
-                        trace_id = feedback.get('trace_id', '')
-                        
-                        # Calculate similarity
-                        similarity = SequenceMatcher(None, question.lower(), original_question.lower()).ratio()
-                        
-                        if similarity > best_score and similarity >= threshold:
-                            # Find the corrected response for this trace_id
-                            for corrected in corrected_responses:
-                                if corrected.get('trace_id') == trace_id:
-                                    best_score = similarity
-                                    best_match = {
-                                        'response': corrected.get('corrected_response'),
-                                        'similarity': similarity,
-                                        'original_question': original_question
-                                    }
-                                    break
-                
-                if best_match:
-                    print(f"✅ Found corrected response (similarity: {best_match['similarity']:.2%})")
-                    print(f"   Original question: {best_match['original_question']}")
-                    return best_match['response']
-                    
-        except Exception as e:
-            print(f"Error checking feedback history: {e}")
+    except Exception as e:
+        print(f"[WARNING] Error checking corrected responses: {e}")
     
     return None
 
@@ -445,31 +438,31 @@ async def submit_feedback(request: FeedbackRequest):
             comment=request.comment
         )
         
-        # Track feedback history for smart auto-correction
-        await track_feedback_history(request.trace_id, request.rating, request.comment)
-        
-        # If thumbs down, trigger auto-correction immediately
-        if request.rating == "thumbs_down":
-            try:
-                # Get the original question and response from the trace
-                original_data = await get_trace_data(request.trace_id)
-                if original_data:
-                    # Trigger auto-correction
-                    corrected_response = await trigger_auto_correction_workflow(
-                        trace_id=request.trace_id,
-                        user_query=original_data.get("question", ""),
-                        bad_response=original_data.get("response", ""),
-                        user_comment=request.comment
-                    )
-            except Exception as e:
-                print(f"Auto-correction failed: {e}")
+        # COMMENTED OUT: Auto-correction workflow (now using manual correction)
+        # await track_feedback_history(request.trace_id, request.rating, request.comment)
+        # 
+        # # If thumbs down, trigger auto-correction immediately
+        # if request.rating == "thumbs_down":
+        #     try:
+        #         # Get the original question and response from the trace
+        #         original_data = await get_trace_data(request.trace_id)
+        #         if original_data:
+        #             # Trigger auto-correction
+        #             corrected_response = await trigger_auto_correction_workflow(
+        #                 trace_id=request.trace_id,
+        #                 user_query=original_data.get("question", ""),
+        #                 bad_response=original_data.get("response", ""),
+        #                 user_comment=request.comment
+        #             )
+        #     except Exception as e:
+        #         print(f"Auto-correction failed: {e}")
         
         if success:
             return {
                 "status": "success",
                 "message": "Feedback recorded successfully",
                 "trace_id": request.trace_id,
-                "auto_correction_triggered": request.rating == "thumbs_down"
+                "auto_correction_triggered": False  # Manual correction will be used instead
             }
         else:
             return {
@@ -623,7 +616,8 @@ async def trigger_auto_correction(trace_id: str, user_comment: str = None):
         improved_response = await generate_improved_response(correction_prompt, llm)
         
         # Save to dataset
-        save_corrected_response(trace_id, improved_response, user_comment)
+        # Note: This doesn't have the original question - would need Langfuse integration to get it
+        save_corrected_response(trace_id, improved_response, user_comment, None)
         
     except Exception as e:
         print(f"Auto-correction failed: {e}")
@@ -646,7 +640,7 @@ async def generate_improved_response(prompt: str, llm):
         print(f"Error generating improved response: {e}")
         return "I apologize, but I'm having trouble generating an improved response at the moment."
 
-def save_corrected_response(trace_id: str, corrected_response: str, user_comment: str = None):
+def save_corrected_response(trace_id: str, corrected_response: str, user_comment: str = None, original_question: str = None):
     """Save the corrected response to the dataset."""
     try:
         # Create dataset directory if it doesn't exist
@@ -657,6 +651,7 @@ def save_corrected_response(trace_id: str, corrected_response: str, user_comment
         dataset_entry = {
             "trace_id": trace_id,
             "corrected_response": corrected_response,
+            "original_question": original_question,  # Store the original question for similarity matching
             "user_comment": user_comment,
             "timestamp": datetime.now().isoformat(),
             "status": "corrected"
@@ -944,19 +939,37 @@ async def generate_improved_response(user_query: str, bad_response: str, user_co
         else:
             relevant_docs = vectorstore.similarity_search(user_query, k=25)
         
+        # Build debug info for context
+        context_debug_info = {
+            "doc_count": len(relevant_docs),
+            "query": user_query,
+            "docs": [
+                {
+                    "doc_number": i + 1,
+                    "content_preview": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
+                    "content_length": len(doc.page_content),
+                    "metadata": doc.metadata,
+                    "source": doc.metadata.get('source', 'Unknown')
+                }
+                for i, doc in enumerate(relevant_docs[:10])  # Save first 10 docs for review
+            ]
+        }
+        
         # Format the retrieved documents as context
         context_text = "\n\n".join([f"Document {i+1}:\n{doc.page_content}" for i, doc in enumerate(relevant_docs)])
         
         # Create LLM for auto-correction
         llm = ChatOpenAI(
             model_name="gpt-4o-mini",
-            temperature=0.3,
+            temperature=0.5,
             max_tokens=1000
         )
         
         # Create auto-correction prompt WITH knowledge base context
         correction_prompt = f"""
-You are an expert assistant specializing in Slack to Microsoft Teams migrations via CloudFuze.
+{SYSTEM_PROMPT}
+
+ADDITIONAL CONTEXT FOR CORRECTION:
 
 KNOWLEDGE BASE CONTEXT:
 {context_text}
@@ -966,26 +979,38 @@ User's Question: "{user_query}"
 Bot's Poor Response: "{bad_response}"
 {f"User's Feedback: {user_comment}" if user_comment else ""}
 
-TASK:
-Using ONLY the information from the KNOWLEDGE BASE CONTEXT above, provide a much better, more accurate, and helpful response that:
-1. Directly answers the user's question about Slack to Teams migration
-2. Uses specific information from the knowledge base documents
-3. Provides actionable information about CloudFuze's capabilities
-4. Is clear, professional, and helpful
-5. Follows the same style and formatting as the system prompt
+CORRECTION TASK:
+The previous response was marked as poor quality. Using ONLY the information from the KNOWLEDGE BASE CONTEXT above, provide a much better, more accurate, and helpful response that:
 
-IMPORTANT: Base your answer strictly on the knowledge base context provided above.
+1. Follows ALL the instructions from the system prompt at the top (including link embedding and markdown formatting)
+2. Directly answers the user's question about cloud migration services
+3. Uses specific information from the knowledge base documents
+4. Provides actionable information about CloudFuze's capabilities
+5. Is clear, professional, and helpful
+6. Includes relevant CloudFuze links.
+7. Uses proper Markdown formatting as specified in the system prompt
+8. Concludes with a helpful suggestion to contact CloudFuze with the contact link
+
+CRITICAL RULES:
+- Base your answer STRICTLY on the knowledge base context provided above
+- Use the EXACT same style, tone, and formatting as the system prompt requires
+- Include relevant CloudFuze links naturally in the response
+- DO NOT invent information not in the knowledge base context
+- If information is not in the context, say "I don't have specific information about that and  Concludes with a helpful suggestion to contact CloudFuze with the contact link"
 
 Improved response:
 """
         
         # Generate improved response with knowledge base context
         improved_response = llm.invoke(correction_prompt).content
-        return improved_response
+        
+        # Return both the response and context debug info
+        return improved_response, context_debug_info
         
     except Exception as e:
         print(f"Error generating improved response: {e}")
-        return f"I apologize for the previous response. Let me provide a better answer to your question: {user_query}. For detailed information about Slack to Teams migration, please contact our CloudFuze support team."
+        error_response = f"I apologize for the previous response. Let me provide a better answer to your question: {user_query}. For detailed information about Slack to Teams migration, please contact our CloudFuze support team."
+        return error_response, {"error": str(e), "doc_count": 0}
 
 async def save_correction_to_dataset(user_query: str, bad_response: str, improved_response: str, trace_id: str, user_comment: str = None):
     """Save the correction to JSONL dataset."""
@@ -1015,7 +1040,8 @@ async def save_correction_to_dataset(user_query: str, bad_response: str, improve
             f.write(json.dumps(correction_record, ensure_ascii=False) + '\n')
         
         # Also save to the existing corrected_responses.json for compatibility
-        save_corrected_response(trace_id, improved_response, user_comment)
+        # Pass the original question so similarity matching can work
+        save_corrected_response(trace_id, improved_response, user_comment, user_query)
         
     except Exception as e:
         print(f"Error saving correction to dataset: {e}")
