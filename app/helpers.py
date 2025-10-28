@@ -12,6 +12,7 @@ from config import CHROMA_DB_PATH, BLOG_POSTS_PER_PAGE, BLOG_MAX_PAGES, BLOG_STA
 from app.pdf_processor import process_pdf_directory, chunk_pdf_documents
 from app.excel_processor import process_excel_directory, chunk_excel_documents
 from app.doc_processor import process_doc_directory, chunk_doc_documents
+from app.sharepoint_processor import process_sharepoint_content
 
 
 def fetch_posts(base_url: str, per_page=10, max_pages=6, start_page=1, extra_params: dict | None = None):
@@ -143,7 +144,7 @@ def build_vectorstore(url: str):
     vectorstore = Chroma.from_documents(docs, embeddings, persist_directory=CHROMA_DB_PATH)
     return vectorstore
 
-def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None):
+def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None, sharepoint_enabled: bool = False):
     """Build and persist embeddings for enabled sources only."""
     all_docs = []
     
@@ -205,6 +206,19 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
         print(f"  - Word documents: {len(doc_chunks)}")
     else:
         print("Word document processing disabled or directory not found - skipping...")
+    
+    # Process SharePoint content if enabled
+    if sharepoint_enabled:
+        print("Processing SharePoint content...")
+        try:
+            sharepoint_docs = process_sharepoint_content()
+            all_docs.extend(sharepoint_docs)
+            print(f"  - SharePoint documents: {len(sharepoint_docs)}")
+        except Exception as e:
+            print(f"[ERROR] SharePoint processing failed: {e}")
+            print("  - SharePoint documents: 0 (failed)")
+    else:
+        print("SharePoint processing disabled - skipping...")
     
     print(f"Total documents to process: {len(all_docs)}")
     
