@@ -32,6 +32,10 @@ pymupdf4llm==0.0.5
 python-docx==1.1.0
 docx2txt==0.8
 
+# Browser Automation for SharePoint
+selenium==4.36.0
+webdriver-manager==4.0.2
+
 # Excel Processing
 openpyxl==3.1.2
 xlrd==2.0.1

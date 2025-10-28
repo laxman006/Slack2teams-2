@@ -24,10 +24,15 @@ services:
       - ENABLE_PDF_SOURCE=${ENABLE_PDF_SOURCE:-false}
       - ENABLE_EXCEL_SOURCE=${ENABLE_EXCEL_SOURCE:-false}
       - ENABLE_DOC_SOURCE=${ENABLE_DOC_SOURCE:-false}
+      - ENABLE_SHAREPOINT_SOURCE=${ENABLE_SHAREPOINT_SOURCE:-false}
       - WEB_SOURCE_URL=${WEB_SOURCE_URL:-https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100}
       - PDF_SOURCE_DIR=${PDF_SOURCE_DIR:-./pdfs}
       - EXCEL_SOURCE_DIR=${EXCEL_SOURCE_DIR:-./excel}
       - DOC_SOURCE_DIR=${DOC_SOURCE_DIR:-./docs}
+      - SHAREPOINT_SITE_URL=${SHAREPOINT_SITE_URL:-}
+      - SHAREPOINT_START_PAGE=${SHAREPOINT_START_PAGE:-}
+      - SHAREPOINT_MAX_DEPTH=${SHAREPOINT_MAX_DEPTH:-3}
+      - SHAREPOINT_EXCLUDE_FILES=${SHAREPOINT_EXCLUDE_FILES:-true}
     volumes:
       - ./data:/app/data
       - ./images:/app/images
