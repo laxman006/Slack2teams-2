@@ -1,0 +1,9 @@
+{
+  "job_id": "ftjob-lKgljXCOxBpQCWnHnhsoryOC",
+  "status": "validating_files",
+  "model": "gpt-4o-mini-2024-07-18",
+  "training_file_id": "file-GexdZFT8o9KEurdBve5Khj",
+  "local_training_file": "./data/fine_tuning_dataset/training_data_20251024_191949.jsonl",
+  "created_at": "2025-10-24T19:19:54.132122",
+  "training_examples": 55
+}
