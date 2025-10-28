@@ -261,7 +261,12 @@
       
       // Show loading state
       const button = event.target;
-      const originalText = button.innerHTML;
+      const originalText = `
+        <svg class="provider-icon" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+        </svg>
+        Sign in with Microsoft
+      `;
       button.innerHTML = '<span>Signing in...</span>';
       button.disabled = true;
       
@@ -271,6 +276,9 @@
       
       // Store code verifier for later use
       sessionStorage.setItem('code_verifier', codeVerifier);
+      
+      // Store that we're in a login flow
+      sessionStorage.setItem('login_in_progress', 'true');
       
       const authUrl = `https://login.microsoftonline.com/${MICROSOFT_TENANT}/oauth2/v2.0/authorize?` +
         `client_id=${MICROSOFT_CLIENT_ID}&` +
@@ -289,6 +297,7 @@
         // Restore button state on error
         button.innerHTML = originalText;
         button.disabled = false;
+        sessionStorage.removeItem('login_in_progress');
         showError('Failed to initiate login: ' + error.message);
       }
     }
@@ -435,8 +444,9 @@
         if (response.ok) {
           const data = await response.json();
           
-          // Clear code verifier from session storage
+          // Clear code verifier and login in progress flag from session storage
           sessionStorage.removeItem('code_verifier');
+          sessionStorage.removeItem('login_in_progress');
           
           const user = {
             id: data.user_id,
@@ -501,8 +511,28 @@
       }
     }
 
+    // Reset login button to original state
+    function resetLoginButton() {
+      const button = document.getElementById('microsoftLogin');
+      if (button) {
+        // Clear any login in progress flag
+        sessionStorage.removeItem('login_in_progress');
+        
+        button.innerHTML = `
+          <svg class="provider-icon" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+          </svg>
+          Sign in with Microsoft
+        `;
+        button.disabled = false;
+      }
+    }
+
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', async function() {
+      // Reset login button to original state first
+      resetLoginButton();
+      
       // Load OAuth configuration first
       await loadOAuthConfig();
       
@@ -528,6 +558,7 @@
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
         console.log('Page became visible, checking auth status...');
+        resetLoginButton(); // Reset button state
         checkAuthStatus();
       }
     });
@@ -535,12 +566,14 @@
     // Also check when the page is focused (additional safety)
     window.addEventListener('focus', function() {
       console.log('Window focused, checking auth status...');
+      resetLoginButton(); // Reset button state
       checkAuthStatus();
     });
 
     // Check authentication on page load (handles direct navigation)
     window.addEventListener('load', function() {
       console.log('Page loaded, checking auth status...');
+      resetLoginButton(); // Reset button state
       checkAuthStatus();
     });
   </script>
