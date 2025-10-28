@@ -142,6 +142,92 @@ class LangfuseTracker:
         except Exception as e:
             print(f"[ERROR] Error adding feedback to Langfuse: {e}")
             return False
+    
+    def log_observation_to_trace(
+        self,
+        trace_id: str,
+        name: str,
+        input_data: Any,
+        output_data: Any,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """
+        Log an observation (span) to an existing Langfuse trace
+        This is used for manual correction workflow to log generated corrections
+        
+        Args:
+            trace_id: The trace ID to add observation to
+            name: Name of the observation (e.g., "corrected_response")
+            input_data: Input data (original question + bad response)
+            output_data: Output data (corrected response)
+            metadata: Additional metadata
+        
+        Returns:
+            bool: True if observation was logged successfully, False otherwise
+        """
+        if not self.client:
+            print("[!] Langfuse client not initialized, skipping observation logging")
+            return False
+        
+        try:
+            # Get or create the trace
+            trace = self.client.trace(
+                id=trace_id,
+                name="manual_correction_review"
+            )
+            
+            # Add a span observation with the corrected response
+            trace.span(
+                name=name,
+                input=input_data,
+                output=output_data,
+                metadata={
+                    **(metadata or {}),
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+            
+            print(f"[OK] Observation '{name}' logged to Langfuse trace: {trace_id}")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Error logging observation to Langfuse: {e}")
+            return False
+    
+    def get_trace_evaluations(self, trace_id: str) -> list:
+        """
+        Get all evaluations/scores for a specific trace
+        
+        Args:
+            trace_id: The trace ID to get evaluations for
+            
+        Returns:
+            List of evaluation dictionaries with name, value, comment
+        """
+        if not self.client:
+            print("[!] Langfuse client not initialized")
+            return []
+        
+        try:
+            trace = self.client.fetch_trace(trace_id)
+            
+            if not trace or not hasattr(trace, 'scores'):
+                return []
+            
+            evaluations = []
+            for score in trace.scores:
+                evaluations.append({
+                    'name': score.name,
+                    'value': score.value,
+                    'comment': score.comment if hasattr(score, 'comment') else None,
+                    'timestamp': score.timestamp if hasattr(score, 'timestamp') else None
+                })
+            
+            return evaluations
+            
+        except Exception as e:
+            print(f"[ERROR] Error fetching trace evaluations: {e}")
+            return []
 
 
 # Global tracker instance
