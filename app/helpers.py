@@ -144,6 +144,20 @@ def build_vectorstore(url: str):
     vectorstore = Chroma.from_documents(docs, embeddings, persist_directory=CHROMA_DB_PATH)
     return vectorstore
 
+def process_teams_transcripts(user_emails=None, days_back=30):
+    """Process Teams meeting transcripts and return documents."""
+    try:
+        from app.teams_transcript_extractor import extract_teams_transcripts
+        print("[*] Extracting Teams meeting transcripts...")
+        docs = extract_teams_transcripts(user_emails, days_back)
+        print(f"[OK] Extracted {len(docs)} transcripts")
+        return docs
+    except Exception as e:
+        print(f"[ERROR] Failed to process Teams transcripts: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
 def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None, sharepoint_enabled: bool = False):
     """Build and persist embeddings for enabled sources only."""
     all_docs = []

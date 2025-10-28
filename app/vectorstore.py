@@ -5,6 +5,7 @@ from config import (
     ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE, ENABLE_SHAREPOINT_SOURCE,
     WEB_SOURCE_URL, PDF_SOURCE_DIR, EXCEL_SOURCE_DIR, DOC_SOURCE_DIR, BLOG_START_PAGE,
     SHAREPOINT_SITE_URL, SHAREPOINT_START_PAGE,
+    ENABLE_TEAMS_TRANSCRIPTS, TEAMS_TRANSCRIPT_DAYS_BACK,
 )
 import os
 import shutil
@@ -72,6 +73,10 @@ def get_current_metadata():
     if ENABLE_SHAREPOINT_SOURCE:
         metadata["sharepoint"] = f"{SHAREPOINT_SITE_URL}{SHAREPOINT_START_PAGE}"
         metadata["enabled_sources"].append("sharepoint")
+    
+    if 'ENABLE_TEAMS_TRANSCRIPTS' in globals() and ENABLE_TEAMS_TRANSCRIPTS:
+        metadata["teams_transcripts"] = f"teams_last_{TEAMS_TRANSCRIPT_DAYS_BACK}_days"
+        metadata["enabled_sources"].append("teams_transcripts")
     
     return metadata
 
@@ -255,6 +260,20 @@ def build_incremental_vectorstore(changed_sources):
         except Exception as e:
             print(f"[ERROR] SharePoint processing failed: {e}")
     
+    if "teams_transcripts" in changed_sources:
+        print("[*] Processing Teams meeting transcripts...")
+        from app.helpers import process_teams_transcripts
+        try:
+            from config import TEAMS_TRANSCRIPT_USER_EMAILS, TEAMS_TRANSCRIPT_DAYS_BACK
+            teams_docs = process_teams_transcripts(
+                user_emails=TEAMS_TRANSCRIPT_USER_EMAILS,
+                days_back=TEAMS_TRANSCRIPT_DAYS_BACK,
+            )
+            new_docs.extend(teams_docs)
+            print(f"[OK] Processed {len(teams_docs)} Teams transcripts")
+        except Exception as e:
+            print(f"[ERROR] Teams transcript processing failed: {e}")
+    
     if not new_docs:
         print("[WARNING] No new documents found for changed sources")
         return existing_vectorstore
@@ -301,13 +320,17 @@ def build_selective_vectorstore():
     if ENABLE_SHAREPOINT_SOURCE:
         enabled_sources.append("sharepoint")
     
+    # Check Teams transcripts source
+    if 'ENABLE_TEAMS_TRANSCRIPTS' in globals() and ENABLE_TEAMS_TRANSCRIPTS:
+        enabled_sources.append("teams_transcripts")
+    
     print(f"Building vectorstore with sources: {', '.join(enabled_sources)}")
     
     # Build based on enabled sources
     if len(enabled_sources) == 1 and "web" in enabled_sources:
         # Only web source enabled
         return build_vectorstore(WEB_SOURCE_URL)
-    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE:
+    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE or (('ENABLE_TEAMS_TRANSCRIPTS' in globals()) and ENABLE_TEAMS_TRANSCRIPTS):
         # Multiple sources enabled
         pdf_dir = PDF_SOURCE_DIR if ENABLE_PDF_SOURCE else None
         excel_dir = EXCEL_SOURCE_DIR if ENABLE_EXCEL_SOURCE else None

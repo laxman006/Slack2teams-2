@@ -98,6 +98,11 @@ ENABLE_EXCEL_SOURCE = os.getenv("ENABLE_EXCEL_SOURCE", "false").lower() == "true
 ENABLE_DOC_SOURCE = os.getenv("ENABLE_DOC_SOURCE", "false").lower() == "true"
 ENABLE_SHAREPOINT_SOURCE = os.getenv("ENABLE_SHAREPOINT_SOURCE", "false").lower() == "true"
 
+# Teams Transcript Configuration
+ENABLE_TEAMS_TRANSCRIPTS = os.getenv("ENABLE_TEAMS_TRANSCRIPTS", "false").lower() == "true"
+TEAMS_TRANSCRIPT_DAYS_BACK = int(os.getenv("TEAMS_TRANSCRIPT_DAYS_BACK", "30"))
+TEAMS_TRANSCRIPT_USER_EMAILS = os.getenv("TEAMS_TRANSCRIPT_USER_EMAILS", "").split(",") if os.getenv("TEAMS_TRANSCRIPT_USER_EMAILS") else None
+
 # Source-specific settings
 WEB_SOURCE_URL = os.getenv("WEB_SOURCE_URL", "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100")
 PDF_SOURCE_DIR = os.getenv("PDF_SOURCE_DIR", "./pdfs")
