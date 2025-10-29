@@ -117,8 +117,8 @@ LANGFUSE_PUBLIC_KEY=your_langfuse_public_key_here
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key_here
 LANGFUSE_HOST=https://cloud.langfuse.com
 
-# MongoDB Configuration
-MONGODB_URL=mongodb://localhost:27017
+# MongoDB Atlas Configuration (Cloud Storage)
+MONGODB_URL=mongodb+srv://sudityanimmala_db_user:Arss_2025@cluster0.sgqafxp.mongodb.net/slack2teams?retryWrites=true&w=majority&appName=Cluster0
 MONGODB_DATABASE=slack2teams
 MONGODB_CHAT_COLLECTION=chat_histories
 MONGODB_VECTORSTORE_COLLECTION=cloudfuze_vectorstore

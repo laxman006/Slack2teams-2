@@ -34,8 +34,9 @@ services:
       LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY}"
       LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY}"
       LANGFUSE_HOST: "https://cloud.langfuse.com"
-      # MongoDB Configuration
-      MONGODB_URL: "${MONGODB_URL:-mongodb://localhost:27017}"
+      # MongoDB Atlas Configuration (Cloud Storage)
+      # Set MONGODB_URL in .env.prod with your Atlas connection string
+      MONGODB_URL: "${MONGODB_URL}"
       MONGODB_DATABASE: "${MONGODB_DATABASE:-slack2teams}"
       MONGODB_CHAT_COLLECTION: "${MONGODB_CHAT_COLLECTION:-chat_histories}"
       MONGODB_VECTORSTORE_COLLECTION: "${MONGODB_VECTORSTORE_COLLECTION:-cloudfuze_vectorstore}"
