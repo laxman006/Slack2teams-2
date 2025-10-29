@@ -112,13 +112,20 @@ MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
 MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret_here
 MICROSOFT_TENANT=your_microsoft_tenant_here
 
-# Langfuse Configuration (Optional)
+# Langfuse Configuration (Observability)
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key_here
 LANGFUSE_SECRET_KEY=your_langfuse_secret_key_here
-LANGFUSE_HOST=http://langfuse:3000
+LANGFUSE_HOST=https://cloud.langfuse.com
 
-# NextAuth Secret (if using Langfuse)
-NEXTAUTH_SECRET=your_nextauth_secret_here
+# MongoDB Configuration
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=slack2teams
+MONGODB_CHAT_COLLECTION=chat_histories
+MONGODB_VECTORSTORE_COLLECTION=cloudfuze_vectorstore
+
+# Vectorstore Configuration
+VECTORSTORE_BACKEND=mongodb
+INITIALIZE_VECTORSTORE=false
 EOF
     print_warning "Please edit .env.prod with your actual production values"
 fi

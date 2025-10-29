@@ -33,9 +33,15 @@ services:
       MICROSOFT_TENANT: "${MICROSOFT_TENANT}"
       LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY}"
       LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY}"
-      LANGFUSE_HOST: "http://langfuse:3000"
-      JSON_MEMORY_FILE: "/app/data/chat_history.json"
-      CHROMA_DB_PATH: "/app/data/chroma_db"
+      LANGFUSE_HOST: "https://cloud.langfuse.com"
+      # MongoDB Configuration
+      MONGODB_URL: "${MONGODB_URL:-mongodb://localhost:27017}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-slack2teams}"
+      MONGODB_CHAT_COLLECTION: "${MONGODB_CHAT_COLLECTION:-chat_histories}"
+      MONGODB_VECTORSTORE_COLLECTION: "${MONGODB_VECTORSTORE_COLLECTION:-cloudfuze_vectorstore}"
+      # Vectorstore Backend
+      VECTORSTORE_BACKEND: "${VECTORSTORE_BACKEND:-mongodb}"
+      INITIALIZE_VECTORSTORE: "${INITIALIZE_VECTORSTORE:-false}"
       # Production settings
       PYTHONUNBUFFERED: "1"
       ENVIRONMENT: "production"
