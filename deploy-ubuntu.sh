@@ -102,32 +102,47 @@ print_status "Creating production environment file..."
 if [ ! -f .env.prod ]; then
     cat > .env.prod << EOF
 # Production Environment Variables
-# Replace these with your actual production values
+# CloudFuze Slack2Teams Chatbot
 
-# OpenAI API Key
-OPENAI_API_KEY=your_openai_api_key_here
+# OpenAI Configuration
+OPENAI_API_KEY=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
 
-# Microsoft OAuth Configuration
-MICROSOFT_CLIENT_ID=your_microsoft_client_id_here
-MICROSOFT_CLIENT_SECRET=your_microsoft_client_secret_here
-MICROSOFT_TENANT=your_microsoft_tenant_here
-
-# Langfuse Configuration (Observability)
-LANGFUSE_PUBLIC_KEY=your_langfuse_public_key_here
-LANGFUSE_SECRET_KEY=your_langfuse_secret_key_here
+# Langfuse Configuration (for observability)
+LANGFUSE_PUBLIC_KEY=pk-lf-200cf28a-10e2-4f57-8d21-5b56aae7ba78
+LANGFUSE_SECRET_KEY=sk-lf-9e666df7-d242-49f0-9365-f4814b0b3eb9
 LANGFUSE_HOST=https://cloud.langfuse.com
 
-# MongoDB Atlas Configuration (Cloud Storage)
+# Microsoft OAuth Configuration
+MICROSOFT_CLIENT_ID=861e696d-f41c-41ee-a7c2-c838fd185d6d
+MICROSOFT_CLIENT_SECRET=6Ag8Q~i3H50iy0B_nYJYVtZ5JilM3MAJSIe9tc5d
+MICROSOFT_TENANT=cloudfuze.com
+
+# MongoDB Configuration (Cloud)
 MONGODB_URL=mongodb+srv://sudityanimmala_db_user:Arss_2025@cluster0.sgqafxp.mongodb.net/slack2teams?retryWrites=true&w=majority&appName=Cluster0
 MONGODB_DATABASE=slack2teams
 MONGODB_CHAT_COLLECTION=chat_histories
 MONGODB_VECTORSTORE_COLLECTION=cloudfuze_vectorstore
 
-# Vectorstore Configuration
+# Vector Store Backend (use MongoDB instead of ChromaDB)
 VECTORSTORE_BACKEND=mongodb
+
+# Vectorstore Initialization
 INITIALIZE_VECTORSTORE=false
+
+# Data Sources (all disabled by default - data already in MongoDB)
+ENABLE_WEB_SOURCE=false
+ENABLE_PDF_SOURCE=false
+ENABLE_EXCEL_SOURCE=false
+ENABLE_DOC_SOURCE=false
+ENABLE_SHAREPOINT_SOURCE=false
+
+# SharePoint Configuration
+SHAREPOINT_SITE_URL=https://cloudfuzecom.sharepoint.com/sites/DOC360
+SHAREPOINT_START_PAGE=/SitePages/Multi%20User%20Golden%20Image%20Combinations.aspx
+SHAREPOINT_MAX_DEPTH=3
+SHAREPOINT_EXCLUDE_FILES=true
 EOF
-    print_warning "Please edit .env.prod with your actual production values"
+    print_success ".env.prod created with production configuration"
 fi
 
 # Stop any existing containers
