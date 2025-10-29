@@ -1,8 +1,0 @@
-{
-    "timestamp": "2025-10-27T16:33:22.553984",
-    "vectorstore_exists": true,
-    "enabled_sources": [
-        "sharepoint"
-    ],
-    "sharepoint": "https://cloudfuzecom.sharepoint.com/sites/DOC360/SitePages/Multi%20User%20Golden%20Image%20Combinations.aspx"
-}

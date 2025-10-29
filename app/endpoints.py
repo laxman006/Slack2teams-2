@@ -13,6 +13,7 @@ from datetime import datetime
 from app.llm import setup_qa_chain
 from app.vectorstore import retriever, vectorstore
 from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
+from app.mongodb_data_manager import mongodb_data, save_correction, log_bad_response
 from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
 from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
@@ -23,18 +24,13 @@ router = APIRouter()
 
 qa_chain = setup_qa_chain(retriever)
 
-# File path for corrected responses
-CORRECTED_RESPONSES_FILE = "./data/corrected_responses/corrected_responses.json"
-
+# Corrected responses now loaded from MongoDB
 def load_corrected_responses():
-    """Load corrected responses from JSON file."""
+    """Load corrected responses from MongoDB."""
     try:
-        if os.path.exists(CORRECTED_RESPONSES_FILE):
-            with open(CORRECTED_RESPONSES_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return data.get('corrected_responses', [])
+        return mongodb_data.get_corrected_responses()
     except Exception as e:
-        print(f"Error loading corrected responses: {e}")
+        print(f"Error loading corrected responses from MongoDB: {e}")
     return []
 
 def find_similar_corrected_response(question: str, threshold: float = 0.7):
@@ -476,50 +472,22 @@ async def submit_feedback(request: FeedbackRequest):
 # ---------------- Auto-Correction System ----------------
 
 async def track_feedback_history(trace_id: str, rating: str, comment: str = None):
-    """Track feedback history for smart auto-correction decisions."""
+    """Track feedback history in MongoDB."""
     try:
-        feedback_file = "./data/feedback_history.json"
-        
-        # Load existing data
-        if os.path.exists(feedback_file):
-            with open(feedback_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        else:
-            data = {"feedback_history": {}}
-        
-        # Initialize trace data if not exists
-        if trace_id not in data["feedback_history"]:
-            data["feedback_history"][trace_id] = {
-                "negative_count": 0,
-                "positive_count": 0,
-                "total_count": 0,
-                "question_asked_before": False,
-                "feedback_history": []
-            }
-        
-        # Update counts
-        trace_data = data["feedback_history"][trace_id]
-        trace_data["total_count"] += 1
-        
-        if rating == "thumbs_down":
-            trace_data["negative_count"] += 1
-        else:
-            trace_data["positive_count"] += 1
-        
-        # Add to feedback history
-        feedback_entry = {
-            "rating": rating,
-            "comment": comment,
-            "timestamp": datetime.now().isoformat()
+        # Create feedback record
+        feedback_record = {
+            'trace_id': trace_id,
+            'rating': rating,
+            'comment': comment,
+            'timestamp': datetime.now().isoformat()
         }
-        trace_data["feedback_history"].append(feedback_entry)
         
-        # Save updated data
-        with open(feedback_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save to MongoDB
+        mongodb_data.add_feedback(feedback_record)
+        print(f"[MongoDB] Saved feedback for trace {trace_id}: {rating}")
         
     except Exception as e:
-        print(f"Error tracking feedback history: {e}")
+        print(f"Error tracking feedback history in MongoDB: {e}")
 
 async def should_trigger_auto_correction(trace_id: str, user_comment: str = None) -> bool:
     """Simplified auto-correction logic - more effective and predictable."""
@@ -555,28 +523,27 @@ async def get_feedback_stats_for_question(trace_id: str) -> dict:
         # In a real implementation, you'd query Langfuse API for feedback history
         # For now, we'll simulate with local data
         
-        # Check if we have feedback data for this trace
-        feedback_file = "./data/feedback_history.json"
+        # Get all feedback for this trace from MongoDB
+        all_feedback = mongodb_data.get_feedback()
+        trace_feedback = [f for f in all_feedback if f.get('trace_id') == trace_id]
         
-        if os.path.exists(feedback_file):
-            with open(feedback_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            # Find feedback for this trace
-            trace_feedback = data.get('feedback_history', {}).get(trace_id, {})
-            return trace_feedback
-        else:
-            # No history, treat as first time
-            return {
-                'negative_count': 0,
-                'total_count': 0,
-                'question_asked_before': False
-            }
+        # Calculate stats
+        negative_count = sum(1 for f in trace_feedback if f.get('rating') == 'thumbs_down')
+        positive_count = sum(1 for f in trace_feedback if f.get('rating') == 'thumbs_up')
+        
+        return {
+            'negative_count': negative_count,
+            'positive_count': positive_count,
+            'total_count': len(trace_feedback),
+            'question_asked_before': len(trace_feedback) > 0,
+            'feedback_history': trace_feedback
+        }
             
     except Exception as e:
-        print(f"Error getting feedback stats: {e}")
+        print(f"Error getting feedback stats from MongoDB: {e}")
         return {
             'negative_count': 0,
+            'positive_count': 0,
             'total_count': 0,
             'question_asked_before': False
         }
@@ -660,57 +627,37 @@ def save_corrected_response(trace_id: str, corrected_response: str, user_comment
         # Save to JSON file
         dataset_file = f"{dataset_dir}/corrected_responses.json"
         
-        # Load existing data
-        if os.path.exists(dataset_file):
-            with open(dataset_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        else:
-            data = {"corrected_responses": []}
-        
-        # Add new entry
-        data["corrected_responses"].append(dataset_entry)
-        
-        # Save back to file
-        with open(dataset_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save to MongoDB
+        mongodb_data.add_corrected_response(trace_id, dataset_entry)
+        print(f"[MongoDB] Saved corrected response for trace {trace_id}")
         
     except Exception as e:
-        print(f"Error saving corrected response: {e}")
+        print(f"Error saving corrected response to MongoDB: {e}")
 
 @router.get("/dataset/corrected-responses")
 async def get_corrected_responses():
-    """Get all corrected responses from the dataset."""
+    """Get all corrected responses from MongoDB."""
     try:
-        dataset_file = "./data/corrected_responses/corrected_responses.json"
-        
-        if not os.path.exists(dataset_file):
-            return {"corrected_responses": [], "count": 0}
-        
-        with open(dataset_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        corrected_responses = mongodb_data.get_corrected_responses()
         
         return {
-            "corrected_responses": data.get("corrected_responses", []),
-            "count": len(data.get("corrected_responses", []))
+            "corrected_responses": corrected_responses,
+            "count": len(corrected_responses)
         }
         
     except Exception as e:
-        return {"error": f"Failed to load corrected responses: {str(e)}"}
+        return {"error": f"Failed to load corrected responses from MongoDB: {str(e)}"}
 
 @router.delete("/dataset/corrected-responses")
 async def clear_corrected_responses():
-    """Clear all corrected responses from the dataset."""
+    """Clear all corrected responses from MongoDB."""
     try:
-        dataset_file = "./data/corrected_responses/corrected_responses.json"
-        
-        if os.path.exists(dataset_file):
-            os.remove(dataset_file)
-            return {"message": "Corrected responses dataset cleared"}
-        else:
-            return {"message": "No dataset found to clear"}
+        # Clear from MongoDB
+        mongodb_data.db["corrected_responses"].delete_many({})
+        return {"message": "Corrected responses cleared from MongoDB"}
             
     except Exception as e:
-        return {"error": f"Failed to clear dataset: {str(e)}"}
+        return {"error": f"Failed to clear dataset from MongoDB: {str(e)}"}
 
 # ---------------- Manual Fine-Tuning System ----------------
 
@@ -761,22 +708,10 @@ async def get_fine_tuning_status():
         return {"error": f"Failed to get fine-tuning status: {str(e)}"}
 
 async def check_dataset_quality():
-    """Check if dataset is ready for fine-tuning."""
+    """Check if dataset is ready for fine-tuning using MongoDB."""
     try:
-        dataset_file = "./data/corrected_responses/corrected_responses.json"
-        
-        if not os.path.exists(dataset_file):
-            return {
-                "ready_for_training": False,
-                "current_count": 0,
-                "min_required": 10,
-                "recommendations": ["Collect more negative feedback data"]
-            }
-        
-        with open(dataset_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        corrected_responses = data.get("corrected_responses", [])
+        # Get corrected responses from MongoDB
+        corrected_responses = mongodb_data.get_corrected_responses()
         current_count = len(corrected_responses)
         min_required = 10  # Minimum samples needed
         
@@ -846,10 +781,8 @@ async def start_fine_tuning_process():
             "progress": 0
         }
         
-        # Save training status
-        status_file = "./data/fine_tuning_status.json"
-        with open(status_file, 'w', encoding='utf-8') as f:
-            json.dump(training_status, f, indent=2, ensure_ascii=False)
+        # Save training status to MongoDB
+        mongodb_data.update_fine_tuning_status(training_status)
         
         return training_status
         
@@ -858,15 +791,12 @@ async def start_fine_tuning_process():
         raise e
 
 async def get_training_status():
-    """Get current training status."""
+    """Get current training status from MongoDB."""
     try:
-        status_file = "./data/fine_tuning_status.json"
+        status = mongodb_data.get_fine_tuning_status()
         
-        if not os.path.exists(status_file):
+        if not status:
             return {"status": "no_training", "message": "No fine-tuning in progress"}
-        
-        with open(status_file, 'r', encoding='utf-8') as f:
-            status = json.load(f)
         
         return status
         
@@ -1033,14 +963,11 @@ async def save_correction_to_dataset(user_query: str, bad_response: str, improve
             "status": "auto_corrected"
         }
         
-        # Save to single JSONL file (append mode)
-        jsonl_file = f"{dataset_dir}/corrections.jsonl"
+        # Save correction to MongoDB for fine-tuning
+        mongodb_data.add_correction(correction_record)
+        print(f"[MongoDB] Saved correction for fine-tuning: {trace_id}")
         
-        with open(jsonl_file, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(correction_record, ensure_ascii=False) + '\n')
-        
-        # Also save to the existing corrected_responses.json for compatibility
-        # Pass the original question so similarity matching can work
+        # Also save to corrected responses for compatibility
         save_corrected_response(trace_id, improved_response, user_comment, user_query)
         
     except Exception as e:

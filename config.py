@@ -84,6 +84,11 @@ JSON_MEMORY_FILE = os.getenv("JSON_MEMORY_FILE", "data/chat_history.json")
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "slack2teams")
 MONGODB_CHAT_COLLECTION = os.getenv("MONGODB_CHAT_COLLECTION", "chat_histories")
+MONGODB_VECTORSTORE_COLLECTION = os.getenv("MONGODB_VECTORSTORE_COLLECTION", "cloudfuze_vectorstore")
+
+# Vector Store Backend Selection
+# Default to MongoDB vector store (override with VECTORSTORE_BACKEND env var if needed)
+VECTORSTORE_BACKEND = os.getenv("VECTORSTORE_BACKEND", "mongodb").lower()
 
 # Vectorstore Initialization Control
 # Convert to boolean: only "true" (case-insensitive) enables initialization

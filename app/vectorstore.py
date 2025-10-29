@@ -6,6 +6,7 @@ from config import (
     WEB_SOURCE_URL, PDF_SOURCE_DIR, EXCEL_SOURCE_DIR, DOC_SOURCE_DIR, BLOG_START_PAGE,
     SHAREPOINT_SITE_URL, SHAREPOINT_START_PAGE,
     ENABLE_TEAMS_TRANSCRIPTS, TEAMS_TRANSCRIPT_DAYS_BACK,
+    VECTORSTORE_BACKEND, MONGODB_VECTORSTORE_COLLECTION,
 )
 import os
 import shutil
@@ -14,6 +15,19 @@ import hashlib
 from datetime import datetime
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
+
+# Import MongoDB vector store if backend is set to MongoDB
+if VECTORSTORE_BACKEND == "mongodb":
+    try:
+        from app.mongodb_vectorstore import MongoDBVectorStore
+        MONGODB_AVAILABLE = True
+        print("[*] MongoDB vector store backend selected")
+    except ImportError as e:
+        MONGODB_AVAILABLE = False
+        print(f"[WARNING] MongoDB vector store not available: {e}")
+        print("[*] Falling back to ChromaDB")
+else:
+    MONGODB_AVAILABLE = False
 
 METADATA_FILE = "./data/vectorstore_metadata.json"
 
@@ -160,18 +174,34 @@ def should_rebuild_vectorstore():
 
 def load_existing_vectorstore():
     """Load existing vectorstore without rebuilding."""
-    print("[*] Loading existing vectorstore...")
+    print(f"[*] Loading existing vectorstore (backend: {VECTORSTORE_BACKEND})...")
+    
     try:
         embeddings = OpenAIEmbeddings()
-        vectorstore = Chroma(
-            persist_directory=CHROMA_DB_PATH,
-            embedding_function=embeddings
-        )
         
-        # Test if vectorstore is working
-        total_docs = vectorstore._collection.count()
-        print(f"[OK] Loaded existing vectorstore with {total_docs} documents")
-        return vectorstore
+        # Use MongoDB backend if configured
+        if VECTORSTORE_BACKEND == "mongodb" and MONGODB_AVAILABLE:
+            vectorstore = MongoDBVectorStore(
+                collection_name=MONGODB_VECTORSTORE_COLLECTION,
+                embedding_function=embeddings
+            )
+            stats = vectorstore.get_collection_stats()
+            total_docs = stats["total_documents"]
+            print(f"[OK] Loaded MongoDB vectorstore with {total_docs} documents")
+            return vectorstore
+        
+        # Default: Use ChromaDB
+        else:
+            vectorstore = Chroma(
+                persist_directory=CHROMA_DB_PATH,
+                embedding_function=embeddings
+            )
+            
+            # Test if vectorstore is working
+            total_docs = vectorstore._collection.count()
+            print(f"[OK] Loaded ChromaDB vectorstore with {total_docs} documents")
+            return vectorstore
+            
     except Exception as e:
         print(f"[!] Failed to load existing vectorstore: {e}")
         return None
@@ -423,9 +453,17 @@ def get_vectorstore():
     
     # First, try to load existing vectorstore (always attempt this)
     try:
-        if os.path.exists(CHROMA_DB_PATH):
-            print("[*] Loading existing vectorstore...")
+        # Check if vectorstore exists based on backend
+        if VECTORSTORE_BACKEND == "mongodb" and MONGODB_AVAILABLE:
+            # For MongoDB, always try to connect (collection may exist)
+            print("[*] Loading MongoDB vectorstore...")
             return load_existing_vectorstore()
+        
+        elif os.path.exists(CHROMA_DB_PATH):
+            # For ChromaDB, check if directory exists
+            print("[*] Loading ChromaDB vectorstore...")
+            return load_existing_vectorstore()
+        
         else:
             print("[!] No existing vectorstore found")
             # If no vectorstore exists and INITIALIZE_VECTORSTORE=true, create one
@@ -435,6 +473,7 @@ def get_vectorstore():
             else:
                 print("[*] INITIALIZE_VECTORSTORE=false - no vectorstore available")
                 return None
+                
     except Exception as e:
         print(f"[!] Failed to load existing vectorstore: {e}")
         # If loading fails and INITIALIZE_VECTORSTORE=true, try to rebuild
