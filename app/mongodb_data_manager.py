@@ -186,3 +186,4 @@ def log_bad_response(query: str, response: str, error: str, user_id: str = "unkn
 
 
 
+

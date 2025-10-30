@@ -549,6 +549,44 @@
       margin-left: 4px;
     }
 
+    /* Retry button styles */
+    .retry-button {
+      background: transparent;
+      border: 1px solid #dc3545;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #dc3545;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-weight: 500;
+    }
+
+    .retry-button:hover {
+      background: #dc3545;
+      color: white;
+    }
+
+    .retry-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .retry-button svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .error-message {
+      color: #dc3545;
+      font-style: italic;
+    }
+
     #input-container {
       position: fixed;
       bottom: 0;
@@ -968,6 +1006,40 @@
       }
     }
 
+    // Retry failed message functionality
+    async function retryMessage(button) {
+      try {
+        // Disable the retry button to prevent multiple clicks
+        button.disabled = true;
+        button.innerHTML = '<svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"></path></svg><span>Retrying...</span>';
+        
+        // Get the failed bot message
+        const botDiv = button.closest('.message.bot');
+        
+        // Get the original question from the data attribute
+        const originalQuestion = botDiv.dataset.originalQuestion;
+        
+        if (!originalQuestion) {
+          console.error('No original question found for retry');
+          return;
+        }
+        
+        // Remove the failed bot message
+        botDiv.remove();
+        
+        // Set the input value to the original question and send it
+        input.value = originalQuestion;
+        await sendMessage();
+        
+      } catch (error) {
+        console.error('Error retrying message:', error);
+        
+        // Re-enable button on error
+        button.disabled = false;
+        button.innerHTML = '<svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"></path></svg><span>Retry</span>';
+      }
+    }
+
     async function sendMessage() {
       const question = input.value.trim();
       if (!question) return;
@@ -987,6 +1059,9 @@
           </span>
         </div>
       `;
+      
+      // Store the original question for retry functionality
+      botDiv.dataset.originalQuestion = question;
 
       try {
         console.log("[CHAT] Sending question:", question);
@@ -1110,8 +1185,30 @@
         
       } catch (error) {
         console.error("Error sending message:", error);
-        // Clear thinking animation and show error
-        botDiv.innerHTML = "Sorry, there was an error. Please try again.";
+        
+        // Determine error message based on error type
+        let errorMessage = "Just a moment — things seem a bit slow right now. Please try again shortly.";
+        
+        if (error.message && error.message.includes('Failed to fetch')) {
+          errorMessage = "Connection failed. Please check your internet connection.";
+        } else if (error.message && error.message.includes('429')) {
+          errorMessage = "Too many requests. Please wait a moment before retrying.";
+        } else if (error.message && error.message.includes('500')) {
+          errorMessage = "Server error occurred. Please try again.";
+        }
+        
+        // Clear thinking animation and show error with retry button
+        botDiv.innerHTML = `
+          <div class="message-content">
+            <span class="error-message">${errorMessage}</span>
+          </div>
+          <button class="retry-button" onclick="retryMessage(this)">
+            <svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"></path>
+            </svg>
+            <span>Retry</span>
+          </button>
+        `;
       }
     }
 
