@@ -70,7 +70,9 @@ def get_current_metadata():
         metadata["enabled_sources"].append("docs")
     
     if ENABLE_SHAREPOINT_SOURCE:
-        metadata["sharepoint"] = f"{SHAREPOINT_SITE_URL}{SHAREPOINT_START_PAGE}"
+        # Store SharePoint metadata - use empty string if start_page is not set (means Documents library)
+        sharepoint_path = f"{SHAREPOINT_START_PAGE}" if SHAREPOINT_START_PAGE else "Documents Library"
+        metadata["sharepoint"] = f"{SHAREPOINT_SITE_URL}/{sharepoint_path}"
         metadata["enabled_sources"].append("sharepoint")
     
     return metadata
@@ -247,11 +249,15 @@ def build_incremental_vectorstore(changed_sources):
     
     if "sharepoint" in changed_sources:
         print("[*] Processing changed SharePoint content...")
+        print("[INFO] Keeping old SharePoint data - adding new SharePoint documents...")
+        
+        # Process and add new SharePoint content (keep old data)
         from app.sharepoint_processor import process_sharepoint_content
         try:
             sharepoint_docs = process_sharepoint_content()
             new_docs.extend(sharepoint_docs)
-            print(f"[OK] Processed {len(sharepoint_docs)} SharePoint documents")
+            print(f"[OK] Processed {len(sharepoint_docs)} new SharePoint documents")
+            print("[INFO] Old SharePoint documents are preserved in vectorstore")
         except Exception as e:
             print(f"[ERROR] SharePoint processing failed: {e}")
     
@@ -259,11 +265,17 @@ def build_incremental_vectorstore(changed_sources):
         print("[WARNING] No new documents found for changed sources")
         return existing_vectorstore
     
-    # Add new documents to existing vectorstore
-    print(f"[*] Adding {len(new_docs)} new documents to existing vectorstore...")
+    # Add new documents to existing vectorstore in batches to avoid token limit
+    print(f"[*] Adding {len(new_docs)} new documents to existing vectorstore in batches...")
+    batch_size = 50  # Add 50 documents at a time to stay under token limit
     try:
-        existing_vectorstore.add_documents(new_docs)
-        print("[OK] Successfully added new documents to vectorstore")
+        for i in range(0, len(new_docs), batch_size):
+            batch = new_docs[i:i + batch_size]
+            batch_num = (i // batch_size) + 1
+            total_batches = (len(new_docs) + batch_size - 1) // batch_size
+            print(f"   [*] Adding batch {batch_num}/{total_batches} ({len(batch)} documents)...")
+            existing_vectorstore.add_documents(batch)
+        print(f"[OK] Successfully added all {len(new_docs)} documents to vectorstore in {total_batches} batches")
         return existing_vectorstore
     except Exception as e:
         print(f"[ERROR] Failed to add documents incrementally: {e}")

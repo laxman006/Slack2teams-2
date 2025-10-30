@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+
+
   <title>CF Chatbot</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
@@ -660,6 +662,7 @@
     const messagesDiv = document.getElementById("messages");
     const input = document.getElementById("user-input");
     const sendBtn = document.getElementById("send-btn");
+
     
     // Generate a session ID for conversation memory
     let sessionId = localStorage.getItem('chatbot_session_id');
@@ -968,11 +971,15 @@
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
+                console.log("Parsed streaming data:", data); // Debug log
                 
                 if (data.type === 'thinking_complete') {
                   // Clear thinking animation and prepare for streaming (NO BUTTONS YET)
                   botDiv.innerHTML = `<div class="message-content"></div>`;
                   console.log("Thinking complete, starting streaming...");
+                } else if (data.type === 'sources') {
+                  // Log source information to browser console
+                  console.log("[CONSOLE]", data.sources);
                 } else if (data.type === 'token') {
                   // Add token to response (STILL NO BUTTONS)
                   const token = data.token;
@@ -1572,6 +1579,11 @@
     // Handle logout
     function handleLogout() {
       try {
+        
+  
+
+
+
         // Clear user data from localStorage
         localStorage.removeItem('user');
         currentUser = null;

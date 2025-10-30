@@ -171,6 +171,7 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
         for doc in web_docs:
             doc.metadata["source_type"] = "web"
             doc.metadata["source"] = "cloudfuze_blog"
+            doc.metadata["tag"] = "blog"  # Tag for chatbot to identify blog content
         
         all_docs.extend(web_docs)
         print(f"  - Web documents: {len(web_docs)}")

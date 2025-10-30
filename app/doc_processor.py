@@ -150,9 +150,11 @@ def chunk_doc_documents(documents: List[Document], chunk_size: int = 1000, chunk
         chunks = splitter.split_documents([doc])
         # Add metadata to each chunk for better searchability
         for chunk in chunks:
+            chunk.metadata.update(doc.metadata)  # Preserve original metadata first
             chunk.metadata.update({
                 "chunk_type": "word_document",
-                "searchable_content": " ".join(chunk.page_content.split()[:20])  # First 20 words for search
+                "searchable_content": " ".join(chunk.page_content.split()[:20]),  # First 20 words for search
+                "tag": "doc"  # Tag for chatbot to identify Word document content
             })
         chunked_docs.extend(chunks)
     
