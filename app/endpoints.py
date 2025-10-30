@@ -315,17 +315,156 @@ async def chat_stream(request: Request):
                     print("Warning: Vectorstore not initialized. Please rebuild vectorstore manually.")
                     final_docs = []
                 else:
-                    # Enhanced semantic search with better coverage
-                    final_docs = vectorstore.similarity_search(enhanced_query, k=25)
+                    # Enhanced semantic search with better coverage - retrieve more docs to ensure SharePoint content is included
+                    # Use similarity_search_with_score to get relevance scores
+                    # Results are already sorted by relevance (best matches first)
+                    doc_results = vectorstore.similarity_search_with_score(enhanced_query, k=50)  # Increased from 25 to 50
+                    final_docs = [doc for doc, score in doc_results]  # Extract just the documents (already sorted by relevance)
+                    
+                    # Log what sources we're retrieving (for backend debugging)
+                    retrieved_sources = {}
+                    for doc in final_docs:
+                        tag = doc.metadata.get('tag', 'unknown')
+                        source_type = doc.metadata.get('source_type', 'unknown')
+                        if tag not in retrieved_sources:
+                            retrieved_sources[tag] = 0
+                        retrieved_sources[tag] += 1
+                    
+                    print(f"[DEBUG] Retrieved {len(final_docs)} documents from search")
+                    print(f"[DEBUG] Documents by tag: {retrieved_sources}")
+                    
+                    # If no SharePoint documents found, try a more aggressive search for SharePoint content
+                    has_sharepoint = any(
+                        doc.metadata.get('source_type') == 'sharepoint' or 
+                        'sharepoint' in doc.metadata.get('tag', '').lower()
+                        for doc in final_docs
+                    )
+                    
+                    if not has_sharepoint and any(word in enhanced_query.lower() for word in ['sharepoint', 'document', 'file', 'folder', 'download', 'certificate']):
+                        print("[DEBUG] No SharePoint docs found - trying SharePoint-specific search...")
+                        try:
+                            # Try searching for SharePoint content with modified queries
+                            sharepoint_docs = vectorstore.similarity_search(enhanced_query + " SharePoint", k=30)
+                            # Filter results to only SharePoint documents
+                            sharepoint_docs = [d for d in sharepoint_docs if d.metadata.get('source_type') == 'sharepoint']
+                            if sharepoint_docs:
+                                print(f"[DEBUG] Found {len(sharepoint_docs)} SharePoint documents with filter")
+                                # Add SharePoint docs to results (prioritize them)
+                                final_docs = sharepoint_docs[:10] + final_docs
+                                print(f"[DEBUG] Updated total: {len(final_docs)} documents")
+                        except Exception as e:
+                            print(f"[DEBUG] Filtered search failed (this is OK): {e}")
+                            # Try search with different query variations
+                            try:
+                                sharepoint_queries = [
+                                    enhanced_query + " SharePoint",
+                                    enhanced_query + " document",
+                                    enhanced_query.replace("?", "").replace("how", "what")
+                                ]
+                                for sp_query in sharepoint_queries[:2]:
+                                    sp_docs = vectorstore.similarity_search(sp_query, k=15)
+                                    # Filter for SharePoint docs
+                                    sp_filtered = [d for d in sp_docs if d.metadata.get('source_type') == 'sharepoint']
+                                    if sp_filtered:
+                                        final_docs.extend(sp_filtered[:5])
+                                        break
+                            except Exception as e2:
+                                print(f"[DEBUG] Alternative search failed: {e2}")
             except Exception as e:
                 print(f"Error during document search: {e}")
                 final_docs = []
             
-            # Format the documents properly
-            context_text = "\n\n".join([f"Document {i+1}:\n{doc.page_content}" for i, doc in enumerate(final_docs)])
+            # Deduplicate documents while preserving relevance order (prioritize SharePoint if found)
+            seen_ids = set()
+            unique_docs = []
+            
+            # First, add SharePoint documents if any
+            for doc in final_docs:
+                if doc.metadata.get('source_type') == 'sharepoint':
+                    doc_id = f"{doc.metadata.get('source', '')}_{doc.metadata.get('file_name', '')}_{doc.page_content[:100]}"
+                    if doc_id not in seen_ids:
+                        seen_ids.add(doc_id)
+                        unique_docs.append(doc)
+            
+            # Then add other documents
+            for doc in final_docs:
+                if doc.metadata.get('source_type') != 'sharepoint':
+                    doc_id = f"{doc.metadata.get('source', '')}_{doc.page_content[:100]}"
+                    if doc_id not in seen_ids:
+                        seen_ids.add(doc_id)
+                        unique_docs.append(doc)
+            
+            # Limit to top 30 documents for LLM processing
+            final_docs = unique_docs[:30]
+            
+            print(f"[DEBUG] Final documents for context: {len(final_docs)} (after deduplication)")
+            
+            # Format the documents properly with metadata using format_docs from llm.py
+            try:
+                from app.llm import format_docs
+                
+                if not final_docs:
+                    print("[WARNING] No documents retrieved for context!")
+                    context_text = "No relevant documents found in the knowledge base."
+                else:
+                    formatted_docs = format_docs(final_docs)
+                    context_text = "\n\n".join([f"Document {i+1}:\n{formatted_doc}" for i, formatted_doc in enumerate(formatted_docs)])
+                    print(f"[DEBUG] Context length: {len(context_text)} characters")
+                    print(f"[DEBUG] First 500 chars of context: {context_text[:500]}...")
+            except Exception as e:
+                print(f"[ERROR] Failed to format documents: {e}")
+                import traceback
+                traceback.print_exc()
+                # Fallback: use raw document content
+                context_text = "\n\n".join([f"Document {i+1}:\n{doc.page_content}" for i, doc in enumerate(final_docs[:10])])
+            
+            # Extract source information for console logging - only from TOP relevant documents
+            # Use top 10 most relevant documents (best similarity scores) to determine sources
+            top_relevant_count = min(10, len(final_docs))
+            top_relevant_docs = final_docs[:top_relevant_count]
+            
+            # Track unique sources from top relevant documents only
+            sources_seen = set()
+            sources_used = []
+            for doc in top_relevant_docs:
+                tag = doc.metadata.get('tag', 'unknown')
+                source_type = doc.metadata.get('source_type', 'unknown')
+                
+                # Create a clean source identifier
+                if source_type == 'sharepoint':
+                    folder_path = doc.metadata.get('folder_path', '')
+                    if folder_path:
+                        # Use full folder path for clarity
+                        source_id = f"SharePoint: {folder_path}"
+                    else:
+                        source_id = 'SharePoint'
+                elif tag == 'blog':
+                    source_id = 'Blog Content'
+                elif tag == 'pdf':
+                    source_id = 'PDF Documents'
+                elif tag == 'excel':
+                    source_id = 'Excel Documents'
+                elif tag == 'doc':
+                    source_id = 'Word Documents'
+                else:
+                    source_id = tag.replace('_', ' ').title()
+                
+                # Only add unique sources
+                if source_id not in sources_seen:
+                    sources_seen.add(source_id)
+                    sources_used.append(source_id)
+            
+            # Format source info for console
+            if sources_used:
+                source_info = f"Response generated from: {', '.join(sources_used)}"
+            else:
+                source_info = "Response generated (sources unknown)"
             
             # Send signal that thinking is complete and streaming will start
             yield f"data: {json.dumps({'type': 'thinking_complete'})}\n\n"
+            
+            # Send source information for console logging
+            yield f"data: {json.dumps({'type': 'sources', 'sources': source_info})}\n\n"
             
             # PHASE 2: STREAMING - Generate and stream response
             # This happens after the frontend clears the "Thinking..." animation
@@ -380,13 +519,13 @@ async def chat_stream(request: Request):
                     }
                 )
             except Exception as e:
-                print(f"⚠️ Langfuse logging failed: {e}")
+                print(f"[WARNING] Langfuse logging failed: {e}")
             
             # Send completion signal with trace_id
             yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
             
         except Exception as e:
-            print(f"❌ ERROR in generate_stream: {e}")
+            print(f"[ERROR] ERROR in generate_stream: {e}")
             import traceback
             traceback.print_exc()
             yield f"data: {json.dumps({'error': str(e), 'type': 'error'})}\n\n"
@@ -881,12 +1020,12 @@ async def get_fine_tuning_recommendations():
         recommendations = []
         
         if not dataset_status["ready_for_training"]:
-            recommendations.append("❌ Not ready for fine-tuning - insufficient data")
+            recommendations.append("[FAIL] Not ready for fine-tuning - insufficient data")
             recommendations.extend(dataset_status["recommendations"])
         else:
-            recommendations.append("✅ Ready for fine-tuning!")
-            recommendations.append("💡 Consider running fine-tuning when you have 20+ samples")
-            recommendations.append("🔄 Run fine-tuning weekly for best results")
+            recommendations.append("[OK] Ready for fine-tuning!")
+            recommendations.append("Consider running fine-tuning when you have 20+ samples")
+            recommendations.append("Run fine-tuning weekly for best results")
         
         return recommendations
         

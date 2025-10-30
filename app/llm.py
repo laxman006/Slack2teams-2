@@ -13,6 +13,58 @@ class AsyncStreamHandler(BaseCallbackHandler):
     def on_llm_new_token(self, token: str, **kwargs):
         self.queue.put_nowait(token)
 
+
+def format_docs(docs):
+    """Format documents with their content and metadata (especially download URLs, video URLs, and tags)."""
+    formatted = []
+    sources_used = []
+    
+    for doc in docs:
+        content = doc.page_content
+        metadata = doc.metadata
+        
+        # Track source information for logging
+        source = metadata.get('source', 'Unknown')
+        tag = metadata.get("tag", "unknown")
+        sources_used.append(f"{source} ({tag})")
+        
+        # Include tag information in context (for chatbot to know data source)
+        tag_info = f"[SOURCE: {tag}]"
+        
+        # For SharePoint documents, add additional context for better understanding
+        if metadata.get("source_type") == "sharepoint":
+            file_name = metadata.get('file_name', '')
+            folder_path = metadata.get('folder_path', '')
+            if file_name:
+                content = f"{tag_info}\nFile: {file_name}\nFolder: {folder_path}\n\n{content}"
+        else:
+            content = f"{tag_info}\n{content}"
+        
+        # Include download URL for certificates and downloadable files (policy documents, etc.) in the context
+        if metadata.get("is_downloadable") and metadata.get("download_url"):
+            file_name = metadata.get('file_name', 'File')
+            download_url = metadata.get('download_url')
+            is_cert = metadata.get('is_certificate', False)
+            # Escape any curly braces that might interfere with string formatting
+            file_name_escaped = file_name.replace('{', '{{').replace('}', '}}')
+            download_url_escaped = download_url.replace('{', '{{').replace('}', '}}')
+            content += f"\n\n[DOWNLOAD LINK: {file_name_escaped} (is_certificate: {is_cert}, is_downloadable: True) - {download_url_escaped}]"
+        
+        # Include video URL for demo videos in the context
+        if metadata.get("content_type") == "sharepoint_video" and metadata.get("video_url"):
+            video_name = metadata.get("video_name") or metadata.get("file_name", "Video")
+            video_url = metadata.get("video_url")
+            video_type = metadata.get("video_type", "video")
+            # Escape any curly braces that might interfere with string formatting
+            video_name_escaped = video_name.replace('{', '{{').replace('}', '}}')
+            video_url_escaped = video_url.replace('{', '{{').replace('}', '}}')
+            content += f"\n\n[VIDEO LINK: {video_name_escaped} ({video_type}) - {video_url_escaped}]"
+        
+        formatted.append(content)
+    
+    return formatted
+
+
 def setup_qa_chain(retriever):
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.runnables import RunnablePassthrough
@@ -32,8 +84,7 @@ def setup_qa_chain(retriever):
     )
     
     # Create the document chain using the new langchain 1.x approach
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+    # Use the module-level format_docs function
     
     document_chain = prompt_template | llm | StrOutputParser()
     
@@ -97,7 +148,8 @@ def setup_qa_chain(retriever):
             final_docs = unique_docs[:30]
             
             # Format the documents for the context
-            context = format_docs(final_docs)
+            formatted_docs = format_docs(final_docs)
+            context = "\n\n".join(formatted_docs)
             
             # Invoke the document chain with the semantically relevant documents
             result = self.document_chain.invoke({

@@ -492,8 +492,54 @@ class SharePointProcessor:
             print(f"[ERROR] Failed to find child URLs: {e}")
             return []
 
+def chunk_sharepoint_documents(documents: List[Document], chunk_size: int = 1500, chunk_overlap: int = 300) -> List[Document]:
+    """Split SharePoint documents into smaller chunks for better retrieval."""
+    if not documents:
+        return documents
+    
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        length_function=len,
+        separators=["\n\n", "\n", ". ", " ", ""]
+    )
+    
+    chunked_docs = []
+    for doc in documents:
+        chunks = splitter.split_documents([doc])
+        # Preserve metadata (especially download_url, tags for certificates) in each chunk
+        for chunk in chunks:
+            # Keep all original metadata (including tags!)
+            chunk.metadata.update(doc.metadata)
+            chunk.metadata["chunk_index"] = chunks.index(chunk)
+            chunk.metadata["total_chunks"] = len(chunks)
+            # Ensure tag is preserved (in case it wasn't in original)
+            if "tag" not in chunk.metadata and "folder_tags" in chunk.metadata:
+                chunk.metadata["tag"] = chunk.metadata["folder_tags"]
+        chunked_docs.extend(chunks)
+    
+    print(f"Split {len(documents)} SharePoint documents into {len(chunked_docs)} chunks")
+    return chunked_docs
+
 def process_sharepoint_content() -> List[Document]:
     """Main function to process SharePoint content."""
-    # Use Selenium browser automation for full content extraction
-    from app.sharepoint_selenium_extractor import extract_sharepoint_pages
-    return extract_sharepoint_pages()
+    # Try Graph API first (more reliable), fallback to Selenium if needed
+    try:
+        from app.sharepoint_graph_extractor import extract_sharepoint_via_graph
+        
+        print("[*] Using Microsoft Graph API for SharePoint extraction...")
+        raw_docs = extract_sharepoint_via_graph()
+        print(f"[OK] Extracted {len(raw_docs)} raw SharePoint documents via Graph API")
+    except Exception as e:
+        print(f"[WARNING] Graph API extraction failed: {e}")
+        print("[*] Falling back to Selenium extraction...")
+        from app.sharepoint_selenium_extractor import extract_sharepoint_pages
+        raw_docs = extract_sharepoint_pages()
+        print(f"[OK] Extracted {len(raw_docs)} raw SharePoint documents via Selenium")
+    
+    # Chunk the documents for better search and cost efficiency
+    print("[*] Chunking SharePoint documents...")
+    chunked_docs = chunk_sharepoint_documents(raw_docs, chunk_size=1500, chunk_overlap=300)
+    print(f"[OK] Created {len(chunked_docs)} chunked documents")
+    
+    return chunked_docs

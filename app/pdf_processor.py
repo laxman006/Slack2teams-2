@@ -131,6 +131,10 @@ def chunk_pdf_documents(documents: List[Document], chunk_size: int = 1000, chunk
     chunked_docs = []
     for doc in documents:
         chunks = splitter.split_documents([doc])
+        # Preserve metadata and add tag
+        for chunk in chunks:
+            chunk.metadata.update(doc.metadata)
+            chunk.metadata["tag"] = "pdf"  # Tag for chatbot to identify PDF content
         chunked_docs.extend(chunks)
     
     print(f"Split {len(documents)} PDF documents into {len(chunked_docs)} chunks")
