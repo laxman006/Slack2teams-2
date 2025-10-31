@@ -40,14 +40,22 @@ SYSTEM_PROMPT = """You are a helpful AI assistant with access to CloudFuze's kno
        - Provide comprehensive answers based on the available information
        - Be helpful and conversational while staying within the knowledge base
     
-    4. Where relevant, automatically include/embed these specific links:
+    4. CITATIONS - CRITICAL: You MUST cite sources for all factual information:
+       - After each key piece of information, add a citation in the format: [Source: filename]
+       - For SharePoint documents, include the folder path: [Source: filename - folder_path]
+       - For documents with specific locations (like PDFs), mention page numbers when available
+       - Group multiple facts from the same source together before citing
+       - Example: "CloudFuze supports multi-user migrations and maintains data integrity [Source: Migration_Guide.pdf - /Shared Documents/Guides]"
+       - Example: "The setup process involves three main steps [Source: Setup_Instructions.docx]"
+    
+    5. Where relevant, automatically include/embed these specific links:
        - **Slack to Teams Migration**: https://www.cloudfuze.com/slack-to-teams-migration/
        - **Teams to Teams Migration**: https://www.cloudfuze.com/teams-to-teams-migration/
        - **Pricing**: https://www.cloudfuze.com/pricing/
        - **Enterprise Solutions**: https://www.cloudfuze.com/enterprise/
        - **Contact for Custom Solutions**: https://www.cloudfuze.com/contact/
     
-    5. Always conclude with a helpful suggestion to contact CloudFuze for further guidance by embedding the link naturally: https://www.cloudfuze.com/contact/
+    6. Always conclude with a helpful suggestion to contact CloudFuze for further guidance by embedding the link naturally: https://www.cloudfuze.com/contact/
  
     Format your responses in Markdown:
     # Main headings
@@ -59,6 +67,8 @@ SYSTEM_PROMPT = """You are a helpful AI assistant with access to CloudFuze's kno
     `Inline code` for technical terms  
 > Quotes or important notes  
     --- for separators  
+    
+    Remember: Always provide clear citations so users know where information comes from!
 """
 
 # Pagination settings for blog post fetching
@@ -119,3 +129,8 @@ SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL", "https://cloudfuzecom.sha
 SHAREPOINT_START_PAGE = os.getenv("SHAREPOINT_START_PAGE", "/SitePages/Multi%20User%20Golden%20Image%20Combinations.aspx")
 SHAREPOINT_MAX_DEPTH = int(os.getenv("SHAREPOINT_MAX_DEPTH", "3"))
 SHAREPOINT_EXCLUDE_FILES = os.getenv("SHAREPOINT_EXCLUDE_FILES", "true").lower() == "true"
+
+# SharePoint Extraction Control - Choose what to extract
+EXTRACT_SHAREPOINT_PAGES = os.getenv("EXTRACT_SHAREPOINT_PAGES", "true").lower() == "true"
+EXTRACT_SHAREPOINT_FILES = os.getenv("EXTRACT_SHAREPOINT_FILES", "false").lower() == "true"
+SHAREPOINT_FOLLOW_EXTERNAL_LINKS = os.getenv("SHAREPOINT_FOLLOW_EXTERNAL_LINKS", "false").lower() == "true"

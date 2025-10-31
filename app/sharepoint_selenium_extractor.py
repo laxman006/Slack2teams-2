@@ -72,25 +72,76 @@ class SharePointSeleniumExtractor:
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, 'html.parser')
         
-        # Try to find main content area
-        main_content = (
-            soup.find('main') or 
-            soup.find('div', {'id': 'spPageContent'}) or
-            soup.find('div', {'class': 'ms-CommandBar'}) or
-            soup.find('body')
-        )
+        # SharePoint Modern Page - Try multiple selectors for content area
+        main_content = None
+        
+        # Priority 1: Modern SharePoint page content canvas
+        main_content = soup.find('div', {'class': lambda x: x and 'CanvasZone' in x})
+        
+        if not main_content:
+            # Priority 2: Page content wrapper
+            main_content = soup.find('div', {'data-automation-id': 'contentScrollRegion'})
+        
+        if not main_content:
+            # Priority 3: Main canvas section
+            main_content = soup.find('div', {'class': lambda x: x and 'mainContent' in x})
+        
+        if not main_content:
+            # Priority 4: Try to find the canvas element
+            main_content = soup.find('div', {'role': 'main'})
+        
+        if not main_content:
+            # Priority 5: Look for the article element
+            main_content = soup.find('article')
+        
+        if not main_content:
+            # Fallback: Get the body but remove navigation
+            main_content = soup.find('body')
+            if main_content:
+                # Remove SharePoint chrome elements
+                for unwanted in main_content.select('[class*="ribbon"], [class*="navigation"], [class*="commandBar"], [class*="nav-"], nav, header'):
+                    unwanted.decompose()
         
         if main_content:
-            # Remove scripts and styles
-            for script in main_content(["script", "style", "nav", "header", "footer"]):
+            # Remove unwanted elements
+            for script in main_content(["script", "style", "nav", "header", "footer", "button"]):
                 script.decompose()
+            
+            # Remove specific SharePoint UI elements
+            for element in main_content.select('[class*="CommandBar"], [class*="Ribbon"], [class*="SuiteNav"]'):
+                element.decompose()
             
             # Get text content
             text_content = main_content.get_text(separator='\n', strip=True)
             
-            # Clean up
-            lines = [line.strip() for line in text_content.splitlines() if line.strip()]
-            return '\n'.join(lines)
+            # Clean up - remove common SharePoint UI text
+            skip_phrases = [
+                'Skip Ribbon Commands',
+                'Skip to main content',
+                'Turn on more accessible mode',
+                'Turn off more accessible mode',
+                'enable scripts and reload',
+                'secured browser on the server',
+                'To navigate through the Ribbon',
+                'Sign in',
+                'Laxman Kadari'  # User-specific
+            ]
+            
+            lines = []
+            for line in text_content.splitlines():
+                line = line.strip()
+                # Skip empty lines and SharePoint UI text
+                if line and not any(phrase in line for phrase in skip_phrases):
+                    lines.append(line)
+            
+            cleaned_content = '\n'.join(lines)
+            
+            # If content is too short (likely failed extraction), return empty
+            if len(cleaned_content) < 100:
+                print(f"[WARNING] Extracted content too short ({len(cleaned_content)} chars), likely incomplete")
+                return ""
+            
+            return cleaned_content
         
         return ""
     
@@ -149,20 +200,31 @@ class SharePointSeleniumExtractor:
             # Check if we need authentication
             current_url = driver.current_url
             if "login.microsoftonline.com" in current_url or "signin" in current_url:
-                print("[⚠️] Authentication required!")
-                print("[INFO] Please sign in to SharePoint in the browser window")
-                print("[INFO] Waiting for authentication (max 2 minutes)...")
+                print("\n" + "=" * 60)
+                print("⚠️  AUTHENTICATION REQUIRED!")
+                print("=" * 60)
+                print("📌 ACTION NEEDED:")
+                print("   1. Look for the Chrome browser window that just opened")
+                print("   2. Sign in to your SharePoint account")
+                print("   3. Wait for the page to fully load")
+                print("   4. Return here - the script will continue automatically")
+                print(f"\n⏱️  Waiting up to 5 minutes for authentication...")
+                print("=" * 60 + "\n")
                 
-                # Wait for authentication (max 2 minutes)
+                # Wait for authentication (max 5 minutes)
                 wait_time = 0
-                while ("login" in driver.current_url.lower() or "signin" in driver.current_url.lower()) and wait_time < 120:
+                while ("login" in driver.current_url.lower() or "signin" in driver.current_url.lower()) and wait_time < 300:
                     time.sleep(2)
                     wait_time += 2
+                    if wait_time % 30 == 0:
+                        print(f"   Still waiting... ({wait_time // 60} min {wait_time % 60} sec)")
                     driver.switch_to.window(driver.window_handles[0])
                 
                 if "login" in driver.current_url.lower() or "signin" in driver.current_url.lower():
-                    print("[ERROR] Authentication timeout")
+                    print("\n[ERROR] Authentication timeout - please sign in faster next time")
                     return []
+                else:
+                    print("\n✅ Authentication successful!")
             
             print("[OK] Ready to extract content")
             

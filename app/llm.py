@@ -33,7 +33,49 @@ def setup_qa_chain(retriever):
     
     # Create the document chain using the new langchain 1.x approach
     def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
+        """Format documents with source citations for better LLM responses."""
+        formatted_parts = []
+        
+        for i, doc in enumerate(docs, 1):
+            # Extract metadata
+            metadata = doc.metadata
+            file_name = metadata.get('file_name', metadata.get('source', 'Unknown'))
+            folder_path = metadata.get('folder_path', '')
+            file_type = metadata.get('file_type', '')
+            last_modified = metadata.get('last_modified', '')
+            page_number = metadata.get('page_number', '')
+            
+            # Build source citation
+            source_info = f"[Document {i}]"
+            
+            if file_name != 'Unknown':
+                source_info += f" (Source: {file_name}"
+                
+                # Add folder path for SharePoint documents
+                if folder_path:
+                    source_info += f" - {folder_path}"
+                
+                # Add page number for PDFs if available
+                if page_number:
+                    source_info += f", Page {page_number}"
+                
+                # Add last modified date if recent
+                if last_modified:
+                    try:
+                        from datetime import datetime
+                        # Parse and format date
+                        modified_date = datetime.fromisoformat(last_modified.replace('Z', '+00:00'))
+                        date_str = modified_date.strftime('%Y-%m-%d')
+                        source_info += f", Modified: {date_str}"
+                    except:
+                        pass
+                
+                source_info += ")"
+            
+            # Combine source info with content
+            formatted_parts.append(f"{source_info}\n{doc.page_content}")
+        
+        return "\n\n---\n\n".join(formatted_parts)
     
     document_chain = prompt_template | llm | StrOutputParser()
     

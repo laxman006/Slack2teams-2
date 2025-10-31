@@ -19,16 +19,34 @@ def add_sharepoint_documents():
     print("ADDING SHAREPOINT DOCUMENTS TO VECTORSTORE")
     print("=" * 60)
     
-    # Load existing vectorstore
-    print("[*] Loading existing vectorstore...")
+    # Load existing MongoDB vectorstore
+    print("[*] Loading existing MongoDB vectorstore...")
+    from app.mongodb_vectorstore import MongoDBVectorStore
+    from config import MONGODB_VECTORSTORE_COLLECTION
+    
     embeddings = OpenAIEmbeddings()
-    vectorstore = Chroma(
-        persist_directory="data/chroma_db",
+    vectorstore = MongoDBVectorStore(
+        collection_name=MONGODB_VECTORSTORE_COLLECTION,
         embedding_function=embeddings
     )
     
-    current_count = vectorstore._collection.count()
+    # Count existing SharePoint documents
+    from pymongo import MongoClient
+    from config import MONGODB_URL, MONGODB_DATABASE
+    client = MongoClient(MONGODB_URL)
+    db = client[MONGODB_DATABASE]
+    collection = db[MONGODB_VECTORSTORE_COLLECTION]
+    
+    current_count = collection.count_documents({})
+    sharepoint_count = collection.count_documents({"metadata.source": "cloudfuze_doc360"})
     print(f"[OK] Current vectorstore has {current_count} documents")
+    print(f"[OK] Current SharePoint documents: {sharepoint_count}")
+    
+    # Delete old SharePoint documents (they're bad quality)
+    if sharepoint_count > 0:
+        print(f"\n[*] Deleting {sharepoint_count} old SharePoint documents...")
+        result = collection.delete_many({"metadata.source": "cloudfuze_doc360"})
+        print(f"[OK] Deleted {result.deleted_count} documents")
     
     # Extract SharePoint documents again
     print("\n[*] Extracting SharePoint documents...")
@@ -48,11 +66,13 @@ def add_sharepoint_documents():
     try:
         vectorstore.add_documents(sharepoint_docs)
         
-        new_count = vectorstore._collection.count()
-        added_count = new_count - current_count
+        # Count documents after addition
+        new_count = collection.count_documents({})
+        new_sharepoint_count = collection.count_documents({"metadata.source": "cloudfuze_doc360"})
         
-        print(f"[OK] Successfully added {added_count} documents")
+        print(f"[OK] Successfully added {len(sharepoint_docs)} SharePoint documents")
         print(f"[OK] Vectorstore now has {new_count} total documents")
+        print(f"[OK] SharePoint documents: {new_sharepoint_count}")
         
         # Update metadata
         print("[*] Updating metadata...")
@@ -73,9 +93,11 @@ def add_sharepoint_documents():
         print("\n" + "=" * 60)
         print("SUCCESS!")
         print("=" * 60)
-        print(f"✅ Added {added_count} SharePoint documents to vectorstore")
-        print(f"✅ Total documents: {new_count}")
-        print("\nYour chatbot now has SharePoint knowledge!")
+        print(f"✅ Added {len(sharepoint_docs)} SharePoint documents to MongoDB Atlas")
+        print(f"✅ Total documents in vectorstore: {new_count}")
+        print(f"✅ SharePoint documents: {new_sharepoint_count}")
+        print("\n🚀 Your chatbot now has SharePoint knowledge!")
+        print("   No need to redeploy - MongoDB Atlas is live!")
         
     except Exception as e:
         print(f"[ERROR] Failed to add documents: {e}")
