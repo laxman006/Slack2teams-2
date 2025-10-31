@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Slack2Teams Production Deployment Script for Ubuntu
-# Domain: ai.cloudfuze.com
+# Domain: newcf3.cloudfuze.com
 # IP: 64.227.160.206
 
 set -e  # Exit on any error
 
 echo "🚀 Starting Slack2Teams Production Deployment..."
-echo "Domain: ai.cloudfuze.com"
+echo "Domain: newcf3.cloudfuze.com"
 echo "IP: 64.227.160.206"
 echo "================================================"
 
@@ -168,14 +168,14 @@ fi
 
 # Setup SSL certificate
 print_status "Setting up SSL certificate with Let's Encrypt..."
-print_warning "Make sure your domain ai.cloudfuze.com points to IP 64.227.160.206"
+print_warning "Make sure your domain newcf3.cloudfuze.com points to IP 64.227.160.206"
 read -p "Press Enter to continue with SSL setup..."
 
 # Stop nginx temporarily for SSL setup
 docker-compose -f docker-compose.prod.yml stop nginx
 
 # Get SSL certificate
-sudo certbot certonly --standalone -d ai.cloudfuze.com --non-interactive --agree-tos --email admin@cloudfuze.com
+sudo certbot certonly --standalone -d newcf3.cloudfuze.com --non-interactive --agree-tos --email admin@cloudfuze.com
 
 # Update nginx configuration with SSL
 print_status "Updating nginx configuration with SSL..."
@@ -243,11 +243,11 @@ sudo systemctl enable slack2teams.service
 print_status "Performing final status check..."
 sleep 10
 
-if curl -f -s https://ai.cloudfuze.com/health > /dev/null; then
+if curl -f -s https://newcf3.cloudfuze.com/health > /dev/null; then
     print_success "Application is accessible via HTTPS!"
 else
     print_warning "HTTPS not yet available, checking HTTP..."
-    if curl -f -s http://ai.cloudfuze.com/health > /dev/null; then
+    if curl -f -s http://newcf3.cloudfuze.com/health > /dev/null; then
         print_success "Application is accessible via HTTP (SSL setup may need time)"
     else
         print_error "Application is not accessible. Check logs and configuration."
@@ -258,10 +258,10 @@ echo "================================================"
 print_success "Deployment completed!"
 echo ""
 echo "🌐 Application URLs:"
-echo "   HTTPS: https://ai.cloudfuze.com"
-echo "   HTTP:  http://ai.cloudfuze.com"
-echo "   API:   https://ai.cloudfuze.com/api/"
-echo "   Docs:  https://ai.cloudfuze.com/api/docs"
+echo "   HTTPS: https://newcf3.cloudfuze.com"
+echo "   HTTP:  http://newcf3.cloudfuze.com"
+echo "   API:   https://newcf3.cloudfuze.com/api/"
+echo "   Docs:  https://newcf3.cloudfuze.com/api/docs"
 echo ""
 echo "📋 Management Commands:"
 echo "   View logs:     docker-compose -f docker-compose.prod.yml logs -f"
@@ -277,7 +277,7 @@ echo "   Nginx Config:  /etc/nginx/sites-available/slack2teams"
 echo ""
 print_warning "Don't forget to:"
 echo "   1. Update .env.prod with your actual API keys"
-echo "   2. Verify DNS settings for ai.cloudfuze.com"
+echo "   2. Verify DNS settings for newcf3.cloudfuze.com"
 echo "   3. Test the application thoroughly"
 echo ""
 print_success "Happy deploying! 🚀"
