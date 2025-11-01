@@ -236,6 +236,8 @@ async def chat_stream(request: Request):
                     print(f"Warning: Langfuse logging failed: {e}")
                 
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
+                # Ensure proper stream closure
+                await asyncio.sleep(0.05)
                 return
             
             # Get conversation context BEFORE adding current question
@@ -300,6 +302,8 @@ async def chat_stream(request: Request):
                 
                 # Send completion signal with trace_id
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
+                # Ensure proper stream closure
+                await asyncio.sleep(0.05)
                 return
             
             # PHASE 1: THINKING - Document retrieval and processing
@@ -381,11 +385,17 @@ async def chat_stream(request: Request):
             # Send completion signal with trace_id
             yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
             
+            # CRITICAL: Send explicit EOF to properly close the SSE stream
+            # This prevents HTTP/2 protocol errors
+            await asyncio.sleep(0.05)  # Small delay to ensure all data is flushed
+            
         except Exception as e:
             print(f"❌ ERROR in generate_stream: {e}")
             import traceback
             traceback.print_exc()
             yield f"data: {json.dumps({'error': str(e), 'type': 'error'})}\n\n"
+            # Ensure stream closes even on error
+            await asyncio.sleep(0.05)
 
     return StreamingResponse(
         generate_stream(),
@@ -394,6 +404,10 @@ async def chat_stream(request: Request):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no",  # Critical for nginx + HTTP/2
+            "Access-Control-Allow-Origin": "*",  # CORS support
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
         }
     )
 
