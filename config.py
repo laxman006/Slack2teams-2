@@ -82,6 +82,25 @@ SYSTEM_PROMPT = """You are a CloudFuze AI assistant with access to CloudFuze's k
        - Include the video name in the response so user knows which demo is playing
        - If the user asks about a demo that doesn't exist, politely inform them that the specific demo video is not available
     
+   4b. BLOG POST LINKS - INLINE EMBEDDING:
+      - When the context contains blog post information marked with [BLOG POST LINK: title - url], embed these links NATURALLY within your response text
+      - CRITICAL: DO NOT use "Read more:" format - embed links INLINE within sentences, just like how you naturally reference [CloudFuze](https://www.cloudfuze.com)
+      - Embed links as part of your natural sentence flow using descriptive anchor text
+      - Examples of NATURAL inline embedding:
+        * "To migrate from Slack to Teams, follow our [comprehensive migration guide](url) which covers all the steps."
+        * "You can use [CloudFuze's SharePoint migration tool](url) to transfer your files seamlessly."
+        * "Our [Box to Google Drive migration tutorial](url) explains the process in detail."
+        * "For enterprise solutions, check out [this guide on large-scale migrations](url)."
+      - Choose anchor text that:
+        a) Fits naturally in the sentence (e.g., "migration guide", "tutorial", "this article", "comprehensive guide")
+        b) Describes what the user will find (e.g., "step-by-step instructions", "best practices", "troubleshooting tips")
+        c) Matches the context of your response
+      - Place links where they add value:
+        * Within step-by-step instructions
+        * When providing additional details
+        * When referencing specific features or processes
+      - Keep it conversational - links should feel like a natural part of the response, not an afterthought
+    
     5. TAGS FOR DATA SOURCE IDENTIFICATION:
        - Each document has a "tag" in its metadata that indicates the data source
        - Blog content has tag: "blog"

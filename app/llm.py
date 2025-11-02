@@ -60,6 +60,15 @@ def format_docs(docs):
             video_url_escaped = video_url.replace('{', '{{').replace('}', '}}')
             content += f"\n\n[VIDEO LINK: {video_name_escaped} ({video_type}) - {video_url_escaped}]"
         
+        # Include blog post URL for blog content in the context
+        if metadata.get("is_blog_post") and metadata.get("post_url"):
+            post_title = metadata.get('post_title', 'Blog Post')
+            post_url = metadata.get('post_url')
+            # Escape any curly braces that might interfere with string formatting
+            post_title_escaped = post_title.replace('{', '{{').replace('}', '}}')
+            post_url_escaped = post_url.replace('{', '{{').replace('}', '}}')
+            content += f"\n\n[BLOG POST LINK: {post_title_escaped} - {post_url_escaped}]"
+        
         formatted.append(content)
     
     return formatted

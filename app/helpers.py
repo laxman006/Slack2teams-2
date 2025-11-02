@@ -77,36 +77,86 @@ def load_webpage(url: str):
     return "\n\n".join(texts)
 
 def fetch_web_content(url: str):
-    """Fetch and chunk web content into LangChain Documents for incremental updates.
+    """Fetch and chunk web content into LangChain Documents with blog post URLs and metadata.
 
     Respects BLOG_POSTS_PER_PAGE, BLOG_MAX_PAGES, and BLOG_START_PAGE to allow
     continuing partial fetches without reprocessing earlier pages.
+    
+    Each blog post chunk will include:
+    - post_title: The blog post title
+    - post_slug: URL slug
+    - post_url: Full URL to the blog post
+    - is_blog_post: Flag to identify blog content
     """
-    # Load raw text via pagination-aware loader
-    raw_text = load_webpage(url)
-
-    # Clean HTML tags from web content for better semantic search
-    print("Cleaning HTML tags from web content...")
-    soup = BeautifulSoup(raw_text, "html.parser")
-    clean_text = soup.get_text(separator="\n", strip=True)
-    print(f"[OK] Cleaned web content: {len(raw_text)} chars -> {len(clean_text)} chars")
-
-    # Chunking strategy consistent with vectorstore builders
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500,
-        chunk_overlap=300,
-        separators=["\n\n", "\n", ". ", " ", ""],
-    )
-    docs = splitter.create_documents([clean_text])
-
-    # Add metadata for source tracking
-    # Use simple string values to avoid Chroma's complex metadata error
-    for doc in docs:
-        doc.metadata["source_type"] = "web"
-        doc.metadata["source"] = "cloudfuze_blog"
-        doc.metadata["fetch_config"] = f"pages_{BLOG_START_PAGE}-{BLOG_MAX_PAGES}_per_{BLOG_POSTS_PER_PAGE}"
-
-    return docs
+    # Get posts from WordPress API (not just text, we need metadata)
+    print("Fetching blog posts from WordPress API...")
+    # Check if URL has BOTH per_page AND page parameters (for single page fetch)
+    # Note: Check for "&page=" or "?page=" to avoid matching "per_page="
+    has_page_param = ("&page=" in url or "?page=" in url) and "per_page=" in url
+    if has_page_param:
+        response = requests.get(url)
+        data = response.json()
+    else:
+        parsed = urlparse(url)
+        base_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+        base_params = dict(parse_qsl(parsed.query))
+        base_params.pop("page", None)
+        base_params.pop("per_page", None)
+        data = fetch_posts(
+            base_url,
+            per_page=BLOG_POSTS_PER_PAGE,
+            max_pages=BLOG_MAX_PAGES,
+            start_page=BLOG_START_PAGE,
+            extra_params=base_params,
+        )
+    
+    all_docs = []
+    posts_processed = 0
+    
+    # Process each blog post separately to preserve metadata
+    for post in data:
+        if "content" not in post or "rendered" not in post["content"]:
+            continue
+        
+        # Extract post metadata from WordPress API response
+        title = post.get("title", {}).get("rendered", "Untitled")
+        slug = post.get("slug", "")
+        link = post.get("link", "")  # Full URL to the blog post
+        content = post["content"]["rendered"]
+        
+        # Clean HTML tags from blog content
+        soup = BeautifulSoup(content, "html.parser")
+        clean_text = soup.get_text(separator="\n", strip=True)
+        
+        if not clean_text.strip():
+            continue
+        
+        # Chunk this post's content
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1500,
+            chunk_overlap=300,
+            separators=["\n\n", "\n", ". ", " ", ""],
+        )
+        
+        # Add title to content for better context
+        content_with_title = f"# {title}\n\n{clean_text}"
+        chunks = splitter.create_documents([content_with_title])
+        
+        # Add comprehensive metadata to each chunk
+        for chunk in chunks:
+            chunk.metadata["source_type"] = "web"
+            chunk.metadata["source"] = "cloudfuze_blog"
+            chunk.metadata["tag"] = "blog"
+            chunk.metadata["post_title"] = title  # Blog post title
+            chunk.metadata["post_slug"] = slug  # URL slug
+            chunk.metadata["post_url"] = link  # Full blog post URL
+            chunk.metadata["is_blog_post"] = True  # Flag to identify blog content
+        
+        all_docs.extend(chunks)
+        posts_processed += 1
+    
+    print(f"[OK] Loaded {posts_processed} blog posts into {len(all_docs)} chunks with full metadata")
+    return all_docs
 
 def strip_markdown(md_text: str) -> str:
     """Convert Markdown/HTML to plain text."""
@@ -151,28 +201,8 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
     # Process web content if URL provided
     if url:
         print("Loading web content...")
-        raw_text = load_webpage(url)
-        
-        # CRITICAL: Clean HTML tags from web content for better semantic search
-        print("Cleaning HTML tags from web content...")
-        soup = BeautifulSoup(raw_text, "html.parser")
-        clean_text = soup.get_text(separator="\n", strip=True)
-        print(f"[OK] Cleaned web content: {len(raw_text)} chars -> {len(clean_text)} chars")
-        
-        # Use larger chunks with more overlap for better semantic search
-        web_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1500,  # Larger chunks for more context
-            chunk_overlap=300,  # More overlap to maintain context across chunks
-            separators=["\n\n", "\n", ". ", " ", ""]  # Smart splitting by paragraphs, sentences
-        )
-        web_docs = web_splitter.create_documents([clean_text])
-        
-        # Add source metadata to web docs
-        for doc in web_docs:
-            doc.metadata["source_type"] = "web"
-            doc.metadata["source"] = "cloudfuze_blog"
-            doc.metadata["tag"] = "blog"  # Tag for chatbot to identify blog content
-        
+        # Use fetch_web_content which now includes blog post URLs and metadata
+        web_docs = fetch_web_content(url)
         all_docs.extend(web_docs)
         print(f"  - Web documents: {len(web_docs)}")
     else:
@@ -223,9 +253,30 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
     
     print(f"Total documents to process: {len(all_docs)}")
     
-    # Create embeddings and vectorstore
+    # Create embeddings and vectorstore with batch processing to avoid token limits
     embeddings = OpenAIEmbeddings()
-    vectorstore = Chroma.from_documents(all_docs, embeddings, persist_directory=CHROMA_DB_PATH)
     
-    print("Selective knowledge base created successfully!")
+    # Process in batches to avoid OpenAI token limit (300k tokens per request)
+    # Each batch: ~50 docs = ~50k tokens (safe margin)
+    batch_size = 50
+    total_batches = (len(all_docs) + batch_size - 1) // batch_size
+    
+    print(f"\n[*] Creating vectorstore with {total_batches} batches of up to {batch_size} documents each...")
+    
+    vectorstore = None
+    for i in range(0, len(all_docs), batch_size):
+        batch = all_docs[i:i + batch_size]
+        batch_num = (i // batch_size) + 1
+        print(f"   [*] Processing batch {batch_num}/{total_batches} ({len(batch)} documents)...")
+        
+        if vectorstore is None:
+            # Create vectorstore with first batch
+            vectorstore = Chroma.from_documents(batch, embeddings, persist_directory=CHROMA_DB_PATH)
+        else:
+            # Add subsequent batches
+            vectorstore.add_documents(batch)
+        
+        print(f"   [OK] Batch {batch_num}/{total_batches} complete")
+    
+    print("\n[OK] Selective knowledge base created successfully!")
     return vectorstore

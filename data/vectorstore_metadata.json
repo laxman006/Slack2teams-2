@@ -1,8 +1,13 @@
 {
-  "timestamp": "2025-10-30T14:57:43.545721",
+  "timestamp": "2025-11-01T17:27:05.640130",
   "vectorstore_exists": true,
   "enabled_sources": [
+    "web",
     "sharepoint"
   ],
-  "sharepoint": "https://cloudfuzecom.sharepoint.com/sites/DOC360/Documents Library"
+  "url": "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100",
+  "web_pagination": {
+    "start_page": 1
+  },
+  "sharepoint": "https://cloudfuzecom.sharepoint.com/sites/DOC360/Documents Library//sites/DOC360/Documents Library"
 }
