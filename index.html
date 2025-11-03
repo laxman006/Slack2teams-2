@@ -932,7 +932,9 @@
         // Use user ID if available, otherwise fall back to session ID
         if (currentUser && currentUser.id) {
           requestBody.user_id = currentUser.id;
-          console.log("[CHAT] Using user_id:", currentUser.id);
+          requestBody.user_name = currentUser.name;
+          requestBody.user_email = currentUser.email;
+          console.log("[CHAT] Using user_id:", currentUser.id, "name:", currentUser.name);
         } else {
           requestBody.session_id = sessionId;
           console.warn("[CHAT] No user_id available, using session_id:", sessionId);

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Basic Langfuse Integration - Trace Logging Only
+Langfuse Integration for RAG Chatbot Observability
 
 This module handles logging all chat interactions to Langfuse for observability.
 """
 
-import os
 from datetime import datetime
 from typing import Optional, Dict, Any
 from langfuse import Langfuse
@@ -13,14 +12,8 @@ from config import LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
 
 # Initialize Langfuse client
 try:
-    # Debug: Print the keys to see if they're loaded
-    print("[*] Langfuse keys check:")
-    print(f"   Public key: {LANGFUSE_PUBLIC_KEY[:20]}..." if LANGFUSE_PUBLIC_KEY else "   Public key: NOT_FOUND")
-    print(f"   Secret key: {LANGFUSE_SECRET_KEY[:20]}..." if LANGFUSE_SECRET_KEY else "   Secret key: NOT_FOUND")
-    print(f"   Host: {LANGFUSE_HOST}")
-    
     if not LANGFUSE_SECRET_KEY or not LANGFUSE_PUBLIC_KEY:
-        print("[!] Langfuse keys not found, skipping initialization")
+        print("[!] Langfuse credentials not found - observability disabled")
         langfuse_client = None
     else:
         langfuse_client = Langfuse(
@@ -28,10 +21,9 @@ try:
             secret_key=LANGFUSE_SECRET_KEY,
             host=LANGFUSE_HOST
         )
-        print("[OK] Langfuse client initialized successfully")
-        print(f"   Host: {LANGFUSE_HOST}")
+        print(f"[OK] Langfuse initialized: {LANGFUSE_HOST}")
 except Exception as e:
-    print(f"[!] Warning: Failed to initialize Langfuse client: {e}")
+    print(f"[!] Langfuse initialization failed: {e}")
     langfuse_client = None
 
 
@@ -47,187 +39,235 @@ class LangfuseTracker:
         question: str, 
         answer: str,
         session_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        user_name: Optional[str] = None,
+        user_email: Optional[str] = None
     ) -> Optional[str]:
-        """
-        Create a new trace in Langfuse for a chat interaction
-        
-        Args:
-            user_id: User identifier
-            question: User's question
-            answer: Bot's answer
-            session_id: Session identifier
-            metadata: Additional metadata
-        
-        Returns:
-            trace_id: Unique identifier for this trace, or None if logging fails
-        """
+        """Create a simple chat trace (for non-RAG queries)."""
         if not self.client:
-            print("[!] Langfuse client not initialized, skipping trace logging")
             return None
         
         try:
-            # Create trace with input/output at trace level for UI display
+            # Build metadata
+            trace_metadata = {**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            
             trace = self.client.trace(
                 name="chat_interaction",
                 user_id=user_id,
                 session_id=session_id or user_id,
-                input=question,  # Set input at trace level
-                output=answer,   # Set output at trace level
-                metadata={
-                    **(metadata or {}),
-                    "timestamp": datetime.now().isoformat(),
-                },
-                tags=["chat", "slack2teams"]
+                input=question,
+                output=answer,
+                metadata=trace_metadata,
+                tags=["chat"]
             )
             
-            # Also add generation span for detailed LLM metrics
-            generation = trace.generation(
+            trace.generation(
                 name="chat_response",
                 model="gpt-4o-mini",
                 input=question,
                 output=answer,
-                metadata={
-                    "timestamp": datetime.now().isoformat(),
-                    "user_id": user_id
-                }
+                metadata={"timestamp": datetime.now().isoformat()}
             )
             
-            trace_id = trace.id
-            print(f"[OK] Trace logged to Langfuse: {trace_id}")
-            
-            return trace_id
+            return trace.id
             
         except Exception as e:
-            print(f"[ERROR] Error creating Langfuse trace: {e}")
+            print(f"[ERROR] Langfuse trace failed: {e}")
             return None
     
-    def add_feedback(
-        self,
-        trace_id: str,
-        rating: str,
-        comment: Optional[str] = None
-    ) -> bool:
-        """
-        Add user feedback to a trace in Langfuse
-        
-        Args:
-            trace_id: The trace ID to add feedback to
-            rating: "thumbs_up" or "thumbs_down"
-            comment: Optional comment from the user
-        
-        Returns:
-            bool: True if feedback was recorded successfully, False otherwise
-        """
+    def add_feedback(self, trace_id: str, rating: str, comment: Optional[str] = None) -> bool:
+        """Add user feedback (thumbs up/down) to a trace."""
         if not self.client:
-            print("[!] Langfuse client not initialized, skipping feedback logging")
             return False
         
         try:
-            # Convert rating to numeric value
-            # thumbs_up = 1, thumbs_down = 0
-            feedback_value = 1 if rating == "thumbs_up" else 0
-            
-            # Add feedback to Langfuse
             self.client.score(
                 trace_id=trace_id,
                 name="user_rating",
-                value=feedback_value,
+                value=1 if rating == "thumbs_up" else 0,
                 comment=comment or ""
             )
-            
-            print(f"[OK] Feedback logged to Langfuse: trace_id={trace_id}, rating={rating}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] Error adding feedback to Langfuse: {e}")
+            print(f"[ERROR] Langfuse feedback failed: {e}")
             return False
     
     def log_observation_to_trace(
-        self,
-        trace_id: str,
-        name: str,
-        input_data: Any,
-        output_data: Any,
+        self, 
+        trace_id: str, 
+        name: str, 
+        input_data: Any, 
+        output_data: Any, 
         metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
-        """
-        Log an observation (span) to an existing Langfuse trace
-        This is used for manual correction workflow to log generated corrections
-        
-        Args:
-            trace_id: The trace ID to add observation to
-            name: Name of the observation (e.g., "corrected_response")
-            input_data: Input data (original question + bad response)
-            output_data: Output data (corrected response)
-            metadata: Additional metadata
-        
-        Returns:
-            bool: True if observation was logged successfully, False otherwise
-        """
+        """Log custom observation to existing trace (for manual corrections)."""
         if not self.client:
-            print("[!] Langfuse client not initialized, skipping observation logging")
             return False
         
         try:
-            # Get or create the trace
-            trace = self.client.trace(
-                id=trace_id,
-                name="manual_correction_review"
-            )
-            
-            # Add a span observation with the corrected response
+            trace = self.client.trace(id=trace_id, name="manual_correction_review")
             trace.span(
                 name=name,
                 input=input_data,
                 output=output_data,
+                metadata={**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            )
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Langfuse observation failed: {e}")
+            return False
+    
+    def create_rag_pipeline_trace(
+        self, 
+        user_id: str, 
+        question: str, 
+        session_id: Optional[str] = None, 
+        metadata: Optional[Dict[str, Any]] = None,
+        user_name: Optional[str] = None,
+        user_email: Optional[str] = None
+    ):
+        """Create structured RAG pipeline trace with nested spans."""
+        if not self.client:
+            return None
+        
+        try:
+            # Build metadata
+            trace_metadata = {**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            
+            trace = self.client.trace(
+                name="chat_interaction",
+                user_id=user_id,
+                session_id=session_id or user_id,
+                input=question,
+                metadata=trace_metadata,
+                tags=["rag", "chat"]
+            )
+            return RAGPipelineTrace(trace)
+            
+        except Exception as e:
+            print(f"[ERROR] RAG trace failed: {e}")
+            return None
+
+
+class RAGPipelineTrace:
+    """
+    RAG pipeline trace with nested spans:
+    chat_interaction → query → retrieve/synthesize/generating_response
+    """
+    
+    def __init__(self, trace):
+        self.trace = trace
+        self.trace_id = trace.id
+        self.query_span = None
+        self.retrieve_span = None
+        self.synthesize_span = None
+    
+    def start_query(self, enhanced_query: str, metadata: Optional[Dict[str, Any]] = None):
+        """Start query processing span."""
+        try:
+            self.query_span = self.trace.span(
+                name="query",
+                input=enhanced_query,
+                metadata={**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            )
+            return self.query_span
+        except Exception as e:
+            print(f"[ERROR] Query span failed: {e}")
+            return None
+    
+    def log_retrieval(self, query: str, retrieved_docs: list, doc_count: int, sources_breakdown: Dict[str, int], metadata: Optional[Dict[str, Any]] = None):
+        """Log document retrieval with nested embedding span."""
+        try:
+            self.retrieve_span = self.query_span.span(
+                name="retrieve",
+                input=query,
+                output=f"Retrieved {doc_count} documents",
                 metadata={
                     **(metadata or {}),
+                    "document_count": doc_count,
+                    "sources_breakdown": sources_breakdown,
                     "timestamp": datetime.now().isoformat()
                 }
             )
             
-            print(f"[OK] Observation '{name}' logged to Langfuse trace: {trace_id}")
-            return True
+            self.retrieve_span.span(
+                name="vectorstore_embedding",
+                input=query,
+                output=f"Embedded query and searched {doc_count} documents",
+                metadata={"embedding_model": "text-embedding-ada-002", "timestamp": datetime.now().isoformat()}
+            )
+            
+            return self.retrieve_span
             
         except Exception as e:
-            print(f"[ERROR] Error logging observation to Langfuse: {e}")
-            return False
+            print(f"[ERROR] Retrieval span failed: {e}")
+            return None
     
-    def get_trace_evaluations(self, trace_id: str) -> list:
-        """
-        Get all evaluations/scores for a specific trace
-        
-        Args:
-            trace_id: The trace ID to get evaluations for
-            
-        Returns:
-            List of evaluation dictionaries with name, value, comment
-        """
-        if not self.client:
-            print("[!] Langfuse client not initialized")
-            return []
-        
+    def start_synthesis(self, context: str, metadata: Optional[Dict[str, Any]] = None):
+        """Start synthesis span."""
         try:
-            trace = self.client.fetch_trace(trace_id)
-            
-            if not trace or not hasattr(trace, 'scores'):
-                return []
-            
-            evaluations = []
-            for score in trace.scores:
-                evaluations.append({
-                    'name': score.name,
-                    'value': score.value,
-                    'comment': score.comment if hasattr(score, 'comment') else None,
-                    'timestamp': score.timestamp if hasattr(score, 'timestamp') else None
-                })
-            
-            return evaluations
+            self.synthesize_span = self.query_span.span(
+                name="synthesize",
+                input={"context_length": len(context)},
+                metadata={**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            )
+            return self.synthesize_span
             
         except Exception as e:
-            print(f"[ERROR] Error fetching trace evaluations: {e}")
-            return []
+            print(f"[ERROR] Synthesis span failed: {e}")
+            return None
+    
+    def log_llm_generation(self, prompt: str, response: str, model: str = "gpt-4o-mini", metadata: Optional[Dict[str, Any]] = None):
+        """Log LLM generation span."""
+        try:
+            return self.synthesize_span.generation(
+                name="openai_llm",
+                model=model,
+                input=prompt,
+                output=response,
+                metadata={**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            )
+        except Exception as e:
+            print(f"[ERROR] LLM generation failed: {e}")
+            return None
+    
+    def log_response_generation(self, final_response: str, metadata: Optional[Dict[str, Any]] = None):
+        """Log final response generation span."""
+        try:
+            return self.query_span.span(
+                name="generating_response",
+                input="Formatted LLM output",
+                output=final_response,
+                metadata={
+                    **(metadata or {}),
+                    "response_length": len(final_response),
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+        except Exception as e:
+            print(f"[ERROR] Response generation failed: {e}")
+            return None
+    
+    def complete(self, final_output: str, metadata: Optional[Dict[str, Any]] = None):
+        """Complete trace with final output and metadata."""
+        try:
+            if self.query_span:
+                self.query_span.end(output=final_output)
+            
+            # Update trace with output
+            self.trace.update(output=final_output)
+            
+            # If metadata is provided, update it separately
+            # Langfuse merges metadata on update, not replaces
+            if metadata:
+                self.trace.update(metadata=metadata)
+            
+            return self.trace_id
+        except Exception as e:
+            print(f"[ERROR] Trace completion failed: {e}")
+            return self.trace_id
 
 
 # Global tracker instance
