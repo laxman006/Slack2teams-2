@@ -17,6 +17,409 @@ from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
 from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
 from langchain_core.prompts import ChatPromptTemplate
+import time
+
+
+# ============================================================================
+# INTENT CLASSIFICATION SYSTEM - Branch-Specific Retrieval
+# ============================================================================
+
+# Define intent branches with their characteristics
+INTENT_BRANCHES = {
+    "general_business": {
+        "description": "General business questions, CloudFuze overview, benefits",
+        "keywords": ["business", "help", "benefits", "useful", "value", "cloudfuze", "services", "offer", "advantages"],
+        "include_tags": ["blog"],
+        "exclude_keywords": ["slack", "teams", "migration", "migrate"],
+        "exclude_if_both": [("slack", "teams")],
+        "query_expansion": ["cloud solutions", "data migration platform", "SaaS management"]
+    },
+    "slack_teams_migration": {
+        "description": "Slack to Teams migration specific questions",
+        "keywords": ["slack", "teams", "slack to teams", "migrate slack", "migration"],
+        "include_tags": ["blog", "sharepoint"],
+        "require_keywords": [["slack", "teams"], ["slack-to-teams"]],
+        "query_expansion": ["channel migration", "workspace transfer", "conversation history"]
+    },
+    "sharepoint_docs": {
+        "description": "SharePoint documents, certificates, policies",
+        "keywords": ["certificate", "download", "policy", "document", "soc", "compliance", "security"],
+        "include_tags": ["sharepoint"],
+        "priority_source": "sharepoint",
+        "query_expansion": ["compliance documentation", "security certification", "audit reports"]
+    },
+    "pricing": {
+        "description": "Pricing, costs, payment questions",
+        "keywords": ["pricing", "cost", "price", "how much", "payment", "subscription", "plan"],
+        "include_tags": ["blog"],
+        "query_expansion": ["subscription plans", "licensing", "payment options"]
+    },
+    "troubleshooting": {
+        "description": "Errors, issues, stuck migrations",
+        "keywords": ["error", "stuck", "not working", "failed", "issue", "problem", "fix"],
+        "include_tags": ["blog", "sharepoint"],
+        "query_expansion": ["error resolution", "migration issues", "technical support"]
+    },
+    "migration_general": {
+        "description": "General migration questions (not platform-specific)",
+        "keywords": ["migrate", "migration", "transfer", "move data", "cloud migration"],
+        "include_tags": ["blog", "sharepoint"],
+        "exclude_if_both": [("slack", "teams")],
+        "query_expansion": ["data transfer", "cloud-to-cloud migration", "platform migration"]
+    },
+    "enterprise_solutions": {
+        "description": "Enterprise features, large-scale deployments",
+        "keywords": ["enterprise", "large scale", "organization", "corporate", "enterprise-grade"],
+        "include_tags": ["blog", "sharepoint"],
+        "query_expansion": ["enterprise deployment", "large organization", "corporate solutions"]
+    },
+    "integrations": {
+        "description": "API, integrations, third-party connections",
+        "keywords": ["api", "integration", "webhook", "connector", "third-party", "integrate with"],
+        "include_tags": ["blog", "sharepoint"],
+        "query_expansion": ["API integration", "third-party connectors", "platform connectivity"]
+    },
+    "features": {
+        "description": "Product features and capabilities",
+        "keywords": ["features", "capabilities", "what can", "functionality", "does it support"],
+        "include_tags": ["blog", "sharepoint"],
+        "query_expansion": ["product capabilities", "feature list", "platform features"]
+    },
+    "other": {
+        "description": "Fallback for uncategorized queries",
+        "keywords": [],
+        "include_tags": ["blog", "sharepoint"],
+        "query_expansion": []
+    }
+}
+
+
+def classify_intent(query: str) -> dict:
+    """
+    Classify user query intent using LLM-based classification.
+    Returns intent name and confidence score.
+    """
+    from langchain_openai import ChatOpenAI
+    
+    query_lower = query.lower()
+    
+    # Quick keyword-based pre-filter for common cases (faster)
+    if any(kw in query_lower for kw in ["certificate", "download", "soc", "policy"]) and "sharepoint" not in query_lower:
+        if any(word in query_lower for word in ["certificate", "compliance", "security", "policy"]):
+            return {"intent": "sharepoint_docs", "confidence": 0.85, "method": "keyword"}
+    
+    if "slack" in query_lower and "teams" in query_lower:
+        return {"intent": "slack_teams_migration", "confidence": 0.90, "method": "keyword"}
+    
+    if any(kw in query_lower for kw in ["pricing", "cost", "price", "how much"]):
+        return {"intent": "pricing", "confidence": 0.85, "method": "keyword"}
+    
+    # For ambiguous queries, use LLM classification
+    intent_descriptions = "\n".join([f"{i+1}. {key}: {config['description']}" 
+                                     for i, (key, config) in enumerate(INTENT_BRANCHES.items())])
+    
+    classifier_prompt = f"""Classify this user query into ONE of these intents:
+
+{intent_descriptions}
+
+Query: "{query}"
+
+CRITICAL RULES:
+- If query asks about general business value, benefits, or "what is CloudFuze" WITHOUT mentioning specific platforms → "general_business"
+- If query mentions BOTH "Slack" AND "Teams" → "slack_teams_migration"
+- If query asks about general migration (without specific platforms) → "migration_general"
+- If query asks for certificates, documents, or policies → "sharepoint_docs"
+- If query asks about pricing or costs → "pricing"
+- If query describes errors or problems → "troubleshooting"
+- If query asks about enterprise features or large-scale → "enterprise_solutions"
+- If query asks about API, integrations, or connectors → "integrations"
+- If query asks about features or capabilities → "features"
+- Otherwise → "other"
+
+Respond with EXACTLY this format (no extra text):
+intent_name|confidence
+
+Example: general_business|0.92
+"""
+    
+    try:
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
+        response = llm.invoke(classifier_prompt)
+        
+        parts = response.content.strip().split('|')
+        intent = parts[0].strip()
+        confidence = float(parts[1].strip()) if len(parts) > 1 else 0.7
+        
+        # Validate intent exists
+        if intent not in INTENT_BRANCHES:
+            intent = "other"
+            confidence = 0.5
+        
+        return {
+            "intent": intent,
+            "confidence": confidence,
+            "method": "llm"
+        }
+    except Exception as e:
+        print(f"[ERROR] Intent classification failed: {e}")
+        return {"intent": "other", "confidence": 0.5, "method": "fallback"}
+
+
+def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
+    """
+    Retrieve documents filtered by intent branch.
+    This performs semantic search and then filters by metadata tags.
+    """
+    branch_config = INTENT_BRANCHES.get(intent, INTENT_BRANCHES["other"])
+    
+    # Get more documents than needed for filtering
+    all_docs = vectorstore.similarity_search_with_score(query, k=100)
+    
+    filtered_docs = []
+    
+    for doc, score in all_docs:
+        doc_tag = doc.metadata.get('tag', '').lower()
+        doc_content = doc.page_content.lower()
+        doc_title = doc.metadata.get('post_title', '').lower()
+        source_type = doc.metadata.get('source_type', '').lower()
+        
+        # Check inclusion tags
+        include_tags = branch_config.get("include_tags", [])
+        if include_tags:
+            tag_match = any(tag in doc_tag for tag in include_tags)
+        else:
+            tag_match = True
+        
+        # For general_business intent: exclude Slack→Teams specific content
+        if intent == "general_business":
+            # Check if document is Slack→Teams specific
+            exclude_keywords = branch_config.get("exclude_keywords", [])
+            has_excluded = False
+            
+            # Strong exclusion: if both "slack" and "teams" appear multiple times
+            slack_count = doc_content.count("slack")
+            teams_count = doc_content.count("teams")
+            if slack_count >= 2 and teams_count >= 2:
+                has_excluded = True
+            
+            # Title-based exclusion
+            if "slack to teams" in doc_title or "slack-to-teams" in doc_title:
+                has_excluded = True
+            
+            if has_excluded:
+                continue  # Skip this document
+        
+        # For slack_teams_migration: prioritize relevant content
+        elif intent == "slack_teams_migration":
+            # Must have both slack and teams keywords
+            if "slack" not in doc_content and "slack" not in doc_title:
+                tag_match = False
+            if "teams" not in doc_content and "teams" not in doc_title:
+                tag_match = False
+        
+        # For sharepoint_docs: prioritize SharePoint source
+        elif intent == "sharepoint_docs":
+            if source_type == "sharepoint":
+                # Boost SharePoint docs by improving their score
+                score = score * 0.7  # Lower score = higher priority
+        
+        # Add document if it passes filters
+        if tag_match:
+            filtered_docs.append((doc, score))
+    
+    # Sort by score (lower is better in similarity search)
+    filtered_docs.sort(key=lambda x: x[1])
+    
+    # Return top k
+    return filtered_docs[:k]
+
+
+def calculate_confidence(intent_confidence: float, retrieval_docs: int, avg_similarity: float = None):
+    """
+    Calculate overall confidence score for the response.
+    Combines intent classification confidence with retrieval metrics.
+    """
+    # Intent confidence weight: 50%
+    # Document count weight: 30%
+    # Similarity weight: 20%
+    
+    # Normalize document count (30 is ideal)
+    doc_confidence = min(retrieval_docs / 30.0, 1.0)
+    
+    if avg_similarity is not None:
+        # Similarity scores are distances (lower is better), typically 0.3-0.6
+        # Convert to confidence: 0.3 → 0.95, 0.6 → 0.4
+        similarity_confidence = max(0, 1.0 - avg_similarity)
+        
+        overall_confidence = (
+            intent_confidence * 0.5 +
+            doc_confidence * 0.3 +
+            similarity_confidence * 0.2
+        )
+    else:
+        overall_confidence = (
+            intent_confidence * 0.6 +
+            doc_confidence * 0.4
+        )
+    
+    return round(overall_confidence, 3)
+
+
+# ============================================================================
+# ADVANCED RAG IMPROVEMENTS
+# ============================================================================
+
+def expand_query_with_intent(query: str, intent: str) -> str:
+    """
+    Expand query with intent-specific keywords for better retrieval.
+    Uses query expansion terms defined in intent branches.
+    """
+    branch_config = INTENT_BRANCHES.get(intent, {})
+    expansion_terms = branch_config.get("query_expansion", [])
+    
+    if not expansion_terms:
+        return query
+    
+    # Add expansion terms to original query
+    expanded = f"{query} {' '.join(expansion_terms[:2])}"  # Add top 2 terms
+    
+    print(f"[QUERY EXPANSION] Original: '{query}' → Expanded: '{expanded}'")
+    
+    return expanded
+
+
+def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
+    """
+    Hybrid ranking combining semantic similarity + keyword matching.
+    alpha: weight for semantic score (1-alpha for keyword score)
+    """
+    from collections import Counter
+    import re
+    
+    # Get keywords from intent branch
+    branch_config = INTENT_BRANCHES.get(intent, {})
+    intent_keywords = branch_config.get("keywords", [])
+    
+    # Extract keywords from query
+    query_lower = query.lower()
+    query_words = set(re.findall(r'\w+', query_lower))
+    
+    reranked_docs = []
+    
+    for doc, semantic_score in doc_results:
+        # Semantic score (already normalized, lower is better)
+        semantic_component = semantic_score
+        
+        # Keyword matching score
+        doc_text = doc.page_content.lower()
+        doc_title = doc.metadata.get('post_title', '').lower()
+        
+        # Count keyword matches
+        keyword_matches = 0
+        for keyword in query_words:
+            if len(keyword) > 3:  # Skip short words
+                keyword_matches += doc_text.count(keyword)
+                keyword_matches += doc_title.count(keyword) * 2  # Title matches count more
+        
+        # Count intent keyword matches
+        for intent_kw in intent_keywords:
+            if intent_kw in doc_text:
+                keyword_matches += 1
+        
+        # Normalize keyword score (inverse, so lower is better like semantic)
+        keyword_score = max(0, 1.0 - (keyword_matches / 20.0))  # Normalize to 0-1
+        
+        # Hybrid score (lower is better)
+        hybrid_score = (alpha * semantic_component) + ((1 - alpha) * keyword_score)
+        
+        reranked_docs.append((doc, hybrid_score, {
+            "semantic": semantic_component,
+            "keyword": keyword_score,
+            "keyword_matches": keyword_matches
+        }))
+    
+    # Sort by hybrid score
+    reranked_docs.sort(key=lambda x: x[1])
+    
+    # Return in original format (doc, score)
+    return [(doc, score) for doc, score, _ in reranked_docs]
+
+
+def calculate_document_diversity(doc_results):
+    """
+    Calculate diversity score for retrieved documents.
+    Higher diversity = more varied sources and topics.
+    """
+    sources = set()
+    tags = set()
+    titles = set()
+    
+    for doc, score in doc_results[:30]:  # Check top 30
+        source_type = doc.metadata.get('source_type', 'unknown')
+        tag = doc.metadata.get('tag', 'unknown')
+        title = doc.metadata.get('post_title', doc.metadata.get('file_name', ''))
+        
+        sources.add(source_type)
+        tags.add(tag)
+        if title:
+            titles.add(title[:50])  # First 50 chars to avoid duplicates
+    
+    # Diversity metrics
+    source_diversity = len(sources) / max(len(doc_results[:30]), 1)
+    tag_diversity = len(tags) / max(len(doc_results[:30]), 1)
+    title_diversity = len(titles) / max(len(doc_results[:30]), 1)
+    
+    # Overall diversity score (0-1)
+    overall_diversity = (source_diversity + tag_diversity + title_diversity) / 3
+    
+    return {
+        "overall": round(overall_diversity, 3),
+        "source_diversity": round(source_diversity, 3),
+        "tag_diversity": round(tag_diversity, 3),
+        "title_diversity": round(title_diversity, 3),
+        "unique_sources": len(sources),
+        "unique_tags": len(tags),
+        "unique_titles": len(titles)
+    }
+
+
+def confidence_based_fallback(doc_results, intent: str, intent_confidence: float, query: str):
+    """
+    If confidence is low, try fallback retrieval strategies.
+    Returns enhanced doc_results or original if fallback not needed.
+    """
+    # If confidence is already high, no fallback needed
+    if intent_confidence >= 0.75:
+        return doc_results, "no_fallback"
+    
+    print(f"[FALLBACK] Low confidence ({intent_confidence:.2f}), trying fallback strategies...")
+    
+    # Strategy 1: Try with "other" intent (broader search)
+    if intent != "other" and intent_confidence < 0.6:
+        print(f"[FALLBACK] Strategy 1: Expanding to 'other' branch")
+        fallback_docs = retrieve_with_branch_filter(query, "other", k=50)
+        
+        # Merge with original results (deduplicate)
+        seen = set()
+        merged = []
+        
+        for doc, score in doc_results + fallback_docs:
+            doc_id = f"{doc.metadata.get('source', '')}_{doc.page_content[:100]}"
+            if doc_id not in seen:
+                seen.add(doc_id)
+                merged.append((doc, score))
+        
+        # Re-sort and limit
+        merged.sort(key=lambda x: x[1])
+        return merged[:50], "fallback_other_branch"
+    
+    # Strategy 2: If still low confidence, use simple semantic search
+    if intent_confidence < 0.5:
+        print(f"[FALLBACK] Strategy 2: Simple semantic search (no filtering)")
+        fallback_docs = vectorstore.similarity_search_with_score(query, k=50)
+        return fallback_docs, "fallback_semantic_only"
+    
+    return doc_results, "no_fallback"
 
 
 router = APIRouter()
@@ -79,6 +482,78 @@ def find_similar_corrected_response(question: str, threshold: float = 0.7):
     
     return None
 
+def classify_query_type(question: str) -> str:
+    """Classify query as informational, conversational, or transactional."""
+    question_lower = question.lower()
+    
+    # Conversational indicators
+    conversational_patterns = ["how are you", "who are you", "what are you", "your name", "thank you", "thanks", "hi", "hello", "bye"]
+    if any(pattern in question_lower for pattern in conversational_patterns):
+        return "conversational"
+    
+    # Transactional indicators
+    transactional_patterns = ["download", "buy", "purchase", "subscribe", "sign up", "register", "login"]
+    if any(pattern in question_lower for pattern in transactional_patterns):
+        return "transactional"
+    
+    return "informational"
+
+def classify_query_category(question: str) -> str:
+    """Classify query into categories like migration, pricing, technical, etc."""
+    question_lower = question.lower()
+    
+    if any(word in question_lower for word in ["price", "cost", "pricing", "fee", "payment", "subscription"]):
+        return "pricing"
+    elif any(word in question_lower for word in ["migrate", "migration", "transfer", "move data"]):
+        return "migration"
+    elif any(word in question_lower for word in ["error", "issue", "problem", "not working", "troubleshoot", "fix"]):
+        return "support"
+    elif any(word in question_lower for word in ["how to", "tutorial", "guide", "steps", "instructions"]):
+        return "how_to"
+    elif any(word in question_lower for word in ["certificate", "ssl", "security", "authentication", "oauth"]):
+        return "security"
+    elif any(word in question_lower for word in ["sharepoint", "onedrive", "google drive", "dropbox", "box"]):
+        return "platform_specific"
+    elif any(word in question_lower for word in ["api", "integration", "webhook", "developer"]):
+        return "technical"
+    else:
+        return "general"
+
+def extract_query_intent(question: str) -> str:
+    """Extract user intent from the query."""
+    question_lower = question.lower()
+    
+    if question.endswith("?"):
+        if any(word in question_lower for word in ["how", "what", "why", "when", "where"]):
+            return "request_information"
+        elif any(word in question_lower for word in ["can", "could", "should", "is it possible"]):
+            return "request_capability"
+    
+    if any(word in question_lower for word in ["download", "get", "need", "want"]):
+        return "request_resource"
+    elif any(word in question_lower for word in ["compare", "difference", "vs", "versus", "better"]):
+        return "compare"
+    elif any(word in question_lower for word in ["fix", "solve", "troubleshoot", "error"]):
+        return "troubleshoot"
+    elif any(word in question_lower for word in ["show", "list", "tell me"]):
+        return "request_information"
+    
+    return "general_query"
+
+def get_vectorstore_build_date() -> str:
+    """Get the actual vectorstore build date from metadata file."""
+    try:
+        with open('./data/vectorstore_metadata.json', 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+            timestamp = metadata.get('timestamp', '')
+            # Convert "2025-11-01T17:27:05.640130" to "2025-11-01"
+            return timestamp.split('T')[0] if timestamp else "unknown"
+    except FileNotFoundError:
+        return "unknown"
+    except Exception as e:
+        print(f"[WARNING] Failed to read vectorstore metadata: {e}")
+        return "unknown"
+
 def is_conversational_query(question: str) -> bool:
     """Determine if a query is conversational/social rather than informational."""
     question_lower = question.lower().strip()
@@ -117,10 +592,87 @@ def is_conversational_query(question: str) -> bool:
     
     return False
 
+def analyze_retrieved_documents(docs_with_scores):
+    """Analyze retrieved documents and extract metadata."""
+    if not docs_with_scores:
+        return {
+            "k_documents_retrieved": 0,
+            "k_documents_used": 0,
+            "sources_retrieved": {},
+            "avg_similarity_score": 0.0,
+            "top_similarity_score": 0.0,
+            "lowest_similarity_score": 0.0,
+            "sharepoint_docs_count": 0,
+            "sharepoint_docs_percentage": 0.0,
+            "sharepoint_folders": [],
+            "blog_docs_count": 0,
+            "pdf_docs_count": 0,
+            "excel_docs_count": 0,
+            "doc_docs_count": 0,
+        }
+    
+    # Extract scores and sources
+    scores = [score for _, score in docs_with_scores]
+    sources_count = {}
+    sharepoint_folders = set()
+    sharepoint_count = 0
+    blog_count = 0
+    pdf_count = 0
+    excel_count = 0
+    doc_count = 0
+    
+    for doc, _ in docs_with_scores:
+        # Determine source type from metadata
+        metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+        source_type = metadata.get('source', 'unknown')
+        
+        # Count by source type
+        if 'sharepoint' in source_type.lower():
+            sharepoint_count += 1
+            # Extract folder path
+            tag = metadata.get('tag', '')
+            if tag and tag.startswith('sharepoint/'):
+                folder_path = tag.replace('sharepoint/', '').replace('/', ' > ')
+                sharepoint_folders.add(folder_path)
+        elif any(blog_indicator in source_type.lower() for blog_indicator in ['blog', 'wordpress', 'cloudfuze.com']):
+            blog_count += 1
+        elif 'pdf' in source_type.lower():
+            pdf_count += 1
+        elif 'excel' in source_type.lower() or 'xlsx' in source_type.lower():
+            excel_count += 1
+        elif 'doc' in source_type.lower():
+            doc_count += 1
+    
+    total_docs = len(docs_with_scores)
+    
+    return {
+        "k_documents_retrieved": total_docs,
+        "k_documents_used": total_docs,  # After deduplication
+        "sources_retrieved": {
+            "sharepoint": sharepoint_count,
+            "blog": blog_count,
+            "pdf": pdf_count,
+            "excel": excel_count,
+            "doc": doc_count
+        },
+        "avg_similarity_score": round(sum(scores) / len(scores), 3) if scores else 0.0,
+        "top_similarity_score": round(max(scores), 3) if scores else 0.0,
+        "lowest_similarity_score": round(min(scores), 3) if scores else 0.0,
+        "sharepoint_docs_count": sharepoint_count,
+        "sharepoint_docs_percentage": round((sharepoint_count / total_docs) * 100, 1) if total_docs > 0 else 0.0,
+        "sharepoint_folders": list(sharepoint_folders)[:5],  # Limit to top 5 folders
+        "blog_docs_count": blog_count,
+        "pdf_docs_count": pdf_count,
+        "excel_docs_count": excel_count,
+        "doc_docs_count": doc_count,
+    }
+
 class ChatRequest(BaseModel):
     question: str
     user_id: str = None
     session_id: str = None  # Keep for backward compatibility
+    user_name: str = None  # User's display name
+    user_email: str = None  # User's email
 
 class FeedbackRequest(BaseModel):
     trace_id: str
@@ -134,6 +686,8 @@ async def chat(request: Request):
     question = data.get("question", "")
     user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
+    user_name = data.get("user_name")
+    user_email = data.get("user_email")
 
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
@@ -182,9 +736,20 @@ async def chat(request: Request):
         question=question,
         answer=answer,
         session_id=session_id,
+        user_name=user_name,
+        user_email=user_email,
         metadata={
-            "endpoint": "/chat",
-            "conversational_query": is_conversational_query(question)
+            "user_id": user_id or "anonymous",
+            "session_id": session_id,
+            "user_name": user_name,
+            "user_email": user_email,
+            "request": {
+                "endpoint": "/chat",
+                "timestamp": datetime.now().isoformat()
+            },
+            "query": {
+                "is_conversational": is_conversational_query(question)
+            }
         }
     )
 
@@ -199,6 +764,8 @@ async def chat_stream(request: Request):
     question = data.get("question", "")
     user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
+    user_name = data.get("user_name")
+    user_email = data.get("user_email")
 
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
@@ -231,9 +798,20 @@ async def chat_stream(request: Request):
                         question=question,
                         answer=full_response,
                         session_id=session_id,
+                        user_name=user_name,
+                        user_email=user_email,
                         metadata={
-                            "endpoint": "/chat/stream",
-                            "used_corrected_response": True
+                            "user_id": user_id or "anonymous",
+                            "session_id": session_id,
+                            "user_name": user_name,
+                            "user_email": user_email,
+                            "request": {
+                                "endpoint": "/chat/stream",
+                                "timestamp": datetime.now().isoformat()
+                            },
+                            "system": {
+                                "used_corrected_response": True
+                            }
                         }
                     )
                 except Exception as e:
@@ -293,10 +871,24 @@ async def chat_stream(request: Request):
                         question=question,
                         answer=full_response,
                         session_id=session_id,
+                        user_name=user_name,
+                        user_email=user_email,
                         metadata={
-                            "endpoint": "/chat/stream",
-                            "conversational_query": True,
-                            "streaming": True
+                            "user_id": user_id or "anonymous",
+                            "session_id": session_id,
+                            "user_name": user_name,
+                            "user_email": user_email,
+                            "request": {
+                                "endpoint": "/chat/stream",
+                                "timestamp": datetime.now().isoformat()
+                            },
+                            "query": {
+                                "is_conversational": True
+                            },
+                            "generation": {
+                                "model": "gpt-4o-mini",
+                                "streaming": True
+                            }
                         }
                     )
                 except Exception as e:
@@ -306,70 +898,165 @@ async def chat_stream(request: Request):
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
                 return
             
+            # ===== START RAG PIPELINE TRACING =====
+            # Create structured Langfuse trace for RAG pipeline
+            rag_trace = None
+            try:
+                rag_trace = langfuse_tracker.create_rag_pipeline_trace(
+                    user_id=conversation_id,
+                    question=question,
+                    session_id=session_id,
+                    user_name=user_name,
+                    user_email=user_email,
+                    metadata={
+                        "endpoint": "/chat/stream",
+                        "conversational_query": False,
+                        "streaming": True
+                    }
+                )
+                
+                # Start query processing span
+                if rag_trace:
+                    rag_trace.start_query(enhanced_query, metadata={"has_conversation_context": bool(conversation_context)})
+            except Exception as e:
+                print(f"[WARNING] Failed to create RAG trace: {e}")
+                rag_trace = None
+            
             # PHASE 1: THINKING - Document retrieval and processing
             # This happens while the frontend shows "Thinking..." animation
             
+            # Start timing for metadata
+            retrieval_start_time = time.time()
+            thinking_start_time = time.time()
+            
+            # Configuration for document retrieval
+            RETRIEVAL_K = 50  # Number of documents to retrieve from vectorstore
+            
+            # Initialize metadata collectors
+            query_classification = {
+                "query_type": classify_query_type(question),
+                "query_category": classify_query_category(question),
+                "query_intent": extract_query_intent(question),
+                "is_conversational_query": is_conv,
+                "query_length_words": len(question.split()),
+                "query_length_chars": len(question),
+                "has_followup": bool(conversation_context),
+            }
+            
             try:
+                # ============ INTENT CLASSIFICATION ============
+                # Classify user intent to enable branch-specific retrieval
+                intent_result = classify_intent(question)
+                intent = intent_result["intent"]
+                intent_confidence = intent_result["confidence"]
+                intent_method = intent_result.get("method", "unknown")
+                
+                print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
+                
                 # Check if vectorstore is available
                 if vectorstore is None:
                     print("Warning: Vectorstore not initialized. Please rebuild vectorstore manually.")
                     final_docs = []
+                    doc_results = []
+                    fallback_strategy = "no_vectorstore"
+                    diversity_metrics = {}
                 else:
-                    # Enhanced semantic search with better coverage - retrieve more docs to ensure SharePoint content is included
-                    # Use similarity_search_with_score to get relevance scores
-                    # Results are already sorted by relevance (best matches first)
-                    doc_results = vectorstore.similarity_search_with_score(enhanced_query, k=50)  # Increased from 25 to 50
-                    final_docs = [doc for doc, score in doc_results]  # Extract just the documents (already sorted by relevance)
+                    # ============ QUERY EXPANSION ============
+                    # Expand query with intent-specific terms for better retrieval
+                    expanded_query = expand_query_with_intent(enhanced_query, intent)
                     
-                    # Log what sources we're retrieving (for backend debugging)
-                    retrieved_sources = {}
-                    for doc in final_docs:
-                        tag = doc.metadata.get('tag', 'unknown')
-                        source_type = doc.metadata.get('source_type', 'unknown')
-                        if tag not in retrieved_sources:
-                            retrieved_sources[tag] = 0
-                        retrieved_sources[tag] += 1
-                    
-                    print(f"[DEBUG] Retrieved {len(final_docs)} documents from search")
-                    print(f"[DEBUG] Documents by tag: {retrieved_sources}")
-                    
-                    # If no SharePoint documents found, try a more aggressive search for SharePoint content
-                    has_sharepoint = any(
-                        doc.metadata.get('source_type') == 'sharepoint' or 
-                        'sharepoint' in doc.metadata.get('tag', '').lower()
-                        for doc in final_docs
+                    # ============ BRANCH-SPECIFIC RETRIEVAL ============
+                    # Use intent-based filtering to retrieve relevant documents
+                    doc_results = retrieve_with_branch_filter(
+                        query=expanded_query,  # Use expanded query
+                        intent=intent,
+                        k=RETRIEVAL_K
                     )
                     
-                    if not has_sharepoint and any(word in enhanced_query.lower() for word in ['sharepoint', 'document', 'file', 'folder', 'download', 'certificate']):
-                        print("[DEBUG] No SharePoint docs found - trying SharePoint-specific search...")
+                    print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
+                    
+                    # ============ CONFIDENCE-BASED FALLBACK ============
+                    # If confidence is low, try alternative retrieval strategies
+                    doc_results, fallback_strategy = confidence_based_fallback(
+                        doc_results=doc_results,
+                        intent=intent,
+                        intent_confidence=intent_confidence,
+                        query=enhanced_query
+                    )
+                    
+                    if fallback_strategy != "no_fallback":
+                        print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
+                    
+                    # ============ HYBRID RANKING ============
+                    # Combine semantic similarity with keyword matching
+                    doc_results = hybrid_ranking(
+                        doc_results=doc_results,
+                        query=question,  # Use original query for keyword matching
+                        intent=intent,
+                        alpha=0.7  # 70% semantic, 30% keyword
+                    )
+                    
+                    print(f"[HYBRID RANKING] Reranked {len(doc_results)} documents with semantic + keyword scores")
+                    
+                    # ============ DOCUMENT DIVERSITY ============
+                    # Calculate diversity metrics for retrieved documents
+                    diversity_metrics = calculate_document_diversity(doc_results)
+                    print(f"[DIVERSITY] Overall: {diversity_metrics['overall']:.2f}, Sources: {diversity_metrics['unique_sources']}, Tags: {diversity_metrics['unique_tags']}")
+                    
+                    final_docs = [doc for doc, score in doc_results]  # Extract just the documents (already sorted by relevance)
+                    
+                # Record retrieval time
+                retrieval_time_ms = int((time.time() - retrieval_start_time) * 1000)
+                
+                # Log what sources we're retrieving (for backend debugging)
+                retrieved_sources = {}
+                for doc in final_docs:
+                    tag = doc.metadata.get('tag', 'unknown')
+                    source_type = doc.metadata.get('source_type', 'unknown')
+                    if tag not in retrieved_sources:
+                        retrieved_sources[tag] = 0
+                    retrieved_sources[tag] += 1
+                
+                print(f"[DEBUG] Retrieved {len(final_docs)} documents from search")
+                print(f"[DEBUG] Documents by tag: {retrieved_sources}")
+                
+                # If no SharePoint documents found, try a more aggressive search for SharePoint content
+                has_sharepoint = any(
+                    doc.metadata.get('source_type') == 'sharepoint' or 
+                    'sharepoint' in doc.metadata.get('tag', '').lower()
+                    for doc in final_docs
+                )
+                
+                if not has_sharepoint and any(word in enhanced_query.lower() for word in ['sharepoint', 'document', 'file', 'folder', 'download', 'certificate']):
+                    print("[DEBUG] No SharePoint docs found - trying SharePoint-specific search...")
+                    try:
+                        # Try searching for SharePoint content with modified queries
+                        sharepoint_docs = vectorstore.similarity_search(enhanced_query + " SharePoint", k=30)
+                        # Filter results to only SharePoint documents
+                        sharepoint_docs = [d for d in sharepoint_docs if d.metadata.get('source_type') == 'sharepoint']
+                        if sharepoint_docs:
+                            print(f"[DEBUG] Found {len(sharepoint_docs)} SharePoint documents with filter")
+                            # Add SharePoint docs to results (prioritize them)
+                            final_docs = sharepoint_docs[:10] + final_docs
+                            print(f"[DEBUG] Updated total: {len(final_docs)} documents")
+                    except Exception as e:
+                        print(f"[DEBUG] Filtered search failed (this is OK): {e}")
+                        # Try search with different query variations
                         try:
-                            # Try searching for SharePoint content with modified queries
-                            sharepoint_docs = vectorstore.similarity_search(enhanced_query + " SharePoint", k=30)
-                            # Filter results to only SharePoint documents
-                            sharepoint_docs = [d for d in sharepoint_docs if d.metadata.get('source_type') == 'sharepoint']
-                            if sharepoint_docs:
-                                print(f"[DEBUG] Found {len(sharepoint_docs)} SharePoint documents with filter")
-                                # Add SharePoint docs to results (prioritize them)
-                                final_docs = sharepoint_docs[:10] + final_docs
-                                print(f"[DEBUG] Updated total: {len(final_docs)} documents")
-                        except Exception as e:
-                            print(f"[DEBUG] Filtered search failed (this is OK): {e}")
-                            # Try search with different query variations
-                            try:
-                                sharepoint_queries = [
-                                    enhanced_query + " SharePoint",
-                                    enhanced_query + " document",
-                                    enhanced_query.replace("?", "").replace("how", "what")
-                                ]
-                                for sp_query in sharepoint_queries[:2]:
-                                    sp_docs = vectorstore.similarity_search(sp_query, k=15)
-                                    # Filter for SharePoint docs
-                                    sp_filtered = [d for d in sp_docs if d.metadata.get('source_type') == 'sharepoint']
-                                    if sp_filtered:
-                                        final_docs.extend(sp_filtered[:5])
-                                        break
-                            except Exception as e2:
-                                print(f"[DEBUG] Alternative search failed: {e2}")
+                            sharepoint_queries = [
+                                enhanced_query + " SharePoint",
+                                enhanced_query + " document",
+                                enhanced_query.replace("?", "").replace("how", "what")
+                            ]
+                            for sp_query in sharepoint_queries[:2]:
+                                sp_docs = vectorstore.similarity_search(sp_query, k=15)
+                                # Filter for SharePoint docs
+                                sp_filtered = [d for d in sp_docs if d.metadata.get('source_type') == 'sharepoint']
+                                if sp_filtered:
+                                    final_docs.extend(sp_filtered[:5])
+                                    break
+                        except Exception as e2:
+                            print(f"[DEBUG] Alternative search failed: {e2}")
             except Exception as e:
                 print(f"Error during document search: {e}")
                 final_docs = []
@@ -398,6 +1085,39 @@ async def chat_stream(request: Request):
             final_docs = unique_docs[:30]
             
             print(f"[DEBUG] Final documents for context: {len(final_docs)} (after deduplication)")
+            
+            # Analyze final documents after deduplication for accurate metadata
+            # We need to pair final_docs with their scores from doc_results
+            final_docs_with_scores = []
+            for final_doc in final_docs:
+                # Find the matching doc in doc_results to get its score
+                for doc, score in doc_results:
+                    if doc.page_content == final_doc.page_content:
+                        final_docs_with_scores.append((final_doc, score))
+                        break
+            
+            doc_analysis = analyze_retrieved_documents(final_docs_with_scores)
+            
+            # ===== LOG RETRIEVAL TO LANGFUSE =====
+            if rag_trace:
+                try:
+                    # Calculate sources breakdown for tracing
+                    trace_sources = {}
+                    for doc in final_docs:
+                        source_type = doc.metadata.get('source_type', 'unknown')
+                        tag = doc.metadata.get('tag', 'unknown')
+                        key = f"{source_type}:{tag}"
+                        trace_sources[key] = trace_sources.get(key, 0) + 1
+                    
+                    rag_trace.log_retrieval(
+                        query=enhanced_query,
+                        retrieved_docs=final_docs,
+                        doc_count=len(final_docs),
+                        sources_breakdown=trace_sources,
+                        metadata={"search_k": 50, "final_k": len(final_docs)}
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Failed to log retrieval: {e}")
             
             # Format the documents properly with metadata using format_docs from llm.py
             try:
@@ -461,13 +1181,19 @@ async def chat_stream(request: Request):
                 source_info = "Response generated (sources unknown)"
             
             # Send signal that thinking is complete and streaming will start
+            thinking_time_ms = int((time.time() - thinking_start_time) * 1000)
             yield f"data: {json.dumps({'type': 'thinking_complete'})}\n\n"
             
             # Send source information for console logging
             yield f"data: {json.dumps({'type': 'sources', 'sources': source_info})}\n\n"
             
+            # Collect context preparation metadata
+            context_size_chars = len(context_text)
+            context_size_tokens = context_size_chars // 4  # Rough approximation
+            
             # PHASE 2: STREAMING - Generate and stream response
             # This happens after the frontend clears the "Thinking..." animation
+            llm_start_time = time.time()
             
             # Import ChatOpenAI for document-based queries
             from langchain_openai import ChatOpenAI
@@ -489,6 +1215,21 @@ async def chat_stream(request: Request):
                 ("human", "Context: {context}\n\nQuestion: {question}")
             ])
             
+            # ===== START SYNTHESIS SPAN =====
+            if rag_trace:
+                try:
+                    rag_trace.start_synthesis(
+                        context=context_text,
+                        metadata={
+                            "context_length": len(context_text),
+                            "document_count": len(final_docs),
+                            "model": "gpt-4o-mini",
+                            "temperature": 0.3
+                        }
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Failed to start synthesis: {e}")
+            
             # Stream the response with real-time streaming
             full_response = ""
             messages = prompt_template.format_messages(context=context_text, question=enhanced_query)
@@ -499,25 +1240,188 @@ async def chat_stream(request: Request):
                     yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
                     await asyncio.sleep(0.01)  # Small delay for better streaming effect
             
+            # Record LLM generation time
+            llm_time_ms = int((time.time() - llm_start_time) * 1000)
+            streaming_time_ms = llm_time_ms  # In streaming mode, these are the same
             
             # Add both user question and bot response to conversation AFTER processing
             await add_to_conversation(conversation_id, "user", question)
             await add_to_conversation(conversation_id, "assistant", full_response)
             
-            # Log to Langfuse (don't block response if this fails)
+            # Calculate total response time
+            total_time_ms = thinking_time_ms + llm_time_ms
+            
+            # Calculate overall confidence score
+            avg_similarity = doc_analysis.get("avg_similarity_score", 0.5)
+            overall_confidence = calculate_confidence(
+                intent_confidence=intent_confidence,
+                retrieval_docs=len(final_docs),
+                avg_similarity=avg_similarity
+            )
+            
+            # ===== BUILD COMPREHENSIVE METADATA (NESTED STRUCTURE) =====
+            comprehensive_metadata = {
+                # User info at top level for easy filtering
+                "user_id": user_id or "anonymous",
+                "session_id": session_id,
+                "user_name": user_name,
+                "user_email": user_email,
+                
+                "request": {
+                    "endpoint": "/chat/stream",
+                    "timestamp": datetime.now().isoformat()
+                },
+                
+                # ===== INTENT CLASSIFICATION (NEW) =====
+                "intent": {
+                    "detected": intent,
+                    "confidence": intent_confidence,
+                    "method": intent_method,
+                    "branch_description": INTENT_BRANCHES[intent]["description"]
+                },
+                
+                # ===== CONFIDENCE SCORING (NEW) =====
+                "confidence": {
+                    "overall": overall_confidence,
+                    "breakdown": {
+                        "intent": intent_confidence,
+                        "retrieval": min(len(final_docs) / 30.0, 1.0),
+                        "similarity": max(0, 1.0 - avg_similarity) if avg_similarity else 0.5
+                    }
+                },
+                
+                "query": {
+                    "classification": {
+                        "type": query_classification["query_type"],
+                        "category": query_classification["query_category"],
+                        "intent": query_classification["query_intent"],
+                        "is_conversational": query_classification["is_conversational_query"]
+                    },
+                    "metrics": {
+                        "length_words": query_classification["query_length_words"],
+                        "length_chars": query_classification["query_length_chars"],
+                        "has_followup": query_classification["has_followup"]
+                    }
+                },
+                
+                "retrieval": {
+                    "method": "advanced_rag_pipeline",
+                    "branch": intent,
+                    "techniques_applied": ["intent_classification", "query_expansion", "hybrid_ranking", "diversity_scoring"],
+                    "fallback_strategy": fallback_strategy,
+                    "query_expansion": {
+                        "original": question,
+                        "expanded": expanded_query if 'expanded_query' in locals() else question,
+                        "expansion_terms": INTENT_BRANCHES[intent].get("query_expansion", [])
+                    },
+                    "documents": {
+                        "requested": RETRIEVAL_K,
+                        "retrieved": doc_analysis["k_documents_retrieved"],
+                        "used": doc_analysis["k_documents_used"]
+                    },
+                    "similarity_scores": {
+                        "avg": doc_analysis["avg_similarity_score"],
+                        "top": doc_analysis["top_similarity_score"],
+                        "lowest": doc_analysis["lowest_similarity_score"]
+                    },
+                    "diversity": diversity_metrics if diversity_metrics else {},
+                    "sources": doc_analysis["sources_retrieved"],
+                    "sharepoint": {
+                        "count": doc_analysis["sharepoint_docs_count"],
+                        "percentage": doc_analysis["sharepoint_docs_percentage"],
+                        "folders": doc_analysis["sharepoint_folders"]
+                    },
+                    "blog_count": doc_analysis["blog_docs_count"],
+                    "pdf_count": doc_analysis["pdf_docs_count"],
+                    "excel_count": doc_analysis["excel_docs_count"],
+                    "doc_count": doc_analysis["doc_docs_count"],
+                    "time_ms": retrieval_time_ms
+                },
+                
+                "context": {
+                    "size": {
+                        "chars": context_size_chars,
+                        "tokens": context_size_tokens,
+                        "chunks": len(final_docs)
+                    },
+                    "preparation_ms": retrieval_time_ms,
+                    "truncated": len(unique_docs) > 30,
+                    "conversation": {
+                        "has_history": bool(conversation_context),
+                        "turns": len(conversation_context.split("\n")) if conversation_context else 0,
+                        "size_chars": len(conversation_context) if conversation_context else 0
+                    }
+                },
+                
+                "generation": {
+                    "model": "gpt-4o-mini",
+                    "config": {
+                        "temperature": 0.3,
+                        "max_tokens": 1500,
+                        "streaming": True
+                    },
+                    "response": {
+                        "length_words": len(full_response.split()),
+                        "length_chars": len(full_response)
+                    },
+                    "time_ms": llm_time_ms
+                },
+                
+                "performance": {
+                    "total_ms": total_time_ms,
+                    "breakdown": {
+                        "retrieval_ms": retrieval_time_ms,
+                        "llm_ms": llm_time_ms,
+                        "thinking_ms": thinking_time_ms,
+                        "streaming_ms": streaming_time_ms
+                    }
+                },
+                
+                "system": {
+                    "vectorstore_available": vectorstore is not None,
+                    "documents_found": len(final_docs) > 0,
+                    "vectorstore_version": get_vectorstore_build_date()
+                }
+            }
+            
+            # ===== COMPLETE RAG PIPELINE TRACE =====
             trace_id = None
             try:
-                trace_id = langfuse_tracker.create_trace(
-                    user_id=conversation_id,
-                    question=question,
-                    answer=full_response,
-                    session_id=session_id,
-                    metadata={
-                        "endpoint": "/chat/stream",
-                        "conversational_query": is_conversational_query(question),
-                        "streaming": True
-                    }
-                )
+                if rag_trace:
+                    # Log LLM generation
+                    rag_trace.log_llm_generation(
+                        prompt=str(messages),
+                        response=full_response,
+                        model="gpt-4o-mini",
+                        metadata={
+                            "temperature": 0.3,
+                            "max_tokens": 1500,
+                            "response_length": len(full_response)
+                        }
+                    )
+                    
+                    # Log final response generation
+                    rag_trace.log_response_generation(
+                        final_response=full_response,
+                        metadata={
+                            **comprehensive_metadata,
+                            "sources_used": sources_used if sources_used else [],
+                        }
+                    )
+                    
+                    # Complete the trace with comprehensive metadata
+                    trace_id = rag_trace.complete(full_response, metadata=comprehensive_metadata)
+                else:
+                    # Fallback to simple trace if RAG trace failed
+                    trace_id = langfuse_tracker.create_trace(
+                        user_id=conversation_id,
+                        question=question,
+                        answer=full_response,
+                        session_id=session_id,
+                        user_name=user_name,
+                        user_email=user_email,
+                        metadata=comprehensive_metadata
+                    )
             except Exception as e:
                 print(f"[WARNING] Langfuse logging failed: {e}")
             
