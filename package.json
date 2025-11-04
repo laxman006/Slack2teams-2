@@ -1,0 +1,21 @@
+{
+  "name": "slack2teams-promptfoo-tests",
+  "version": "1.0.0",
+  "description": "Promptfoo test suite for CloudFuze chatbot",
+  "scripts": {
+    "test": "cd promptfoo && promptfoo eval",
+    "test:view": "cd promptfoo && promptfoo eval && promptfoo view",
+    "view": "cd promptfoo && promptfoo view"
+  },
+  "keywords": [
+    "promptfoo",
+    "testing",
+    "llm",
+    "chatbot"
+  ],
+  "devDependencies": {
+    "promptfoo": "^0.119.1"
+  }
+}
+
+
