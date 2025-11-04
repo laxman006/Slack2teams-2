@@ -1028,7 +1028,10 @@
         // IMPORTANT: Send Authorization header with access token
         const response = await fetch(`${getApiBase()}/chat/stream`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser.access_token}`
+          },
           body: JSON.stringify(requestBody),
         });
 
@@ -1162,7 +1165,10 @@
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              'Authorization': `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
@@ -1325,7 +1331,10 @@
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              'Authorization': `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
@@ -1462,6 +1471,18 @@
           };
           
           console.log('[AUTH] Created user object:', user);
+          
+          // Extra frontend validation: Check CloudFuze domain
+          if (!user.email || !user.email.endsWith('@cloudfuze.com')) {
+            console.error('[AUTH] Non-CloudFuze email attempted to log in:', user.email);
+            hideLoadingIndicator();
+            sessionStorage.clear();
+            localStorage.removeItem('user');
+            // Redirect to login with error parameter
+            window.location.href = `login.html?error=unauthorized_domain&email=${encodeURIComponent(user.email || 'Unknown')}`;
+            return;
+          }
+          
           localStorage.setItem('user', JSON.stringify(user));
           
           // Clear URL parameters
@@ -1527,10 +1548,10 @@
         return;
       }
 
-      // Verify token is still valid
-      showLoadingIndicator("Loading user data...");
-      verifyToken(user.access_token).then(isValid => {
-        if (isValid) {
+      // Verify token is still valid AND check domain
+      showLoadingIndicator("Verifying access...");
+      verifyToken(user.access_token).then(result => {
+        if (result.isValid) {
           currentUser = user;
           updateUserInfo(user);
           console.log('[AUTH] User authenticated, loading history for user.id:', user.id);
@@ -1547,24 +1568,30 @@
             hideLoadingIndicator();
           }
         } else {
+          // Handle different failure reasons
           hideLoadingIndicator();
+          
+          // Clear invalid user data
           localStorage.removeItem('user');
-          window.location.href = "login.html";
+          currentUser = null;
+          
+          // Redirect to login with appropriate error parameter
+          if (result.reason === 'unauthorized_domain') {
+            window.location.href = `login.html?error=unauthorized_domain&email=${encodeURIComponent(result.email || 'Unknown')}`;
+          } else if (result.reason === 'invalid_token') {
+            window.location.href = "login.html?error=session_expired";
+          } else {
+            console.log('[AUTH] Token verification failed, redirecting to login');
+            window.location.href = "login.html?error=verification_failed";
+          }
         }
       }).catch(error => {
         console.error('[ERROR] Token verification failed:', error);
         hideLoadingIndicator();
-        // Still try to use the app with cached user
-        currentUser = user;
-        updateUserInfo(user);
-        console.log('[AUTH] Using cached user, loading history for user.id:', user.id);
-        
-        // Only load history if user.id exists
-        if (user.id) {
-          loadUserChatHistory(user.id).catch(err => console.error('[ERROR] History load failed:', err));
-        } else {
-          console.warn('[WARNING] User ID is undefined, skipping history load');
-        }
+        // Don't allow app access if verification fails
+        localStorage.removeItem('user');
+        currentUser = null;
+        window.location.href = "login.html?error=verification_failed";
       });
     }
 
@@ -1576,9 +1603,24 @@
             'Authorization': `Bearer ${accessToken}`
           }
         });
-        return response.ok;
+        
+        if (!response.ok) {
+          return { isValid: false, reason: 'invalid_token' };
+        }
+        
+        const userInfo = await response.json();
+        const userEmail = userInfo.mail || userInfo.userPrincipalName || '';
+        
+        // Check if email is from CloudFuze domain
+        if (!userEmail.endsWith('@cloudfuze.com')) {
+          console.error('[AUTH] Access denied for non-CloudFuze email:', userEmail);
+          return { isValid: false, reason: 'unauthorized_domain', email: userEmail };
+        }
+        
+        return { isValid: true, email: userEmail };
       } catch (error) {
-        return false;
+        console.error('[AUTH] Token verification failed:', error);
+        return { isValid: false, reason: 'verification_failed' };
       }
     }
 
@@ -1636,7 +1678,8 @@
         const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentUser.access_token}`
           }
         });
         

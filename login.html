@@ -612,6 +612,29 @@
       console.log('Current hostname:', window.location.hostname);
       console.log('API Base URL:', getApiBase());
       
+      // Check for error/warning parameters in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error');
+      const email = urlParams.get('email');
+      
+      if (error === 'unauthorized_domain') {
+        const errorMessage = `⚠️ Access Denied\n\nOnly CloudFuze company accounts (@cloudfuze.com) are allowed to access this application.\n\n${email ? `Your email: ${decodeURIComponent(email)}` : ''}\n\nPlease log in with your CloudFuze account.`;
+        showError(errorMessage.replace(/\n/g, '<br>'));
+        
+        // Clear URL parameters after showing message
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (error === 'invalid_token' || error === 'session_expired') {
+        showError('⚠️ Your session has expired. Please log in again.');
+        
+        // Clear URL parameters after showing message
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (error === 'verification_failed') {
+        showError('⚠️ Unable to verify your access. Please log in again.');
+        
+        // Clear URL parameters after showing message
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
       // Add event listeners
       const microsoftButton = document.getElementById("microsoftLogin");
       
