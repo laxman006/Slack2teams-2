@@ -58,3 +58,4 @@ Thumbs.db
 
 # Vectorstore data (large binary files)
 data/
+node_modules

@@ -1,0 +1,1509 @@
+{
+  "evalId": "eval-8pt-2025-11-04T07:29:04",
+  "results": {
+    "version": 3,
+    "timestamp": "2025-11-04T07:29:04.533Z",
+    "prompts": [
+      {
+        "raw": "{{question}}",
+        "label": "{{question}}",
+        "id": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "provider": "http:http://localhost:8002/chat",
+        "metrics": {
+          "score": 0,
+          "testPassCount": 0,
+          "testFailCount": 0,
+          "testErrorCount": 15,
+          "assertPassCount": 0,
+          "assertFailCount": 0,
+          "totalLatencyMs": 0,
+          "tokenUsage": {
+            "prompt": 0,
+            "completion": 0,
+            "cached": 0,
+            "total": 0,
+            "numRequests": 0,
+            "completionDetails": {
+              "reasoning": 0,
+              "acceptedPrediction": 0,
+              "rejectedPrediction": 0
+            },
+            "assertions": {
+              "total": 0,
+              "prompt": 0,
+              "completion": 0,
+              "cached": 0,
+              "numRequests": 0,
+              "completionDetails": {
+                "reasoning": 0,
+                "acceptedPrediction": 0,
+                "rejectedPrediction": 0
+              }
+            }
+          },
+          "namedScores": {},
+          "namedScoresCount": {},
+          "cost": 0
+        }
+      }
+    ],
+    "results": [
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "f0c899f2-b23f-4f51-be34-cb6915c4ec43",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "What is CloudFuze?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Business: What is CloudFuze?",
+          "vars": {
+            "question": "What is CloudFuze?"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "CloudFuze"
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "migration",
+                "cloud",
+                "data"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "I don't have"
+            },
+            {
+              "type": "javascript",
+              "value": "output.length > 100"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "The response should:\n- Clearly explain what CloudFuze is\n- Mention cloud migration or data transfer\n- Be informative and professional\nScore 1-10 based on clarity and completeness.\n",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 0,
+        "vars": {
+          "question": "What is CloudFuze?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "cae2da95-3108-48dc-b5d1-0492fb282660",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "What does CloudFuze do?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Business: What does CloudFuze do?",
+          "vars": {
+            "question": "What does CloudFuze do?"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "CloudFuze"
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "migrate",
+                "migration",
+                "transfer",
+                "cloud"
+              ]
+            },
+            {
+              "type": "javascript",
+              "value": "output.length > 80"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should describe CloudFuze services and capabilities accurately",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 1,
+        "vars": {
+          "question": "What does CloudFuze do?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "4ae767d7-9893-4d7e-b0b9-61e2241184f8",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "How much does CloudFuze cost?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Business: Pricing inquiry",
+          "vars": {
+            "question": "How much does CloudFuze cost?"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "pricing",
+                "contact",
+                "sales",
+                "www.cloudfuze.com"
+              ]
+            },
+            {
+              "type": "regex",
+              "value": "https://www\\.cloudfuze\\.com"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should provide pricing page link or contact information",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 2,
+        "vars": {
+          "question": "How much does CloudFuze cost?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "cd35b783-c793-45c0-a26c-313e23b67501",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "How do I migrate from Slack to Microsoft Teams?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Migration: Slack to Teams",
+          "vars": {
+            "question": "How do I migrate from Slack to Microsoft Teams?"
+          },
+          "assert": [
+            {
+              "type": "contains-all",
+              "value": [
+                "Slack",
+                "Teams"
+              ]
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "migration",
+                "migrate",
+                "transfer"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "I don't have access"
+            },
+            {
+              "type": "regex",
+              "value": "https://www\\.cloudfuze\\.com/slack-to-teams"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "The response should:\n- Explain the Slack to Teams migration process\n- Mention key features or steps\n- Include relevant CloudFuze links\n- Not hallucinate unsupported features\n",
+              "threshold": 0.75
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 3,
+        "vars": {
+          "question": "How do I migrate from Slack to Microsoft Teams?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "41335b22-2946-4ab0-ad51-af4d3545dd92",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Gmail to Outlook migration",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Migration: Gmail to Outlook",
+          "vars": {
+            "question": "Gmail to Outlook migration"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "Gmail",
+                "Outlook",
+                "email",
+                "migration"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "I'm sorry, I don't"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should discuss email migration between Gmail and Outlook",
+              "threshold": 0.6
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 4,
+        "vars": {
+          "question": "Gmail to Outlook migration"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "e06ce721-24c4-4316-b5ce-21e0004366d2",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Teams to teams migration",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Migration: Teams to Teams",
+          "vars": {
+            "question": "Teams to teams migration"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "Teams"
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "migration",
+                "migrate",
+                "transfer"
+              ]
+            },
+            {
+              "type": "regex",
+              "value": "https://www\\.cloudfuze\\.com/teams-to-teams"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should explain Teams to Teams migration capabilities",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 5,
+        "vars": {
+          "question": "Teams to teams migration"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "2190c657-997b-4fef-8cb2-ac018e9b500f",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "How do I migrate from Box to SharePoint?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Migration: Box to SharePoint",
+          "vars": {
+            "question": "How do I migrate from Box to SharePoint?"
+          },
+          "assert": [
+            {
+              "type": "contains-all",
+              "value": [
+                "Box",
+                "SharePoint"
+              ]
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "migration",
+                "migrate"
+              ]
+            },
+            {
+              "type": "javascript",
+              "value": "output.length > 100"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should provide guidance on Box to SharePoint migration",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 6,
+        "vars": {
+          "question": "How do I migrate from Box to SharePoint?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "350cb65d-8edf-460c-b76f-2fb44d548892",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Google Drive to SharePoint",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Migration: Google Drive to SharePoint",
+          "vars": {
+            "question": "Google Drive to SharePoint"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "Google Drive",
+                "SharePoint",
+                "migration"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "don't know"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should discuss Google Drive to SharePoint migration",
+              "threshold": 0.6
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 7,
+        "vars": {
+          "question": "Google Drive to SharePoint"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "1631b3e2-d564-4dc8-9164-f673312a032b",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Download SOC 2 certificate",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Download: SOC 2 certificate",
+          "vars": {
+            "question": "Download SOC 2 certificate"
+          },
+          "assert": [
+            {
+              "type": "contains",
+              "value": "certificate"
+            },
+            {
+              "type": "contains-any",
+              "value": [
+                "SOC",
+                "download",
+                "Download"
+              ]
+            },
+            {
+              "type": "regex",
+              "value": "\\[.*[Dd]ownload.*\\]\\(https?://.*\\)"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "The response should:\n- Provide a download link for the SOC 2 certificate\n- Use proper markdown link format\n- Not just mention the certificate without a link\n",
+              "threshold": 0.7
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 8,
+        "vars": {
+          "question": "Download SOC 2 certificate"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "ac869b8b-dfca-46d3-9d39-f24221dabf1b",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "What certificates do you have?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Inquiry: Available certificates",
+          "vars": {
+            "question": "What certificates do you have?"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "certificate",
+                "SOC",
+                "compliance",
+                "security"
+              ]
+            },
+            {
+              "type": "javascript",
+              "value": "output.length > 50"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should list available security/compliance certificates",
+              "threshold": 0.6
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 9,
+        "vars": {
+          "question": "What certificates do you have?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "2db885b9-c073-42fc-a788-67ee4571d6f3",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "What policy documents do you have?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Inquiry: Policy documents",
+          "vars": {
+            "question": "What policy documents do you have?"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "policy",
+                "document",
+                "security",
+                "compliance"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "I don't have access"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should describe available policy documents",
+              "threshold": 0.6
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 10,
+        "vars": {
+          "question": "What policy documents do you have?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "7eb49fdf-06fe-467b-abf2-3c80b9d5acb2",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Show me security policies",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Inquiry: Security policies",
+          "vars": {
+            "question": "Show me security policies"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "security",
+                "policy",
+                "policies"
+              ]
+            },
+            {
+              "type": "javascript",
+              "value": "output.length > 50"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should provide information about security policies",
+              "threshold": 0.6
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 11,
+        "vars": {
+          "question": "Show me security policies"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "ad283c5b-0691-4dc9-b0a6-f44f77449ea8",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "What is the capital of France?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Refusal: Unrelated geography question",
+          "vars": {
+            "question": "What is the capital of France?"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "don't have",
+                "can't help",
+                "knowledge base",
+                "CloudFuze"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "Paris"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "The response should:\n- Politely decline to answer\n- Not provide general knowledge answers\n- Redirect to CloudFuze topics\n- Not mention Paris or France's capital\n",
+              "threshold": 0.8
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 12,
+        "vars": {
+          "question": "What is the capital of France?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "7fe6b8ae-5ea8-470f-aebb-43e2ccf2bb7d",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "How to cook pasta?",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Refusal: Cooking question",
+          "vars": {
+            "question": "How to cook pasta?"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "don't have",
+                "can't help",
+                "CloudFuze",
+                "knowledge base"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "boil"
+            },
+            {
+              "type": "not-contains",
+              "value": "water"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should refuse gracefully and redirect to CloudFuze services",
+              "threshold": 0.8
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 13,
+        "vars": {
+          "question": "How to cook pasta?"
+        },
+        "metadata": {},
+        "failureReason": 2
+      },
+      {
+        "cost": 0,
+        "error": "Error: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n\nError: Request failed after 4 retries: TypeError: fetch failed (Cause: Error: getaddrinfo ENOTFOUND http)\n    at fetchWithRetries (C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\util\\fetch\\index.js:214:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\LaxmanKadari\\Desktop\\chatbot\\Slack2teams-2\\node_modules\\promptfoo\\dist\\src\\cache.js:97:26",
+        "gradingResult": null,
+        "id": "6c697c29-b805-4535-9390-aa164d70fed5",
+        "latencyMs": 0,
+        "namedScores": {},
+        "prompt": {
+          "raw": "Tell me about the weather",
+          "label": "{{question}}"
+        },
+        "promptId": "d3bcaf71c11c2678899be04d872718325f0916b3b0705e805ee29930663a42e2",
+        "promptIdx": 0,
+        "provider": {
+          "id": "http:http://localhost:8002/chat",
+          "label": ""
+        },
+        "score": 0,
+        "success": false,
+        "testCase": {
+          "description": "Refusal: Weather question",
+          "vars": {
+            "question": "Tell me about the weather"
+          },
+          "assert": [
+            {
+              "type": "contains-any",
+              "value": [
+                "don't have",
+                "can't help",
+                "knowledge base",
+                "CloudFuze"
+              ]
+            },
+            {
+              "type": "not-contains",
+              "value": "sunny"
+            },
+            {
+              "type": "not-contains",
+              "value": "rain"
+            },
+            {
+              "type": "llm-rubric",
+              "value": "Should indicate it only handles CloudFuze-related questions",
+              "threshold": 0.8
+            }
+          ],
+          "options": {
+            "provider": {
+              "config": {
+                "timeout": 30000
+              }
+            }
+          },
+          "metadata": {}
+        },
+        "testIdx": 14,
+        "vars": {
+          "question": "Tell me about the weather"
+        },
+        "metadata": {},
+        "failureReason": 2
+      }
+    ],
+    "stats": {
+      "successes": 0,
+      "failures": 0,
+      "errors": 15,
+      "tokenUsage": {
+        "prompt": 0,
+        "completion": 0,
+        "cached": 0,
+        "total": 0,
+        "numRequests": 0,
+        "completionDetails": {
+          "reasoning": 0,
+          "acceptedPrediction": 0,
+          "rejectedPrediction": 0
+        },
+        "assertions": {
+          "total": 0,
+          "prompt": 0,
+          "completion": 0,
+          "cached": 0,
+          "numRequests": 0,
+          "completionDetails": {
+            "reasoning": 0,
+            "acceptedPrediction": 0,
+            "rejectedPrediction": 0
+          }
+        }
+      }
+    }
+  },
+  "config": {
+    "tags": {},
+    "description": "CloudFuze Chatbot - HTTP API Test Suite",
+    "prompts": [
+      "{{question}}"
+    ],
+    "providers": [
+      {
+        "id": "http:http://localhost:8002/chat",
+        "config": {
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "user_id": "promptfoo-test-user",
+            "question": "{{prompt}}"
+          },
+          "responseParser": "// Handle direct JSON response from /chat endpoint\nif (json && json.answer) return json.answer;\nreturn output;\n"
+        }
+      }
+    ],
+    "tests": [
+      {
+        "description": "Business: What is CloudFuze?",
+        "vars": {
+          "question": "What is CloudFuze?"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "CloudFuze"
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "migration",
+              "cloud",
+              "data"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "I don't have"
+          },
+          {
+            "type": "javascript",
+            "value": "output.length > 100"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "The response should:\n- Clearly explain what CloudFuze is\n- Mention cloud migration or data transfer\n- Be informative and professional\nScore 1-10 based on clarity and completeness.\n",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Business: What does CloudFuze do?",
+        "vars": {
+          "question": "What does CloudFuze do?"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "CloudFuze"
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "migrate",
+              "migration",
+              "transfer",
+              "cloud"
+            ]
+          },
+          {
+            "type": "javascript",
+            "value": "output.length > 80"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should describe CloudFuze services and capabilities accurately",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Business: Pricing inquiry",
+        "vars": {
+          "question": "How much does CloudFuze cost?"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "pricing",
+              "contact",
+              "sales",
+              "www.cloudfuze.com"
+            ]
+          },
+          {
+            "type": "regex",
+            "value": "https://www\\.cloudfuze\\.com"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should provide pricing page link or contact information",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Migration: Slack to Teams",
+        "vars": {
+          "question": "How do I migrate from Slack to Microsoft Teams?"
+        },
+        "assert": [
+          {
+            "type": "contains-all",
+            "value": [
+              "Slack",
+              "Teams"
+            ]
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "migration",
+              "migrate",
+              "transfer"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "I don't have access"
+          },
+          {
+            "type": "regex",
+            "value": "https://www\\.cloudfuze\\.com/slack-to-teams"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "The response should:\n- Explain the Slack to Teams migration process\n- Mention key features or steps\n- Include relevant CloudFuze links\n- Not hallucinate unsupported features\n",
+            "threshold": 0.75
+          }
+        ]
+      },
+      {
+        "description": "Migration: Gmail to Outlook",
+        "vars": {
+          "question": "Gmail to Outlook migration"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "Gmail",
+              "Outlook",
+              "email",
+              "migration"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "I'm sorry, I don't"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should discuss email migration between Gmail and Outlook",
+            "threshold": 0.6
+          }
+        ]
+      },
+      {
+        "description": "Migration: Teams to Teams",
+        "vars": {
+          "question": "Teams to teams migration"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "Teams"
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "migration",
+              "migrate",
+              "transfer"
+            ]
+          },
+          {
+            "type": "regex",
+            "value": "https://www\\.cloudfuze\\.com/teams-to-teams"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should explain Teams to Teams migration capabilities",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Migration: Box to SharePoint",
+        "vars": {
+          "question": "How do I migrate from Box to SharePoint?"
+        },
+        "assert": [
+          {
+            "type": "contains-all",
+            "value": [
+              "Box",
+              "SharePoint"
+            ]
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "migration",
+              "migrate"
+            ]
+          },
+          {
+            "type": "javascript",
+            "value": "output.length > 100"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should provide guidance on Box to SharePoint migration",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Migration: Google Drive to SharePoint",
+        "vars": {
+          "question": "Google Drive to SharePoint"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "Google Drive",
+              "SharePoint",
+              "migration"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "don't know"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should discuss Google Drive to SharePoint migration",
+            "threshold": 0.6
+          }
+        ]
+      },
+      {
+        "description": "Download: SOC 2 certificate",
+        "vars": {
+          "question": "Download SOC 2 certificate"
+        },
+        "assert": [
+          {
+            "type": "contains",
+            "value": "certificate"
+          },
+          {
+            "type": "contains-any",
+            "value": [
+              "SOC",
+              "download",
+              "Download"
+            ]
+          },
+          {
+            "type": "regex",
+            "value": "\\[.*[Dd]ownload.*\\]\\(https?://.*\\)"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "The response should:\n- Provide a download link for the SOC 2 certificate\n- Use proper markdown link format\n- Not just mention the certificate without a link\n",
+            "threshold": 0.7
+          }
+        ]
+      },
+      {
+        "description": "Inquiry: Available certificates",
+        "vars": {
+          "question": "What certificates do you have?"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "certificate",
+              "SOC",
+              "compliance",
+              "security"
+            ]
+          },
+          {
+            "type": "javascript",
+            "value": "output.length > 50"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should list available security/compliance certificates",
+            "threshold": 0.6
+          }
+        ]
+      },
+      {
+        "description": "Inquiry: Policy documents",
+        "vars": {
+          "question": "What policy documents do you have?"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "policy",
+              "document",
+              "security",
+              "compliance"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "I don't have access"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should describe available policy documents",
+            "threshold": 0.6
+          }
+        ]
+      },
+      {
+        "description": "Inquiry: Security policies",
+        "vars": {
+          "question": "Show me security policies"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "security",
+              "policy",
+              "policies"
+            ]
+          },
+          {
+            "type": "javascript",
+            "value": "output.length > 50"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should provide information about security policies",
+            "threshold": 0.6
+          }
+        ]
+      },
+      {
+        "description": "Refusal: Unrelated geography question",
+        "vars": {
+          "question": "What is the capital of France?"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "don't have",
+              "can't help",
+              "knowledge base",
+              "CloudFuze"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "Paris"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "The response should:\n- Politely decline to answer\n- Not provide general knowledge answers\n- Redirect to CloudFuze topics\n- Not mention Paris or France's capital\n",
+            "threshold": 0.8
+          }
+        ]
+      },
+      {
+        "description": "Refusal: Cooking question",
+        "vars": {
+          "question": "How to cook pasta?"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "don't have",
+              "can't help",
+              "CloudFuze",
+              "knowledge base"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "boil"
+          },
+          {
+            "type": "not-contains",
+            "value": "water"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should refuse gracefully and redirect to CloudFuze services",
+            "threshold": 0.8
+          }
+        ]
+      },
+      {
+        "description": "Refusal: Weather question",
+        "vars": {
+          "question": "Tell me about the weather"
+        },
+        "assert": [
+          {
+            "type": "contains-any",
+            "value": [
+              "don't have",
+              "can't help",
+              "knowledge base",
+              "CloudFuze"
+            ]
+          },
+          {
+            "type": "not-contains",
+            "value": "sunny"
+          },
+          {
+            "type": "not-contains",
+            "value": "rain"
+          },
+          {
+            "type": "llm-rubric",
+            "value": "Should indicate it only handles CloudFuze-related questions",
+            "threshold": 0.8
+          }
+        ]
+      }
+    ],
+    "scenarios": [],
+    "env": {},
+    "sharing": false,
+    "defaultTest": {
+      "options": {
+        "provider": {
+          "config": {
+            "timeout": 30000
+          }
+        }
+      },
+      "vars": {},
+      "assert": [],
+      "metadata": {}
+    },
+    "outputPath": [
+      "./outputs/results.json"
+    ],
+    "extensions": [],
+    "metadata": {},
+    "evaluateOptions": {
+      "maxConcurrency": 3,
+      "delay": 500,
+      "repeat": 1,
+      "showProgressBar": true,
+      "generateSuggestions": false
+    }
+  },
+  "shareableUrl": null,
+  "metadata": {
+    "promptfooVersion": "0.119.1",
+    "nodeVersion": "v22.17.0",
+    "platform": "win32",
+    "arch": "x64",
+    "exportedAt": "2025-11-04T07:52:55.823Z",
+    "evaluationCreatedAt": "2025-11-04T07:29:04.533Z"
+  }
+}
