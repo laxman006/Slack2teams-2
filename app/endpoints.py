@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 import uuid
@@ -15,6 +15,7 @@ from app.vectorstore import retriever, vectorstore
 from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
 from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
+from app.auth import get_current_user, verify_user_access, require_admin
 from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
 from langchain_core.prompts import ChatPromptTemplate
 import time
@@ -680,15 +681,30 @@ class FeedbackRequest(BaseModel):
     comment: str = None
 
 @router.post("/chat")
-async def chat(request: Request):
-    """Chat endpoint: returns full answer from vectorstore."""
+async def chat(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    """Chat endpoint: returns full answer from vectorstore. Requires authentication."""
     data = await request.json()
     question = data.get("question", "")
     user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
     user_name = data.get("user_name")
     user_email = data.get("user_email")
-
+    
+    # Validate that user_id in request matches authenticated user
+    if user_id and user_id != current_user["id"]:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access another user's chat session"
+        )
+    
+    # Use authenticated user's ID if not provided in request
+    if not user_id:
+        user_id = current_user["id"]
+    
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
 
@@ -759,13 +775,28 @@ async def chat(request: Request):
 # ---------------- Streaming Chat Endpoint ----------------
 
 @router.post("/chat/stream")
-async def chat_stream(request: Request):
+async def chat_stream(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
     data = await request.json()
     question = data.get("question", "")
     user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
     user_name = data.get("user_name")
     user_email = data.get("user_email")
+    
+    # Validate that user_id in request matches authenticated user
+    if user_id and user_id != current_user["id"]:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access another user's chat session"
+        )
+    
+    # Use authenticated user's ID if not provided in request
+    if not user_id:
+        user_id = current_user["id"]
 
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
@@ -1447,8 +1478,11 @@ async def chat_stream(request: Request):
 # ---------------- User Chat History Endpoints ----------------
 
 @router.get("/chat/history/{user_id}")
-async def get_chat_history(user_id: str):
-    """Get chat history for a specific user."""
+async def get_chat_history(
+    user_id: str,
+    current_user: dict = Depends(verify_user_access)
+):
+    """Get chat history for authenticated user only. Protected against IDOR."""
     try:
         history = await get_user_chat_history(user_id)
         return {"user_id": user_id, "history": history}
@@ -1456,8 +1490,11 @@ async def get_chat_history(user_id: str):
         return {"error": str(e)}
 
 @router.delete("/chat/history/{user_id}")
-async def clear_chat_history(user_id: str):
-    """Clear chat history for a specific user."""
+async def clear_chat_history(
+    user_id: str,
+    current_user: dict = Depends(verify_user_access)
+):
+    """Clear chat history for authenticated user only. Protected against IDOR."""
     try:
         await clear_user_chat_history(user_id)
         return {"message": f"Chat history cleared for user {user_id}"}
@@ -1721,8 +1758,8 @@ def save_corrected_response(trace_id: str, corrected_response: str, user_comment
         print(f"Error saving corrected response: {e}")
 
 @router.get("/dataset/corrected-responses")
-async def get_corrected_responses():
-    """Get all corrected responses from the dataset."""
+async def get_corrected_responses(current_user: dict = Depends(require_admin)):
+    """Get all corrected responses from the dataset. Requires admin access."""
     try:
         dataset_file = "./data/corrected_responses/corrected_responses.json"
         
@@ -1741,8 +1778,8 @@ async def get_corrected_responses():
         return {"error": f"Failed to load corrected responses: {str(e)}"}
 
 @router.delete("/dataset/corrected-responses")
-async def clear_corrected_responses():
-    """Clear all corrected responses from the dataset."""
+async def clear_corrected_responses(current_user: dict = Depends(require_admin)):
+    """Clear all corrected responses from the dataset. Requires admin access."""
     try:
         dataset_file = "./data/corrected_responses/corrected_responses.json"
         
@@ -1758,8 +1795,8 @@ async def clear_corrected_responses():
 # ---------------- Manual Fine-Tuning System ----------------
 
 @router.post("/fine-tuning/trigger")
-async def trigger_manual_fine_tuning():
-    """Manually trigger fine-tuning when needed."""
+async def trigger_manual_fine_tuning(current_user: dict = Depends(require_admin)):
+    """Manually trigger fine-tuning when needed. Requires admin access."""
     try:
         # Check if we have enough data for fine-tuning
         dataset_status = await check_dataset_quality()
@@ -1785,8 +1822,8 @@ async def trigger_manual_fine_tuning():
         return {"error": f"Failed to trigger fine-tuning: {str(e)}"}
 
 @router.get("/fine-tuning/status")
-async def get_fine_tuning_status():
-    """Get the status of fine-tuning process."""
+async def get_fine_tuning_status(current_user: dict = Depends(require_admin)):
+    """Get the status of fine-tuning process. Requires admin access."""
     try:
         # Check dataset quality
         dataset_status = await check_dataset_quality()
