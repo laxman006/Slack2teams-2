@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
+from typing import Optional
 import uuid
 import httpx
 import os
@@ -426,6 +427,86 @@ router = APIRouter()
 
 qa_chain = setup_qa_chain(retriever)
 
+
+# ============================================================================
+# AUTHENTICATION MIDDLEWARE - Verify Microsoft Access Tokens
+# ============================================================================
+
+async def require_auth(authorization: Optional[str] = Header(None)) -> dict:
+    """
+    Verify user is authenticated with a valid Microsoft access token.
+    
+    This function:
+    1. Checks if Authorization header is present
+    2. Verifies the token with Microsoft Graph API
+    3. Validates the user's email domain (@cloudfuze.com)
+    4. Returns verified user information
+    
+    Raises:
+        HTTPException: 401 if token is missing/invalid, 403 if domain not allowed
+    
+    Returns:
+        dict: Verified user info (user_id, email, name)
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Missing or invalid authorization header. Please log in."
+        )
+    
+    access_token = authorization.replace("Bearer ", "")
+    
+    try:
+        # Verify token with Microsoft Graph API
+        async with httpx.AsyncClient() as client:
+            graph_response = await client.get(
+                "https://graph.microsoft.com/v1.0/me",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10.0
+            )
+            
+            if graph_response.status_code != 200:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Unauthorized: Invalid or expired access token. Please log in again."
+                )
+            
+            user_info = graph_response.json()
+            user_email = user_info.get("mail") or user_info.get("userPrincipalName", "")
+            
+            # Validate CloudFuze email domain
+            if not user_email.endswith("@cloudfuze.com"):
+                print(f"[AUTH] Access denied for non-CloudFuze email: {user_email}")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Forbidden: Only CloudFuze company accounts are allowed to access this application."
+                )
+            
+            verified_user = {
+                "user_id": user_info.get("id"),
+                "email": user_email,
+                "name": user_info.get("displayName", "User")
+            }
+            
+            print(f"[AUTH] User authenticated: {user_email}")
+            return verified_user
+            
+    except httpx.HTTPError as e:
+        print(f"[AUTH] Token verification failed: {str(e)}")
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Unable to verify access token. Please log in again."
+        )
+    except HTTPException:
+        # Re-raise HTTPExceptions (401/403)
+        raise
+    except Exception as e:
+        print(f"[AUTH] Unexpected error during authentication: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error during authentication"
+        )
+
 # File path for corrected responses
 CORRECTED_RESPONSES_FILE = "./data/corrected_responses/corrected_responses.json"
 
@@ -680,14 +761,16 @@ class FeedbackRequest(BaseModel):
     comment: str = None
 
 @router.post("/chat")
-async def chat(request: Request):
-    """Chat endpoint: returns full answer from vectorstore."""
+async def chat(request: Request, auth_user: dict = Depends(require_auth)):
+    """Chat endpoint: returns full answer from vectorstore. PROTECTED - requires valid authentication."""
     data = await request.json()
     question = data.get("question", "")
-    user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
-    user_name = data.get("user_name")
-    user_email = data.get("user_email")
+    
+    # Use VERIFIED user info from auth token, NOT from request body
+    user_id = auth_user["user_id"]
+    user_name = auth_user["name"]
+    user_email = auth_user["email"]
 
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
@@ -723,8 +806,102 @@ async def chat(request: Request):
         # Handle informational queries with document retrieval
         conversation_context = await get_conversation_context(conversation_id)
         enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
-        result = qa_chain.invoke({"query": enhanced_query})
-        answer = result["result"]
+        
+        # ============ INTENT CLASSIFICATION ============
+        # Classify user intent to enable branch-specific retrieval
+        intent_result = classify_intent(question)
+        intent = intent_result["intent"]
+        intent_confidence = intent_result["confidence"]
+        intent_method = intent_result.get("method", "unknown")
+        
+        print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
+        
+        # Check if vectorstore is available
+        if vectorstore is None:
+            print("Warning: Vectorstore not initialized. Using default qa_chain.")
+            result = qa_chain.invoke({"query": enhanced_query})
+            answer = result["result"]
+        else:
+            try:
+                # ============ QUERY EXPANSION ============
+                # Expand query with intent-specific terms for better retrieval
+                expanded_query = expand_query_with_intent(enhanced_query, intent)
+                
+                # ============ BRANCH-SPECIFIC RETRIEVAL ============
+                # Use intent-based filtering to retrieve relevant documents
+                RETRIEVAL_K = 50  # Number of documents to retrieve from vectorstore
+                doc_results = retrieve_with_branch_filter(
+                    query=expanded_query,
+                    intent=intent,
+                    k=RETRIEVAL_K
+                )
+                
+                print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
+                
+                # ============ CONFIDENCE-BASED FALLBACK ============
+                # If confidence is low, try alternative retrieval strategies
+                doc_results, fallback_strategy = confidence_based_fallback(
+                    doc_results=doc_results,
+                    intent=intent,
+                    intent_confidence=intent_confidence,
+                    query=enhanced_query
+                )
+                
+                if fallback_strategy != "no_fallback":
+                    print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
+                
+                # ============ HYBRID RANKING ============
+                # Combine semantic similarity with keyword matching
+                doc_results = hybrid_ranking(
+                    doc_results=doc_results,
+                    query=question,  # Use original query for keyword matching
+                    intent=intent,
+                    alpha=0.7  # 70% semantic, 30% keyword
+                )
+                
+                print(f"[HYBRID RANKING] Reranked {len(doc_results)} documents with semantic + keyword scores")
+                
+                # ============ DOCUMENT DIVERSITY ============
+                # Calculate diversity metrics for retrieved documents
+                diversity_metrics = calculate_document_diversity(doc_results)
+                print(f"[DIVERSITY] Overall: {diversity_metrics['overall']:.2f}, Sources: {diversity_metrics['unique_sources']}, Tags: {diversity_metrics['unique_tags']}")
+                
+                final_docs = [doc for doc, score in doc_results]  # Extract just the documents
+                
+                # Format the documents for the context
+                from app.llm import format_docs
+                formatted_docs = format_docs(final_docs)
+                context = "\n\n".join(formatted_docs)
+                
+                # Create prompt and get answer
+                from langchain_core.prompts import ChatPromptTemplate
+                from langchain_openai import ChatOpenAI
+                from config import SYSTEM_PROMPT
+                
+                prompt_template = ChatPromptTemplate.from_messages([
+                    ("system", SYSTEM_PROMPT),
+                    ("human", "Context: {context}\n\nQuestion: {question}")
+                ])
+                
+                llm = ChatOpenAI(
+                    model_name="gpt-4o-mini",
+                    temperature=0.3,
+                    max_tokens=1500
+                )
+                
+                chain = prompt_template | llm
+                result = chain.invoke({
+                    "context": context,
+                    "question": enhanced_query
+                })
+                
+                answer = result.content
+                
+            except Exception as e:
+                print(f"[ERROR] Intent-based retrieval failed: {e}")
+                # Fallback to original qa_chain if something goes wrong
+                result = qa_chain.invoke({"query": enhanced_query})
+                answer = result["result"]
 
     # Add both user question and bot response to conversation AFTER processing
     await add_to_conversation(conversation_id, "user", question)
@@ -744,7 +921,7 @@ async def chat(request: Request):
             "user_name": user_name,
             "user_email": user_email,
             "request": {
-                "endpoint": "/chat",
+            "endpoint": "/chat",
                 "timestamp": datetime.now().isoformat()
             },
             "query": {
@@ -759,13 +936,16 @@ async def chat(request: Request):
 # ---------------- Streaming Chat Endpoint ----------------
 
 @router.post("/chat/stream")
-async def chat_stream(request: Request):
+async def chat_stream(request: Request, auth_user: dict = Depends(require_auth)):
+    """Streaming chat endpoint. PROTECTED - requires valid authentication."""
     data = await request.json()
     question = data.get("question", "")
-    user_id = data.get("user_id")
     session_id = data.get("session_id", str(uuid.uuid4()))
-    user_name = data.get("user_name")
-    user_email = data.get("user_email")
+    
+    # Use VERIFIED user info from auth token, NOT from request body
+    user_id = auth_user["user_id"]
+    user_name = auth_user["name"]
+    user_email = auth_user["email"]
 
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
@@ -806,11 +986,11 @@ async def chat_stream(request: Request):
                             "user_name": user_name,
                             "user_email": user_email,
                             "request": {
-                                "endpoint": "/chat/stream",
+                            "endpoint": "/chat/stream",
                                 "timestamp": datetime.now().isoformat()
                             },
                             "system": {
-                                "used_corrected_response": True
+                            "used_corrected_response": True
                             }
                         }
                     )
@@ -879,7 +1059,7 @@ async def chat_stream(request: Request):
                             "user_name": user_name,
                             "user_email": user_email,
                             "request": {
-                                "endpoint": "/chat/stream",
+                            "endpoint": "/chat/stream",
                                 "timestamp": datetime.now().isoformat()
                             },
                             "query": {
@@ -887,7 +1067,7 @@ async def chat_stream(request: Request):
                             },
                             "generation": {
                                 "model": "gpt-4o-mini",
-                                "streaming": True
+                            "streaming": True
                             }
                         }
                     )
@@ -1352,6 +1532,12 @@ async def chat_stream(request: Request):
                         "size_chars": len(conversation_context) if conversation_context else 0
                     }
                 },
+                
+                # ===== CONTEXT STRING FOR LLM-AS-A-JUDGE EVALUATION =====
+                # This field is used by Langfuse evaluators to assess response quality
+                "context_string": "\n\n=== DOCUMENT ===\n\n".join([
+                    doc.page_content for doc in final_docs[:10]  # Top 10 most relevant docs
+                ]),
                 
                 "generation": {
                     "model": "gpt-4o-mini",

@@ -664,11 +664,15 @@
     const sendBtn = document.getElementById("send-btn");
 
     
-    // Generate a session ID for conversation memory
+    // Generate a session ID for conversation memory and Langfuse tracking
     let sessionId = localStorage.getItem('chatbot_session_id');
     if (!sessionId) {
-      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      // Create readable session format: cf.conversation.YYYYMMDD.randomId
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomId = Math.random().toString(36).substr(2, 9);
+      sessionId = `cf.conversation.${date}.${randomId}`;
       localStorage.setItem('chatbot_session_id', sessionId);
+      console.log('[SESSION] Created new session:', sessionId);
     }
 
     function addMessage(content, sender) {
@@ -784,10 +788,20 @@
         
         const apiBase = getApiBase();
         
+        // Get current user for auth token
+        const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!currentUser || !currentUser.access_token) {
+          console.error('[FEEDBACK] User not authenticated');
+          return;
+        }
+        
         // Send feedback to backend
         const response = await fetch(`${apiBase}/feedback`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser.access_token}`
+          },
           body: JSON.stringify({
             trace_id: finalTraceId,
             rating: rating,
@@ -927,29 +941,41 @@
         console.log("[CHAT] User ID:", currentUser ? currentUser.id : "Not logged in");
         console.log("[CHAT] Current messages in UI:", messagesDiv.children.length);
         
+        // Check if user is authenticated
+        if (!currentUser || !currentUser.access_token) {
+          console.error("[CHAT] User not authenticated, redirecting to login");
+          localStorage.removeItem('user');
+          window.location.href = "login.html";
+          return;
+        }
+        
         const requestBody = { question };
         
-        // Use user ID if available, otherwise fall back to session ID
-        if (currentUser && currentUser.id) {
-          requestBody.user_id = currentUser.id;
-          requestBody.user_name = currentUser.name;
-          requestBody.user_email = currentUser.email;
-          console.log("[CHAT] Using user_id:", currentUser.id, "name:", currentUser.name);
-        } else {
-          requestBody.session_id = sessionId;
-          console.warn("[CHAT] No user_id available, using session_id:", sessionId);
-        }
+        // ALWAYS send session_id for session continuity in Langfuse
+        requestBody.session_id = sessionId;
         
         console.log("[CHAT] Request body:", requestBody);
         
         // Use streaming endpoint for real-time responses
+        // IMPORTANT: Send Authorization header with access token
         const response = await fetch(`${getApiBase()}/chat/stream`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser.access_token}`  // Add auth token
+          },
           body: JSON.stringify(requestBody),
         });
 
         console.log("Response status:", response.status);
+        
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          console.error("[CHAT] Authentication failed, redirecting to login");
+          localStorage.removeItem('user');
+          window.location.href = "login.html";
+          return;
+        }
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -1067,22 +1093,27 @@
     // Add a function to start a new conversation (clear memory)
     async function startNewConversation() {
       console.log('[NEW_CHAT] Starting new conversation - clearing messages');
-      if (currentUser && currentUser.id) {
+      if (currentUser && currentUser.id && currentUser.access_token) {
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
         }
       }
       
-      // Clear local session
-      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      // Create new session for new conversation
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomId = Math.random().toString(36).substr(2, 9);
+      sessionId = `cf.conversation.${date}.${randomId}`;
       localStorage.setItem('chatbot_session_id', sessionId);
       messagesDiv.innerHTML = '';
-      console.log('[NEW_CHAT] Messages cleared. Total messages now: 0');
+      console.log('[NEW_CHAT] Messages cleared. New session:', sessionId, 'Total messages now: 0');
     }
 
     // Variables for undo functionality
@@ -1228,20 +1259,26 @@
 
     // Permanently delete chat
     async function permanentlyDeleteChat() {
-      if (currentUser && currentUser.id) {
+      if (currentUser && currentUser.id && currentUser.access_token) {
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
         }
       }
       
-      // Clear local session
-      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      // Create new session for new conversation
+      const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomId = Math.random().toString(36).substr(2, 9);
+      sessionId = `cf.conversation.${date}.${randomId}`;
       localStorage.setItem('chatbot_session_id', sessionId);
+      console.log('[UNDO_CONFIRM] New session created:', sessionId);
       
       // Clear backup
       chatBackup = null;
@@ -1530,12 +1567,28 @@
           return;
         }
         
+        // Get current user for auth token
+        const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!currentUser || !currentUser.access_token) {
+          console.error('[HISTORY] User not authenticated');
+          return;
+        }
+        
         const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentUser.access_token}`
           }
         });
+        
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          console.error('[HISTORY] Authentication failed, redirecting to login');
+          localStorage.removeItem('user');
+          window.location.href = "login.html";
+          return;
+        }
         
         if (response.ok) {
           const data = await response.json();
