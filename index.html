@@ -787,7 +787,10 @@
         // Send feedback to backend
         const response = await fetch(`${apiBase}/feedback`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser.access_token}`
+          },
           body: JSON.stringify({
             trace_id: finalTraceId,
             rating: rating,
@@ -945,7 +948,10 @@
         // Use streaming endpoint for real-time responses
         const response = await fetch(`${getApiBase()}/chat/stream`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${currentUser.access_token}`
+          },
           body: JSON.stringify(requestBody),
         });
 
@@ -1071,7 +1077,10 @@
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              'Authorization': `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
@@ -1232,7 +1241,10 @@
         // Clear user's chat history on server
         try {
           await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+              'Authorization': `Bearer ${currentUser.access_token}`
+            }
           });
         } catch (error) {
           console.error('Failed to clear chat history:', error);
@@ -1533,7 +1545,8 @@
         const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentUser.access_token}`
           }
         });
         

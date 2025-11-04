@@ -1,0 +1,46 @@
+# Promptfoo Configuration - Minimal 3 Test Version
+# Tests the complete FastAPI endpoint with RAG pipeline
+
+description: "CloudFuze Chatbot - Minimal HTTP API Test Suite (3 tests)"
+
+# No prompts needed for HTTP testing - questions come from test-cases-minimal.yaml
+prompts:
+  - "{{question}}"
+
+# HTTP provider for FastAPI endpoint
+providers:
+  - id: http://localhost:8002/chat
+    config:
+      method: POST
+      headers:
+        Content-Type: application/json
+      body:
+        user_id: "promptfoo-test-user"
+        question: "{{prompt}}"
+      responseParser: |
+        (json) => {
+          if (json && json.answer) return json.answer;
+          return json;
+        }
+
+# Import minimal test cases
+tests: file://test-cases-minimal.yaml
+
+# Default test configuration
+defaultTest:
+  options:
+    provider:
+      config:
+        timeout: 60000  # Increased to 60 second timeout for RAG queries
+
+# Output configuration
+outputPath: ./outputs/results-minimal.json
+
+# Evaluation settings
+evaluateOptions:
+  maxConcurrency: 1  # Run 1 test at a time
+  delay: 1000        # 1 second delay between calls
+  repeat: 1          # Run each test once
+  showProgressBar: true
+  generateSuggestions: false  # Disable to avoid needing OpenAI key for suggestions
+
