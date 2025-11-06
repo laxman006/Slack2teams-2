@@ -88,7 +88,7 @@ def setup_qa_chain(retriever):
     llm = ChatOpenAI(
         model_name="gpt-4o-mini",  # Updated model name
         streaming=True, 
-        temperature=0.3,  # Balanced temperature for good responses
+        temperature=0.1,  # Low temperature for consistent, deterministic responses
         max_tokens=1500   # Allow longer responses for comprehensive answers
     )
     
@@ -119,7 +119,14 @@ def setup_qa_chain(retriever):
             # Secondary semantic search with query rephrasing for better coverage
             # This helps catch semantically similar but differently worded content
             try:
-                # Use the LLM to create a semantic variation of the query
+                # Use the LLM with ZERO temperature to create deterministic rephrasings
+                # This ensures consistent retrieval for the same query
+                rephrase_llm = ChatOpenAI(
+                    model_name="gpt-4o-mini",
+                    temperature=0.0,  # Zero temperature for deterministic rephrasing
+                    max_tokens=200
+                )
+                
                 rephrase_prompt = f"""
                 Rephrase this question in 2-3 different ways to help find relevant information:
                 Original: {query}
@@ -128,7 +135,7 @@ def setup_qa_chain(retriever):
                 Each rephrasing should be on a new line and be concise.
                 """
                 
-                rephrase_result = llm.invoke(rephrase_prompt)
+                rephrase_result = rephrase_llm.invoke(rephrase_prompt)
                 rephrased_queries = [line.strip() for line in rephrase_result.content.split('\n') if line.strip()]
                 
                 # Search with each rephrased query

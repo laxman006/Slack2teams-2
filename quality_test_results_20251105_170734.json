@@ -1,0 +1,298 @@
+[
+  {
+    "question": "Is CloudFuze SOC 2 Type II certified?",
+    "category": "Security - Known Fact",
+    "answer": "Yes, CloudFuze is SOC 2 Type II certified. The certification is valid for the period from March 15, 2024, to March 31, 2025, as indicated in the SOC 2 Type II report. This report includes a mapping of the controls tested to ISO/IEC 27001:2022 and the General Data Protection Regulation (GDPR) for information security. \n\nFor more details, you can view the [CloudFuze SOC 2 Type 2 Report](https://cloudfuzecom.sharepoint.com/sites/DOC360/Shared%20Documents/Certificates/2025/CloudFuze_SOC%202%20Type%202%20Report.pdf).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": false,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Does CloudFuze encrypt data during transit?",
+    "category": "Security - Known Fact",
+    "answer": "Yes, CloudFuze encrypts data during transit. The platform uses RSA-2048 encryption to ensure complete protection of data as it is transferred between cloud storage accounts. This encryption is part of CloudFuze's commitment to maintaining the security and integrity of users' data throughout the migration process. Additionally, sensitive authorization information, such as tokens and passwords, is also stored in an encrypted form on internal servers with zero access to outside parties. \n\nFor more details on CloudFuze's security measures, you can refer to the [CloudFuze Security White Paper](https://www.cloudfuze.com/cloudfuze-security/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": false,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Can CloudFuze migrate Slack to Teams?",
+    "category": "Migration - Known Fact",
+    "answer": "Yes, CloudFuze can migrate data from Slack to Microsoft Teams. The platform offers a comprehensive migration solution that includes the transfer of various Slack features such as:\n\n- **Direct Messages (DM) Migration**\n- **Public and Private Channels Migration**\n- **Users Migration**\n- **Conversations Migration**\n- **Pinned Messages Migration**\n- **Emojis Migration**\n- **Timestamps Migration**\n- **Files Migration**\n- **Threads Migration**\n- **User Mentions Migration**\n- **Attachments Migration**\n- **Delta sync for channels**\n\nCloudFuze ensures data security and integrity throughout the migration process by employing robust encryption protocols. This allows organizations to migrate their valuable data securely and efficiently, minimizing disruptions to everyday operations.\n\nFor more details on how to initiate the migration process, you can refer to the [CloudFuze blog post](https://www.cloudfuze.com/new-ways-from-cloudfuze-to-move-slack-to-microsoft-teams/). If you're interested in starting your migration, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/) for further assistance.",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "How does delta migration work in CloudFuze?",
+    "category": "Migration - Detailed Explanation",
+    "answer": "Delta migration in CloudFuze is designed to ensure that data remains up-to-date during the migration process, allowing users to continue working on their source cloud while changes are being migrated. Here’s how it works:\n\n### Overview of Delta Migration\n- **Incremental Changes**: Delta migration, also known as incremental migration, occurs after the initial one-time migration is completed. It focuses on migrating only the updates and changes made to the source cloud during the period following the one-time migration.\n- **Types of Changes Migrated**: This includes new files added, modifications made, or deletions of existing files in the source cloud.\n\n### Process of Delta Migration\n1. **Initial Migration**: The process begins with a one-time migration where all data is transferred from the source cloud to the destination cloud.\n2. **Scheduling Delta Migration**: After the one-time migration, CloudFuze schedules the delta migration, typically on weekends, to minimize disruption to users.\n3. **Migration of Updates**: During delta migration, only the changes that occurred in the source cloud since the last migration are transferred. This makes delta migration faster and more efficient compared to the initial migration, as it does not involve moving the entire dataset again.\n\n### Benefits of Delta Migration\n- **Zero Downtime**: Users can continue to work on their files in the source cloud without experiencing downtime during the migration process.\n- **Time Efficiency**: Since only updates are migrated, delta migration usually takes considerably less time than the one-time migration.\n- **Cost-Effective**: Delta migration is included as a core feature for all CloudFuze customers, making it a cost-effective solution for businesses.\n\n### Conclusion\nCloudFuze’s delta migration feature is essential for ensuring that all incremental changes are captured and migrated, allowing businesses to maintain data integrity and continuity during the transition to a new cloud environment. For more detailed information, you can read the full blog post on [Delta Migration](https://www.cloudfuze.com/delta-migration-how-cloudfuze-ensures-zero-downtime-during-migration/). \n\nIf you have specific migration needs or questions, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/) for assistance!",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "What is CloudFuze's pricing model?",
+    "category": "Business - Pricing",
+    "answer": "CloudFuze offers a **requirements-based pricing model** that allows businesses to pay only for the migration tool when necessary. This model provides several advantages:\n\n1. **Cost Efficiency**: Organizations can accurately estimate their migration needs and budget, avoiding unnecessary expenses associated with annual licensing.\n\n2. **No Long-Term Commitment**: Businesses are not locked into long-term contracts, allowing for flexibility and eliminating concerns about being tied to an annual license that may not align with their migration timelines.\n\n3. **Maximized ROI**: By paying only for the services they use, businesses can maximize their return on investment (ROI) from their migration budget.\n\n4. **Transparent Pricing**: CloudFuze’s pricing plans are clear and free from hidden charges, ensuring that businesses are aware of all costs associated with the migration process.\n\nThis flexible pricing model is designed to cater to businesses of all sizes, making it a compelling option for those looking to optimize their spending during data migration projects. For more details, you can check out the blog post on [Migrate Box to Microsoft 365 Without Annual Licensing](https://www.cloudfuze.com/migrate-box-to-microsoft-365-without-annual-licensing/). \n\nIf you have further questions or need a customized quote, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 2,
+      "facts_total": 2,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Can CloudFuze migrate Google Docs to Word format?",
+    "category": "Migration - Known Fact",
+    "answer": "Yes, CloudFuze can migrate Google Docs to Word format. During the migration process, CloudFuze converts Google files, including Google Docs, Sheets, and Slides, into their respective Microsoft formats. This ensures that your documents are accessible in a format compatible with Microsoft Office applications. \n\nFor more details on migrating files between Google Drive and Microsoft formats, you can refer to the [CloudFuze migration tool](https://www.cloudfuze.com/google-drive-migration/). If you have any further questions or need assistance, feel free to reach out to our migration experts!",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": false,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 5,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "What happens to file version history during Box to OneDrive migration?",
+    "category": "Migration - Detailed Explanation",
+    "answer": "During the migration from Box to OneDrive, preserving file version history is crucial for maintaining data integrity and compliance. CloudFuze's migration tool is designed to handle this effectively by allowing businesses to migrate either all versions or selective versions of files.\n\nHere are the key points regarding file version history during the migration:\n\n- **Version History Preservation**: CloudFuze can migrate all versions of a file from Box to OneDrive, ensuring that the complete version history is retained. This is essential for tracking changes, restoring previous versions, and meeting compliance requirements.\n\n- **Selective Version Migration**: Users have the option to choose how many versions to migrate—whether to transfer all versions or a specific number (e.g., the latest 5, 10, or 20 versions). This flexibility helps manage storage space and migration costs effectively.\n\n- **Impact on Storage**: It's important to note that migrating file versions can double the storage space required in OneDrive. For example, if a file has multiple versions, the total size in OneDrive will increase accordingly, which may lead to additional costs.\n\n- **Challenges with Native Tools**: There are no native Microsoft options for maintaining version history when migrating from Box to OneDrive. Manual methods or basic sync tools often result in loss of metadata, including version history.\n\nBy using CloudFuze, organizations can ensure that their file version histories are preserved during the migration process, thus avoiding potential operational disruptions and compliance issues. For more detailed information, you can refer to the [Box to OneDrive Migration Guide for IT Admins](https://www.cloudfuze.com/how-to-transfer-files-from-box-to-onedrive/). \n\nIf you have further questions or need assistance, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Does CloudFuze support migration to AWS S3?",
+    "category": "Migration - Platform Support",
+    "answer": "Yes, CloudFuze supports migration to Amazon S3. The platform allows users to transfer files from various cloud storage services, including Google Drive, Dropbox, and others, directly to Amazon S3. CloudFuze's migration tool can handle large volumes of data efficiently, making it suitable for businesses looking to migrate their data securely and quickly to Amazon S3. \n\nFor more detailed steps on how to migrate from Google Drive to Amazon S3, you can refer to the article on [How to Migrate from Google Drive to Amazon S3 (Business Migration)](https://www.cloudfuze.com/how-to-migrate-from-google-drive-to-amazon-s3-business-migration/). \n\nIf you have any specific questions or need assistance, feel free to reach out to CloudFuze for further guidance!",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": false,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": false,
+      "handles_unknown_appropriately": true,
+      "facts_found": 1,
+      "facts_total": 2,
+      "has_appropriate_links": true,
+      "quality_score": 76.92307692307693
+    }
+  },
+  {
+    "question": "How many terabytes of data has CloudFuze migrated?",
+    "category": "Statistics",
+    "answer": "The context does not specify the exact number of terabytes (TB) that CloudFuze has migrated. However, it does mention that CloudFuze can migrate **terabytes (TBs) and petabytes (PBs)** of data, indicating that the platform is capable of handling large data volumes without any downtime. \n\nIf you need more specific information about CloudFuze's migration capabilities or success stories, feel free to ask! You can also [contact CloudFuze](https://www.cloudfuze.com/contact/) for further details.",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": false,
+      "handles_unknown_appropriately": true,
+      "has_appropriate_links": true,
+      "quality_score": 76.92307692307693
+    }
+  },
+  {
+    "question": "What is CloudFuze's customer support phone number?",
+    "category": "Support",
+    "answer": "CloudFuze's customer support phone number is **+1 252-558-9019**. You can also reach them via email at **support@cloudfuze.com** or use the chat option on their website for immediate assistance. For more details on customer support options, you can check out the article on [Customer Support Options Available with CloudFuze Migrations](https://www.cloudfuze.com/cloudfuze-migrations/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": false,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": false,
+      "handles_unknown_appropriately": false,
+      "has_appropriate_links": true,
+      "quality_score": 61.53846153846154
+    }
+  },
+  {
+    "question": "Can CloudFuze migrate files larger than 100GB?",
+    "category": "Migration - File Size Limits",
+    "answer": "Yes, CloudFuze can migrate files larger than 100GB. The platform is designed to handle large data migrations, ensuring smooth transfers regardless of individual file size or the total number of files. This capability allows for the migration of terabytes (TBs) and even petabytes (PBs) of data without any downtime, making it suitable for enterprise-level migrations. \n\nFor more details on how CloudFuze manages large data migrations, you can refer to the [Business Cloud Storage Migration with CloudFuze](https://www.cloudfuze.com/business-cloud-storage-migration-with-cloudfuze/) blog post. \n\nIf you have further questions or need assistance, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 3,
+      "facts_total": 3,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Does CloudFuze store my data after migration?",
+    "category": "Security - Data Retention",
+    "answer": "No, CloudFuze does not store user data of migration customers in any form after the migration is completed. This practice ensures complete transparency in its security measures and helps avoid significant security risks associated with storing user data. CloudFuze prioritizes the security and integrity of your data throughout the migration process, utilizing robust encryption and adhering to strict security policies. \n\nFor more information on CloudFuze's security practices, you can [learn more about our technologies and policies](https://www.cloudfuze.com/prioritizing-security-of-files-during-cloud-office-migration/). If you have further questions or need assistance, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": false,
+      "handles_unknown_appropriately": true,
+      "facts_found": 2,
+      "facts_total": 4,
+      "has_appropriate_links": true,
+      "quality_score": 76.92307692307693
+    }
+  },
+  {
+    "question": "What platforms does CloudFuze support for migration?",
+    "category": "Migration - Platform List",
+    "answer": "CloudFuze supports data migration and file transfer between over **40 cloud services**. Some of the notable platforms include:\n\n- **Google Drive**\n- **Dropbox**\n- **OneDrive**\n- **SharePoint Online**\n- **Box**\n- **Amazon S3**\n- **Egnyte**\n- **Citrix**\n\nThis extensive compatibility allows businesses to seamlessly migrate their data between various cloud platforms, ensuring flexibility and efficiency in their migration processes. For a complete list of supported clouds, you can refer to the [CloudFuze support page](https://www.cloudfuze.com/what-clouds-does-cloudfuze-support/). \n\nIf you have any specific migration needs or questions, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/) for further assistance!",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 4,
+      "facts_total": 5,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "How long does a typical migration take?",
+    "category": "Migration - Timeline",
+    "answer": "The duration of a migration project can vary significantly based on several factors, including:\n\n- **Number of users being migrated**\n- **Number of items being migrated**\n- **Size of the items being migrated**\n\nDepending on these factors, migration can take anywhere from a few weeks to a few months. Additionally, network speed and the limitations of the destination cloud can also impact the migration's progress. \n\nFor example, when migrating from Microsoft 365 to Google Workspace, larger files will take longer to transfer, while faster internet speeds can enhance migration speed. CloudFuze's high-speed data migration solution can facilitate the migration of terabytes and petabytes of data within the shortest possible timeframe, and it includes features like delta migration to preserve any new or changed data after the initial transfer.\n\nIf you're looking for a more tailored estimate for your specific migration project, it's advisable to consult with CloudFuze's migration specialists, who can analyze your data and provide accurate timelines. \n\nFor more details on migration timelines and factors affecting them, you can refer to the [Cloud Data Migration Roadmap for Enterprises](https://www.cloudfuze.com/cloud-data-migration-roadmap-for-enterprises/) and [Cloud Data Migration Roadmap for Small and Medium Businesses](https://www.cloudfuze.com/cloud-data-migration-roadmap-for-small-and-medium-businesses/). \n\nIf you have further questions or need assistance, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 3,
+      "facts_total": 3,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  },
+  {
+    "question": "Can CloudFuze migrate Slack threaded conversations?",
+    "category": "Migration - Slack Feature",
+    "answer": "Yes, CloudFuze can migrate Slack threaded conversations to Microsoft Teams. The platform ensures that all types of data, including threaded discussions, are accurately transferred during the migration process. This capability is part of CloudFuze's comprehensive migration features, which also include the migration of direct messages, channels, files, emojis, timestamps, and more.\n\nFor more details on the migration process and features, you can check out the blog post on [migrating Slack to Teams](https://www.cloudfuze.com/new-ways-from-cloudfuze-to-move-slack-to-microsoft-teams/). If you have any further questions or need assistance, feel free to [contact CloudFuze](https://www.cloudfuze.com/contact/).",
+    "quality": {
+      "has_substance": true,
+      "not_error": true,
+      "has_contact_link": true,
+      "mentions_cloudfuze": true,
+      "has_markdown_formatting": true,
+      "appropriate_length": true,
+      "not_hallucinating": true,
+      "has_expected_facts": true,
+      "handles_unknown_appropriately": true,
+      "facts_found": 3,
+      "facts_total": 3,
+      "has_appropriate_links": true,
+      "quality_score": 100.0
+    }
+  }
+]

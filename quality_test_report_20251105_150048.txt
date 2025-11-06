@@ -1,0 +1,207 @@
+CLOUDFULZE CHATBOT - CONSISTENCY + QUALITY TEST REPORT
+====================================================================================================
+
+Q1: What is CloudFuze's pricing model?
+Category: Pricing
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q2: Is CloudFuze SOC 2 Type II certified?
+Category: Security
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q3: Can CloudFuze migrate Slack private channels to Microsoft Teams private channels?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q4: How does CloudFuze handle security during migration?
+Category: Security
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q5: What happens to file version history during migration?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q6: Does CloudFuze encrypt data during transit?
+Category: Security
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q7: How does delta migration work in CloudFuze?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q8: Can CloudFuze migrate from Google Drive to OneDrive?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q9: What support options does CloudFuze offer?
+Category: Support
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q10: Does CloudFuze offer a free trial?
+Category: Pricing
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q11: How does CloudFuze handle file permissions during migration?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+
+Q12: Can CloudFuze migrate SharePoint sites?
+Category: Migration
+Consistency: 100.0% | Quality: 0.0%
+Issues: ERROR response
+----------------------------------------------------------------------------------------------------
+
+Response 1:
+ERROR: Authentication required.
+
+Response 2:
+ERROR: Authentication required.
+
+Response 3:
+ERROR: Authentication required.
+
+====================================================================================================
+

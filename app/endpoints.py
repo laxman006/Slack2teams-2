@@ -886,7 +886,7 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 
                 llm = ChatOpenAI(
                     model_name="gpt-4o-mini",
-                    temperature=0.3,
+                    temperature=0.1,  # Low temperature for consistent responses
                     max_tokens=1500
                 )
                 
@@ -1379,11 +1379,11 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # Import ChatOpenAI for document-based queries
             from langchain_openai import ChatOpenAI
             
-            # Create streaming LLM
+            # Create streaming LLM with low temperature for consistent responses
             llm = ChatOpenAI(
                 model_name="gpt-4o-mini", 
                 streaming=True, 
-                temperature=0.3,
+                temperature=0.1,  # Low temperature for more consistent, deterministic responses
                 max_tokens=1500
             )
             
@@ -1405,7 +1405,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                             "context_length": len(context_text),
                             "document_count": len(final_docs),
                             "model": "gpt-4o-mini",
-                            "temperature": 0.3
+                            "temperature": 0.1
                         }
                     )
                 except Exception as e:
@@ -1419,7 +1419,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     token = chunk.content
                     full_response += token
                     yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
-                    await asyncio.sleep(0.01)  # Small delay for better streaming effect
+                    # Removed sleep for faster streaming
             
             # Record LLM generation time
             llm_time_ms = int((time.time() - llm_start_time) * 1000)

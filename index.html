@@ -550,6 +550,46 @@
       margin-left: 4px;
     }
 
+    /* Scroll to bottom button */
+    #scroll-to-bottom-btn {
+      position: fixed;
+      bottom: 100px;
+      right: 40px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #0129ac;
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(1, 41, 172, 0.3);
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    #scroll-to-bottom-btn:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(1, 41, 172, 0.4);
+    }
+
+    #scroll-to-bottom-btn:active {
+      transform: translateY(0);
+    }
+
+    #scroll-to-bottom-btn.show {
+      display: flex;
+    }
+
+    #scroll-to-bottom-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
     #input-container {
       position: fixed;
       bottom: 0;
@@ -692,6 +732,13 @@
     <div id="messages"></div>
   </div>
 
+  <!-- Scroll to bottom button -->
+  <button id="scroll-to-bottom-btn" title="Scroll to bottom">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9.33468 3.33333C9.33468 2.96617 9.6326 2.66847 9.99972 2.66829C10.367 2.66829 10.6648 2.96606 10.6648 3.33333V15.0609L15.363 10.3626L15.4675 10.2777C15.7255 10.1074 16.0762 10.1357 16.3034 10.3626C16.5631 10.6223 16.5631 11.0443 16.3034 11.304L10.4704 17.137C10.2108 17.3967 9.7897 17.3966 9.52999 17.137L3.69601 11.304L3.61105 11.1995C3.44054 10.9414 3.46874 10.5899 3.69601 10.3626C3.92328 10.1354 4.27479 10.1072 4.53292 10.2777L4.63741 10.3626L9.33468 15.0599V3.33333Z"></path>
+    </svg>
+  </button>
+
   <div id="input-container">
     <div class="input-wrapper">
       <input type="text" id="user-input" placeholder="Type your question...">
@@ -808,23 +855,124 @@
       }
     }
 
+    // Scroll mode state management
+    let scrollMode = 'auto'; // 'auto' or 'manual'
+    let isStreaming = false; // Track if bot is currently streaming
+    let userInteractionTimeout = null; // Debounce user interaction detection
+    const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+    
+    // Update button visibility based on mode
+    function updateButtonVisibility() {
+      if (scrollMode === 'manual') {
+        scrollToBottomBtn.classList.add('show');
+      } else {
+        scrollToBottomBtn.classList.remove('show');
+      }
+    }
+    
     function scrollToBottom() {
+      // Only auto-scroll if in auto mode
+      if (scrollMode !== 'auto') {
+        console.log('[SCROLL] Skipping auto-scroll - in MANUAL mode');
+        return;
+      }
+      
       // Use requestAnimationFrame to ensure DOM is updated before scrolling
       requestAnimationFrame(() => {
         // Scroll to the very bottom of the page
         window.scrollTo({
           top: document.body.scrollHeight,
-          behavior: 'smooth'
+          behavior: 'smooth' // Use smooth for better UX
         });
-        // Fallback: also try scrolling after a small delay
-        setTimeout(() => {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-          });
-        }, 10);
       });
     }
+    
+    // Check if user is at the bottom of the page
+    function isAtBottom() {
+      const scrollThreshold = 100; // pixels from bottom to be considered "at bottom"
+      const atBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - scrollThreshold);
+      return atBottom;
+    }
+    
+    // Handle user wheel/scroll gestures (actual user interaction)
+    function handleUserScrollGesture(event) {
+      // Only care if we're in auto mode (manual mode already stops scrolling)
+      if (scrollMode !== 'auto') {
+        return;
+      }
+      
+      console.log('[SCROLL] User gesture detected, deltaY:', event.deltaY);
+      
+      // Check if user is scrolling up (negative deltaY)
+      const scrollingUp = event.deltaY < 0;
+      
+      if (scrollingUp) {
+        // User is trying to scroll up - switch to manual mode
+        scrollMode = 'manual';
+        updateButtonVisibility();
+        console.log('[SCROLL] ⚠️ Switched to MANUAL mode - user scrolled up');
+      }
+    }
+    
+    // Handle touch scrolling on mobile
+    let touchStartY = 0;
+    function handleTouchStart(event) {
+      if (event.touches.length > 0) {
+        touchStartY = event.touches[0].clientY;
+      }
+    }
+    
+    function handleTouchMove(event) {
+      if (scrollMode !== 'auto') {
+        return;
+      }
+      
+      if (event.touches.length > 0) {
+        const touchEndY = event.touches[0].clientY;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Scrolling up has positive deltaY (finger moves down)
+        if (deltaY > 10) {
+          scrollMode = 'manual';
+          updateButtonVisibility();
+          console.log('[SCROLL] ⚠️ Switched to MANUAL mode - touch scroll up');
+        }
+      }
+    }
+    
+    // Monitor scroll position to switch back to auto when at bottom
+    function checkScrollPosition() {
+      // Check if we're in manual mode and user scrolled to bottom
+      // (works during streaming AND after streaming ends)
+      if (scrollMode === 'manual' && isAtBottom()) {
+        // User manually scrolled back to bottom - switch to auto
+        scrollMode = 'auto';
+        updateButtonVisibility();
+        console.log('[SCROLL] ✓ Switched to AUTO mode - user reached bottom');
+      }
+    }
+    
+    // Handle scroll to bottom button click
+    function handleScrollToBottomClick() {
+      console.log('[SCROLL] 🔘 Button clicked - switching to AUTO mode');
+      scrollMode = 'auto';
+      updateButtonVisibility();
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+    
+    // Add event listeners for user scroll gestures
+    window.addEventListener('wheel', handleUserScrollGesture, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
+    // Check scroll position periodically to switch back to auto mode
+    window.addEventListener('scroll', checkScrollPosition, { passive: true });
+    
+    // Add click event listener to scroll button
+    scrollToBottomBtn.addEventListener('click', handleScrollToBottomClick);
 
     // Submit feedback functionality
     async function submitFeedback(button, rating) {
@@ -991,7 +1139,7 @@
       addMessage(question, "user");
       input.value = "";
 
-      // Show thinking animation
+      // Show thinking animation (addMessageHTML will scroll automatically)
       const botDiv = addMessageHTML("", "bot");
       botDiv.innerHTML = `
         <div class="thinking">
@@ -1003,6 +1151,15 @@
           </span>
         </div>
       `;
+
+      // Force another scroll to ensure thinking is visible
+      setTimeout(() => scrollToBottom(), 50);
+
+      // Start streaming - enable scroll tracking
+      isStreaming = true;
+      scrollMode = 'auto'; // Reset to auto mode for new message
+      updateButtonVisibility(); // Ensure button is hidden in auto mode
+      console.log('[SCROLL] Started streaming - mode set to AUTO');
 
       try {
         console.log("[CHAT] Sending question:", question);
@@ -1054,6 +1211,8 @@
         const decoder = new TextDecoder();
         let buffer = "";
         let fullResponse = "";
+        let lastRenderTime = 0;
+        const renderThrottle = 16; // 60fps - re-render every 16ms for smooth streaming
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1067,7 +1226,6 @@
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
-                console.log("Parsed streaming data:", data); // Debug log
                 
                 if (data.type === 'thinking_complete') {
                   // Clear thinking animation and prepare for streaming (NO BUTTONS YET)
@@ -1079,17 +1237,22 @@
                 } else if (data.type === 'token') {
                   // Add token to response (STILL NO BUTTONS)
                   const token = data.token;
-                  console.log("Token received:", token); // Debug log
                   fullResponse += token;
-                  // Render markdown and update only the message content
-                  const contentDiv = botDiv.querySelector('.message-content');
-                  if (contentDiv) {
-                    contentDiv.innerHTML = renderMarkdown(fullResponse);
-                  } else {
-                    // Fallback: create content div only
-                    botDiv.innerHTML = `<div class="message-content">${renderMarkdown(fullResponse)}</div>`;
+                  
+                  // Throttle rendering to improve performance
+                  const now = Date.now();
+                  if (now - lastRenderTime > renderThrottle) {
+                    // Render markdown and update only the message content
+                    const contentDiv = botDiv.querySelector('.message-content');
+                    if (contentDiv) {
+                      contentDiv.innerHTML = renderMarkdown(fullResponse);
+                    } else {
+                      // Fallback: create content div only
+                      botDiv.innerHTML = `<div class="message-content">${renderMarkdown(fullResponse)}</div>`;
+                    }
+                    scrollToBottom();
+                    lastRenderTime = now;
                   }
-                  scrollToBottom();
                 } else if (data.type === 'done') {
                   // Final response received with trace_id
                   fullResponse = data.full_response || fullResponse;
@@ -1103,7 +1266,7 @@
                     fullResponse = "I apologize, but I wasn't able to generate a response. Please try again.";
                   }
                   
-                  // NOW ADD THE BUTTONS AFTER RESPONSE IS COMPLETE
+                  // Final render with complete response and buttons
                   botDiv.innerHTML = `
                     <div class="message-content">${renderMarkdown(fullResponse)}</div>
                     <div class="feedback-buttons">
@@ -1131,6 +1294,12 @@
                   
                   console.log("[CHAT] Streaming complete, trace_id:", traceId);
                   console.log("[CHAT] Total messages in UI now:", messagesDiv.children.length);
+                  
+                  // End streaming - keep current mode (don't force to auto)
+                  isStreaming = false;
+                  // Don't change scrollMode here - keep user's preference (manual or auto)
+                  console.log('[SCROLL] Streaming ended - keeping current mode:', scrollMode);
+                  
                   return;
                 } else if (data.type === 'error') {
                   throw new Error(data.error);
@@ -1146,6 +1315,10 @@
         console.error("Error sending message:", error);
         // Clear thinking animation and show error
         botDiv.innerHTML = "Sorry, there was an error. Please try again.";
+        
+        // End streaming on error - keep current mode
+        isStreaming = false;
+        console.log('[SCROLL] Error occurred - keeping current mode:', scrollMode);
       }
     }
 
@@ -1237,7 +1410,7 @@
                   stroke-dasharray="${circumference}" 
                   stroke-dashoffset="0"></circle>
         </svg>
-        <span class="countdown-text" id="countdownText">10</span>
+        <span class="countdown-text" id="countdownText">3</span>
       `;
       
       // Store circumference for animation
@@ -1251,7 +1424,7 @@
       const circumference = parseFloat(circle.dataset.circumference);
       
       const startTime = Date.now();
-      const duration = 10000; // 10 seconds in milliseconds
+      const duration = 3000; // 3 seconds in milliseconds
       
       const updateCountdown = () => {
         const elapsed = Date.now() - startTime;
