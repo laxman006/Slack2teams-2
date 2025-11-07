@@ -663,13 +663,19 @@ def is_conversational_query(question: str) -> bool:
         if re.match(pattern, question_lower):
             return True
     
-    # Check for very short queries (likely conversational)
-    if len(question.strip()) < 10 and not any(word in question_lower for word in ['what', 'how', 'why', 'when', 'where', 'who', 'which']):
+    # Check for very short queries (ONLY 1-2 words, no question marks)
+    # This ensures queries like "emojis ?" go through RAG, not conversational
+    words = question.split()
+    has_question_mark = '?' in question
+    has_question_word = any(word in question_lower for word in ['what', 'how', 'why', 'when', 'where', 'who', 'which'])
+    
+    # Only treat as conversational if: very short (1-2 words), no '?', no question words
+    if len(words) <= 2 and len(question.strip()) < 6 and not has_question_mark and not has_question_word:
         return True
     
-    # Check if it's a simple greeting or social interaction
+    # Check if it's a simple greeting or social interaction (still allow short social phrases)
     social_words = ['hi', 'hello', 'hey', 'thanks', 'bye', 'good', 'nice', 'great', 'cool', 'awesome']
-    if any(word in question_lower for word in social_words) and len(question.split()) <= 3:
+    if any(word in question_lower for word in social_words) and len(words) <= 2 and not has_question_mark:
         return True
     
     return False
