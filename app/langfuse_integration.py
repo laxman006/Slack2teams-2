@@ -126,15 +126,25 @@ class LangfuseTracker:
         session_id: Optional[str] = None, 
         metadata: Optional[Dict[str, Any]] = None,
         user_name: Optional[str] = None,
-        user_email: Optional[str] = None
+        user_email: Optional[str] = None,
+        prompt_template = None,
+        prompt_metadata: Optional[Dict[str, Any]] = None
     ):
-        """Create structured RAG pipeline trace with nested spans."""
+        """Create structured RAG pipeline trace with nested spans and prompt tracking."""
         if not self.client:
             return None
         
         try:
-            # Build metadata
+            # Build metadata with prompt info
             trace_metadata = {**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            
+            # Add prompt metadata if provided
+            if prompt_metadata:
+                trace_metadata.update({
+                    "prompt_name": prompt_metadata.get("prompt_name"),
+                    "prompt_version": prompt_metadata.get("version"),
+                    "prompt_source": prompt_metadata.get("source")
+                })
             
             trace = self.client.trace(
                 name="chat_interaction",
@@ -144,7 +154,7 @@ class LangfuseTracker:
                 metadata=trace_metadata,
                 tags=["rag", "chat"]
             )
-            return RAGPipelineTrace(trace)
+            return RAGPipelineTrace(trace, prompt_template, prompt_metadata)
             
         except Exception as e:
             print(f"[ERROR] RAG trace failed: {e}")
@@ -153,16 +163,18 @@ class LangfuseTracker:
 
 class RAGPipelineTrace:
     """
-    RAG pipeline trace with nested spans:
+    RAG pipeline trace with nested spans and prompt tracking:
     chat_interaction → query → retrieve/synthesize/generating_response
     """
     
-    def __init__(self, trace):
+    def __init__(self, trace, prompt_template=None, prompt_metadata=None):
         self.trace = trace
         self.trace_id = trace.id
         self.query_span = None
         self.retrieve_span = None
         self.synthesize_span = None
+        self.prompt_template = prompt_template  # Langfuse prompt object
+        self.prompt_metadata = prompt_metadata or {}
     
     def start_query(self, enhanced_query: str, metadata: Optional[Dict[str, Any]] = None):
         """Start query processing span."""
@@ -220,15 +232,22 @@ class RAGPipelineTrace:
             return None
     
     def log_llm_generation(self, prompt: str, response: str, model: str = "gpt-4o-mini", metadata: Optional[Dict[str, Any]] = None):
-        """Log LLM generation span."""
+        """Log LLM generation span with prompt tracking."""
         try:
-            return self.synthesize_span.generation(
-                name="openai_llm",
-                model=model,
-                input=prompt,
-                output=response,
-                metadata={**(metadata or {}), "timestamp": datetime.now().isoformat()}
-            )
+            generation_params = {
+                "name": "openai_llm",
+                "model": model,
+                "input": prompt,
+                "output": response,
+                "metadata": {**(metadata or {}), "timestamp": datetime.now().isoformat()}
+            }
+            
+            # If we have a Langfuse prompt template, link it to the generation
+            if self.prompt_template:
+                generation_params["prompt"] = self.prompt_template
+                print(f"[PROMPT] Linked prompt to generation: {self.prompt_metadata.get('prompt_name')} v{self.prompt_metadata.get('version')}")
+            
+            return self.synthesize_span.generation(**generation_params)
         except Exception as e:
             print(f"[ERROR] LLM generation failed: {e}")
             return None

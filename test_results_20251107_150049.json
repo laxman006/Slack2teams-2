@@ -1,0 +1,1813 @@
+{
+  "summary": {
+    "total": 200,
+    "success": 200,
+    "failed": 0,
+    "success_rate": 100.0,
+    "avg_response_time": 9.0613,
+    "session_id": "test_session_1762505981",
+    "timestamp": "2025-11-07T15:00:49.876817"
+  },
+  "results": [
+    {
+      "test_num": 1,
+      "question": "Do you support Slack to Teams migration?",
+      "status": "SUCCESS",
+      "response_time": 4.97,
+      "answer_length": 989,
+      "answer_preview": "Yes, CloudFuze supports Slack to Teams migration. The platform allows businesses to migrate various types of data, including:\n\n- **Public and Private Channels**\n- **Direct Messages**\n- **Users**\n- **C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 2,
+      "question": "How does Slack to Teams migration work?",
+      "status": "SUCCESS",
+      "response_time": 7.93,
+      "answer_length": 2328,
+      "answer_preview": "CloudFuze's Slack to Teams migration process is designed to be efficient and comprehensive, ensuring that all relevant data is transferred smoothly. Here’s how it works:\n\n### 1. **Pre-Migration Analys...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 3,
+      "question": "What about channel migration?",
+      "status": "SUCCESS",
+      "response_time": 7.92,
+      "answer_length": 1849,
+      "answer_preview": "CloudFuze supports the migration of channels from Slack to Microsoft Teams, including both public and private channels. Here’s how the channel migration works:\n\n### Channel Migration Features:\n- **Pub...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 4,
+      "question": "Can you preserve message history?",
+      "status": "SUCCESS",
+      "response_time": 7.03,
+      "answer_length": 1187,
+      "answer_preview": "Yes, CloudFuze can preserve message history during the migration from Slack to Microsoft Teams. The migration tool ensures that all messages, including direct messages, channel conversations, and thei...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 5,
+      "question": "What's the pricing for Slack to Teams?",
+      "status": "SUCCESS",
+      "response_time": 4.38,
+      "answer_length": 835,
+      "answer_preview": "The pricing for migrating from Slack to Microsoft Teams can vary based on several factors, including:\n\n- **Number of Slack users** to be migrated\n- **Number of channels** to be migrated\n- **Size of fi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 6,
+      "question": "Tell me about Google Workspace migration",
+      "status": "SUCCESS",
+      "response_time": 9.25,
+      "answer_length": 2774,
+      "answer_preview": "Google Workspace migration involves transferring data between Google Workspace accounts, often required during organizational changes such as mergers, acquisitions, or restructuring. Here are some key...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 7,
+      "question": "How long does it take?",
+      "status": "SUCCESS",
+      "response_time": 8.09,
+      "answer_length": 955,
+      "answer_preview": "The duration of a migration from Slack to Microsoft Teams using CloudFuze can vary based on several factors, including:\n\n- **Number of users** being migrated\n- **Size of the data** (including messages...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 8,
+      "question": "What are the requirements?",
+      "status": "SUCCESS",
+      "response_time": 9.94,
+      "answer_length": 1995,
+      "answer_preview": "To successfully migrate from Slack to Microsoft Teams using CloudFuze, there are several requirements you need to meet:\n\n### Prerequisites\n1. **Admin Credentials**:\n   - You will need the admin login ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 9,
+      "question": "Dropbox to OneDrive migration",
+      "status": "SUCCESS",
+      "response_time": 8.48,
+      "answer_length": 2104,
+      "answer_preview": "CloudFuze offers a robust solution for **Dropbox to OneDrive migration** that is designed to handle various complexities and sizes of data transfers. Here are some key features and benefits of using C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 10,
+      "question": "Does it support file permissions?",
+      "status": "SUCCESS",
+      "response_time": 5.26,
+      "answer_length": 705,
+      "answer_preview": "Yes, CloudFuze supports the migration of file permissions when transferring data from Slack to Microsoft Teams. This includes migrating files with their associated sharing permissions, ensuring that t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 11,
+      "question": "What about shared folders?",
+      "status": "SUCCESS",
+      "response_time": 4.03,
+      "answer_length": 505,
+      "answer_preview": "I don't have specific information about the migration of shared folders from Slack to Microsoft Teams in my knowledge base. However, CloudFuze does support the migration of files and folders, includin...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 12,
+      "question": "What is CloudFuze?",
+      "status": "SUCCESS",
+      "response_time": 9.85,
+      "answer_length": 1709,
+      "answer_preview": "CloudFuze is a leading cloud migration platform that specializes in facilitating seamless transitions between various cloud environments. It is particularly known for its ability to handle complex mig...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 13,
+      "question": "What services do you offer?",
+      "status": "SUCCESS",
+      "response_time": 8.77,
+      "answer_length": 1920,
+      "answer_preview": "CloudFuze offers a comprehensive suite of migration services tailored to meet the needs of businesses and enterprises. Here are the key services provided by CloudFuze:\n\n1. **Data Migration**:\n   - **E...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 14,
+      "question": "Tell me more about that",
+      "status": "SUCCESS",
+      "response_time": 14.07,
+      "answer_length": 2857,
+      "answer_preview": "CloudFuze is a comprehensive cloud migration platform designed to facilitate seamless transitions between various cloud environments, particularly for businesses and enterprises. Here’s a more detaile...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 15,
+      "question": "What platforms do you support?",
+      "status": "SUCCESS",
+      "response_time": 5.75,
+      "answer_length": 812,
+      "answer_preview": "CloudFuze supports migrations across **40+ cloud services**, ensuring flexibility and compatibility for various migration needs. Here are some of the key platforms that CloudFuze can facilitate migrat...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 16,
+      "question": "How secure is CloudFuze?",
+      "status": "SUCCESS",
+      "response_time": 8.28,
+      "answer_length": 1517,
+      "answer_preview": "CloudFuze prioritizes **data security and compliance** throughout the migration process. Here are the key security features that ensure the protection of your data:\n\n1. **Encryption**:\n   - CloudFuze ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 17,
+      "question": "What are your pricing plans?",
+      "status": "SUCCESS",
+      "response_time": 7.36,
+      "answer_length": 1180,
+      "answer_preview": "CloudFuze offers flexible pricing plans tailored to meet the diverse needs of businesses, whether they are small teams or large enterprises. While specific pricing details can vary based on factors su...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 18,
+      "question": "Do you offer enterprise pricing?",
+      "status": "SUCCESS",
+      "response_time": 5.39,
+      "answer_length": 1325,
+      "answer_preview": "CloudFuze does offer enterprise pricing tailored to meet the specific needs of larger organizations. Here are some key aspects of their enterprise pricing model:\n\n1. **Custom Quotes**: CloudFuze provi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 19,
+      "question": "What's included in the enterprise plan?",
+      "status": "SUCCESS",
+      "response_time": 7.53,
+      "answer_length": 1907,
+      "answer_preview": "CloudFuze's enterprise plan includes a comprehensive suite of features designed to support large organizations during their migration processes. Here are the key components typically included in the e...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 20,
+      "question": "Is there a free trial?",
+      "status": "SUCCESS",
+      "response_time": 4.88,
+      "answer_length": 549,
+      "answer_preview": "Yes, CloudFuze does offer free trial options for their migration services. This allows potential users to assess the platform and its capabilities before making a financial commitment. The free trial ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 21,
+      "question": "How do I get started?",
+      "status": "SUCCESS",
+      "response_time": 7.58,
+      "answer_length": 1398,
+      "answer_preview": "To get started with CloudFuze for your migration needs, follow these steps:\n\n1. **Visit the CloudFuze Website**: Go to [CloudFuze's homepage](https://www.cloudfuze.com) to explore their services and o...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 22,
+      "question": "How do you handle large migrations?",
+      "status": "SUCCESS",
+      "response_time": 10.26,
+      "answer_length": 2194,
+      "answer_preview": "CloudFuze handles large migrations through a comprehensive and structured approach designed to ensure efficiency, security, and minimal disruption. Here are the key components of how CloudFuze manages...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 23,
+      "question": "What about API rate limits?",
+      "status": "SUCCESS",
+      "response_time": 6.75,
+      "answer_length": 1266,
+      "answer_preview": "CloudFuze is designed to handle API rate limits effectively during migrations, particularly for large datasets. Here are some key strategies employed by CloudFuze to manage API throttling:\n\n1. **Phase...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 24,
+      "question": "Can you migrate permissions?",
+      "status": "SUCCESS",
+      "response_time": 4.38,
+      "answer_length": 527,
+      "answer_preview": "Yes, CloudFuze can migrate permissions during the migration process. The platform is designed to preserve all permissions, metadata, timestamps, version history, and sharing settings. This ensures tha...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 25,
+      "question": "Do you support incremental migration?",
+      "status": "SUCCESS",
+      "response_time": 5.03,
+      "answer_length": 605,
+      "answer_preview": "Yes, CloudFuze supports incremental migration through its delta migration feature. This allows for the transfer of only the changes made after the initial migration has been completed. By using delta ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 26,
+      "question": "What about delta migration?",
+      "status": "SUCCESS",
+      "response_time": 6.74,
+      "answer_length": 1116,
+      "answer_preview": "CloudFuze offers a robust delta migration feature, which is designed to transfer only the incremental changes made to the source cloud data after the initial one-time migration. This capability ensure...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 27,
+      "question": "Box to SharePoint migration",
+      "status": "SUCCESS",
+      "response_time": 9.63,
+      "answer_length": 1977,
+      "answer_preview": "CloudFuze offers a comprehensive solution for migrating data from Box to SharePoint Online. With over 12 years of experience, our migration platform is designed to handle large volumes of users, data,...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 28,
+      "question": "Can you preserve metadata?",
+      "status": "SUCCESS",
+      "response_time": 4.63,
+      "answer_length": 591,
+      "answer_preview": "Yes, CloudFuze can preserve metadata during the migration process from Box to SharePoint. When using CloudFuze's migration tool, all essential metadata, including timestamps, version history, sharing ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 29,
+      "question": "What about version history?",
+      "status": "SUCCESS",
+      "response_time": 8.55,
+      "answer_length": 997,
+      "answer_preview": "Yes, CloudFuze supports the preservation of version history during the migration from Box to SharePoint. This means that all versions of files, along with their associated timestamps and metadata, wil...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 30,
+      "question": "OneDrive to Google Drive",
+      "status": "SUCCESS",
+      "response_time": 10.19,
+      "answer_length": 1849,
+      "answer_preview": "If you're looking to migrate from OneDrive to Google Drive, CloudFuze offers a streamlined solution to facilitate this process. Here are the key steps and considerations for a successful migration:\n\n#...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 31,
+      "question": "How does it work?",
+      "status": "SUCCESS",
+      "response_time": 13.72,
+      "answer_length": 2353,
+      "answer_preview": "CloudFuze's migration process from OneDrive to Google Drive works through a series of structured steps designed to ensure a smooth and efficient transfer of data. Here’s how it works:\n\n### How CloudFu...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 32,
+      "question": "How do I get support?",
+      "status": "SUCCESS",
+      "response_time": 6.6,
+      "answer_length": 757,
+      "answer_preview": "To get support from CloudFuze, you can follow these steps:\n\n1. **Visit the CloudFuze Website**: Go to the official CloudFuze website where you can find various resources and support options.\n\n2. **Con...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 33,
+      "question": "Do you have documentation?",
+      "status": "SUCCESS",
+      "response_time": 5.17,
+      "answer_length": 609,
+      "answer_preview": "I don't have specific documentation available, but I can guide you on how to access resources related to CloudFuze's migration services. For detailed guides and documentation, you can visit the CloudF...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 34,
+      "question": "Where can I find migration guides?",
+      "status": "SUCCESS",
+      "response_time": 7.42,
+      "answer_length": 1073,
+      "answer_preview": "I don't have specific migration guides available, but I can provide you with information on how to access them. For detailed migration guides related to CloudFuze's services, you can visit the CloudFu...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 35,
+      "question": "Do you offer training?",
+      "status": "SUCCESS",
+      "response_time": 5.07,
+      "answer_length": 546,
+      "answer_preview": "I don't have specific information about training offerings from CloudFuze in my knowledge base. However, CloudFuze provides extensive support throughout the migration process, which may include traini...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 36,
+      "question": "What about onboarding?",
+      "status": "SUCCESS",
+      "response_time": 4.85,
+      "answer_length": 664,
+      "answer_preview": "I don't have specific information about onboarding services from CloudFuze in my knowledge base. However, CloudFuze does emphasize the importance of user onboarding during the migration process. They ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 37,
+      "question": "Are you SOC 2 compliant?",
+      "status": "SUCCESS",
+      "response_time": 6.0,
+      "answer_length": 584,
+      "answer_preview": "Yes, CloudFuze is SOC 2 compliant. We hold a SOC 2 Type 2 certification, which validates our adherence to security standards and controls relevant to security, availability, processing integrity, conf...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 38,
+      "question": "Can I download the SOC 2 certificate?",
+      "status": "SUCCESS",
+      "response_time": 4.09,
+      "answer_length": 376,
+      "answer_preview": "Yes, you can download the SOC 2 Type 2 certificate for CloudFuze. Here is the link to download the report:\n\n**[Download Certificate: CloudFuze_SOC 2 Type 2 Report.pdf](https://cloudfuzecom.sharepoint....",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 39,
+      "question": "What about GDPR compliance?",
+      "status": "SUCCESS",
+      "response_time": 5.1,
+      "answer_length": 572,
+      "answer_preview": "Yes, CloudFuze ensures complete GDPR compliance during cloud migrations. We adhere to industry standards such as SOC 2 Type 2 and ISO 27001, which help protect user privacy across regions. Our securit...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 40,
+      "question": "Do you encrypt data?",
+      "status": "SUCCESS",
+      "response_time": 5.23,
+      "answer_length": 581,
+      "answer_preview": "Yes, CloudFuze encrypts data during migration using RSA 2048-bit encryption. This encryption standard ensures that sensitive data is protected while being transferred between cloud storage services. A...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 41,
+      "question": "What security measures do you have?",
+      "status": "SUCCESS",
+      "response_time": 10.28,
+      "answer_length": 1854,
+      "answer_preview": "CloudFuze implements several robust security measures to ensure the protection of data during cloud migrations. Here are the key security features:\n\n1. **Encryption**: \n   - CloudFuze uses **RSA 2048-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 42,
+      "question": "Hi",
+      "status": "SUCCESS",
+      "response_time": 1.61,
+      "answer_length": 25,
+      "answer_preview": "Hello! How are you today?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 43,
+      "question": "How are you?",
+      "status": "SUCCESS",
+      "response_time": 1.88,
+      "answer_length": 64,
+      "answer_preview": "I’m doing great, thank you! How about you? How’s your day going?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 44,
+      "question": "Thank you",
+      "status": "SUCCESS",
+      "response_time": 2.0,
+      "answer_length": 99,
+      "answer_preview": "You're welcome! If there's anything else you need or if you want to chat, feel free to let me know!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 45,
+      "question": "That's helpful",
+      "status": "SUCCESS",
+      "response_time": 5.46,
+      "answer_length": 201,
+      "answer_preview": "I'm glad to hear that you found the information helpful! If you have any more questions or need assistance with anything specific, especially regarding CloudFuze's migration services, feel free to ask...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 46,
+      "question": "Can you help me?",
+      "status": "SUCCESS",
+      "response_time": 1.76,
+      "answer_length": 62,
+      "answer_preview": "Of course! I’m here to help. What do you need assistance with?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 47,
+      "question": "asdfghjkl",
+      "status": "SUCCESS",
+      "response_time": 1.62,
+      "answer_length": 85,
+      "answer_preview": "It looks like you might have typed something by accident! How can I assist you today?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 48,
+      "question": "What about dogs?",
+      "status": "SUCCESS",
+      "response_time": 2.97,
+      "answer_length": 154,
+      "answer_preview": "I don't have information about dogs in my knowledge base, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 49,
+      "question": "Tell me a story",
+      "status": "SUCCESS",
+      "response_time": 3.41,
+      "answer_length": 139,
+      "answer_preview": "I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 50,
+      "question": "1+1",
+      "status": "SUCCESS",
+      "response_time": 1.94,
+      "answer_length": 96,
+      "answer_preview": "1 + 1 equals 2! If you have more math questions or anything else on your mind, feel free to ask!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 51,
+      "question": "What's the weather?",
+      "status": "SUCCESS",
+      "response_time": 3.08,
+      "answer_length": 139,
+      "answer_preview": "I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 52,
+      "question": "SharePoint to Box migration",
+      "status": "SUCCESS",
+      "response_time": 4.08,
+      "answer_length": 216,
+      "answer_preview": "I don't have information about SharePoint to Box migration in my knowledge base, but I can help you with CloudFuze's migration services or products related to Box to SharePoint migration. What would y...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 53,
+      "question": "Egnyte to OneDrive",
+      "status": "SUCCESS",
+      "response_time": 9.81,
+      "answer_length": 1621,
+      "answer_preview": "CloudFuze provides a comprehensive solution for migrating data from Egnyte to OneDrive. Our migration tool ensures a seamless transfer of files while preserving essential metadata such as permissions,...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 54,
+      "question": "Google Drive to Dropbox",
+      "status": "SUCCESS",
+      "response_time": 7.41,
+      "answer_length": 1506,
+      "answer_preview": "To migrate data from Google Drive to Dropbox, you can utilize CloudFuze's migration tool, which is designed to facilitate seamless transitions between these two platforms. Here are some key points to ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 55,
+      "question": "Box to Google Workspace",
+      "status": "SUCCESS",
+      "response_time": 3.92,
+      "answer_length": 239,
+      "answer_preview": "I don't have information about migrating from Box to Google Workspace in my knowledge base, but I can help you with CloudFuze's migration services or products related to Box to Google Drive or other m...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 56,
+      "question": "Teams to Slack migration",
+      "status": "SUCCESS",
+      "response_time": 3.46,
+      "answer_length": 353,
+      "answer_preview": "I don't have information about Teams to Slack migration in my knowledge base, but I can help you with CloudFuze's migration services or products related to migrating from Slack to Teams. If you're int...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 57,
+      "question": "OneDrive to SharePoint",
+      "status": "SUCCESS",
+      "response_time": 5.03,
+      "answer_length": 472,
+      "answer_preview": "I don't have specific information about migrating from OneDrive to SharePoint in my knowledge base. However, I can help you with CloudFuze's migration services, which include migrating data between va...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 58,
+      "question": "Dropbox to Box",
+      "status": "SUCCESS",
+      "response_time": 4.12,
+      "answer_length": 436,
+      "answer_preview": "I don't have information about migrating from Dropbox to Box in my knowledge base. However, I can assist you with CloudFuze's migration services related to other migrations, such as Box to OneDrive or...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 59,
+      "question": "SharePoint to Google Drive",
+      "status": "SUCCESS",
+      "response_time": 4.13,
+      "answer_length": 486,
+      "answer_preview": "I don't have specific information about migrating from SharePoint to Google Drive in my knowledge base. However, I can assist you with CloudFuze's migration services, which include various migration s...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 60,
+      "question": "Can you migrate emails?",
+      "status": "SUCCESS",
+      "response_time": 6.88,
+      "answer_length": 1177,
+      "answer_preview": "Yes, CloudFuze offers comprehensive email migration services. We support both standalone email migration and email migration as part of an overall cloud data migration. Here are some key features of o...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 61,
+      "question": "Do you support calendar migration?",
+      "status": "SUCCESS",
+      "response_time": 5.28,
+      "answer_length": 438,
+      "answer_preview": "I don't have specific information about calendar migration in my knowledge base. However, I can assist you with CloudFuze's migration services, which include various migration scenarios, such as email...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 62,
+      "question": "What about contact migration?",
+      "status": "SUCCESS",
+      "response_time": 6.92,
+      "answer_length": 894,
+      "answer_preview": "Yes, CloudFuze supports contact migration as part of its comprehensive migration services. You can migrate contacts between email accounts efficiently, ensuring that all critical data is accurately sy...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 63,
+      "question": "Can you migrate tasks?",
+      "status": "SUCCESS",
+      "response_time": 4.8,
+      "answer_length": 437,
+      "answer_preview": "I don't have specific information about task migration in my knowledge base. However, I can assist you with CloudFuze's migration services, which include various migration scenarios, such as email and...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 64,
+      "question": "Do you preserve timestamps?",
+      "status": "SUCCESS",
+      "response_time": 4.49,
+      "answer_length": 515,
+      "answer_preview": "Yes, CloudFuze preserves timestamps during the migration process. This includes maintaining important metadata such as sent, received, replied, or forwarded timestamps for emails. This ensures that th...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 65,
+      "question": "What about file permissions?",
+      "status": "SUCCESS",
+      "response_time": 4.81,
+      "answer_length": 583,
+      "answer_preview": "Yes, CloudFuze preserves file permissions during the migration process. This feature ensures that all user roles, permissions, and access control settings are maintained, allowing for a smooth transit...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 66,
+      "question": "Can you handle large files?",
+      "status": "SUCCESS",
+      "response_time": 5.78,
+      "answer_length": 595,
+      "answer_preview": "Yes, CloudFuze can handle large files during the migration process. Our robust migration engine is designed to manage petabytes and terabytes of data efficiently, ensuring that large files are transfe...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 67,
+      "question": "Do you support nested folders?",
+      "status": "SUCCESS",
+      "response_time": 4.7,
+      "answer_length": 556,
+      "answer_preview": "Yes, CloudFuze supports the migration of nested folders. During the migration process, CloudFuze preserves the entire folder structure, including both root and nested folders. This ensures that the or...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 68,
+      "question": "What about external sharing?",
+      "status": "SUCCESS",
+      "response_time": 5.23,
+      "answer_length": 734,
+      "answer_preview": "Yes, CloudFuze supports the migration of external sharing permissions. This feature ensures that external sharing settings are preserved during the migration process, allowing organizations to maintai...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 69,
+      "question": "Can you migrate workflows?",
+      "status": "SUCCESS",
+      "response_time": 4.04,
+      "answer_length": 260,
+      "answer_preview": "I don't have information about migrating workflows in my knowledge base, but I can help you with CloudFuze's migration services or products. What would you like to know? You can also [contact CloudFuz...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 70,
+      "question": "How many customers do you have?",
+      "status": "SUCCESS",
+      "response_time": 3.67,
+      "answer_length": 215,
+      "answer_preview": "I don't have information about the specific number of customers CloudFuze has in my knowledge base. However, I can help you with details about CloudFuze's migration services or products. What would yo...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 71,
+      "question": "What industries do you serve?",
+      "status": "SUCCESS",
+      "response_time": 6.08,
+      "answer_length": 830,
+      "answer_preview": "CloudFuze serves a variety of industries, including but not limited to:\n\n- **Healthcare**: Helping organizations manage sensitive customer data while complying with security laws and regulations.\n- **...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 72,
+      "question": "Do you have case studies?",
+      "status": "SUCCESS",
+      "response_time": 7.28,
+      "answer_length": 915,
+      "answer_preview": "Yes, CloudFuze has several case studies that showcase successful migrations across various industries. These case studies highlight how different businesses have benefited from CloudFuze's migration s...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 73,
+      "question": "What's your success rate?",
+      "status": "SUCCESS",
+      "response_time": 6.93,
+      "answer_length": 848,
+      "answer_preview": "CloudFuze has a **100% migration success rate** for large enterprise migrations. This achievement stems from their comprehensive approach, which includes providing complete handholding throughout the ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 74,
+      "question": "Do you offer guarantees?",
+      "status": "SUCCESS",
+      "response_time": 6.62,
+      "answer_length": 948,
+      "answer_preview": "Yes, CloudFuze offers guarantees related to its migration services. Specifically, CloudFuze guarantees a **100% migration success rate**. This commitment is backed by their approach of providing compl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 75,
+      "question": "What APIs do you support?",
+      "status": "SUCCESS",
+      "response_time": 3.66,
+      "answer_length": 195,
+      "answer_preview": "I don't have specific information about the APIs supported by CloudFuze in my knowledge base. However, I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 76,
+      "question": "Do you have webhooks?",
+      "status": "SUCCESS",
+      "response_time": 5.2,
+      "answer_length": 186,
+      "answer_preview": "I don't have information about webhooks in my knowledge base. However, I can assist you with CloudFuze's migration services or products. What specific information would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 77,
+      "question": "Can I integrate with my system?",
+      "status": "SUCCESS",
+      "response_time": 4.71,
+      "answer_length": 231,
+      "answer_preview": "I don't have specific information about integration capabilities with external systems in my knowledge base. However, I can help you with CloudFuze's migration services or products. What specific info...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 78,
+      "question": "Do you offer white-label solutions?",
+      "status": "SUCCESS",
+      "response_time": 4.73,
+      "answer_length": 171,
+      "answer_preview": "I don't have information about white-label solutions in my knowledge base, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 79,
+      "question": "What about custom integrations?",
+      "status": "SUCCESS",
+      "response_time": 3.37,
+      "answer_length": 206,
+      "answer_preview": "I don't have specific information about custom integrations in my knowledge base. However, I can assist you with CloudFuze's migration services or products. What specific information would you like to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 80,
+      "question": "How fast is the migration?",
+      "status": "SUCCESS",
+      "response_time": 5.3,
+      "answer_length": 445,
+      "answer_preview": "I don't have specific information about the speed of migrations in my knowledge base. However, I can tell you that CloudFuze's migration tools are designed to handle large volumes of data efficiently,...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 81,
+      "question": "Can you migrate in parallel?",
+      "status": "SUCCESS",
+      "response_time": 5.76,
+      "answer_length": 520,
+      "answer_preview": "Based on the information available, CloudFuze's migration tools support **parallel processing**, which allows for the migration of large volumes of data efficiently. This capability enables businesses...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 82,
+      "question": "What about bandwidth usage?",
+      "status": "SUCCESS",
+      "response_time": 4.45,
+      "answer_length": 436,
+      "answer_preview": "I don't have specific information about bandwidth usage during migrations in my knowledge base. However, CloudFuze's migration tools are designed to optimize data transfers, which can help manage band...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 83,
+      "question": "Do you throttle requests?",
+      "status": "SUCCESS",
+      "response_time": 5.25,
+      "answer_length": 537,
+      "answer_preview": "Based on the information available, CloudFuze manages API throttling effectively during migrations. The platform employs mechanisms such as batching transfers, API request rate management, and automat...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 84,
+      "question": "What's your uptime?",
+      "status": "SUCCESS",
+      "response_time": 4.29,
+      "answer_length": 447,
+      "answer_preview": "I don't have specific information about CloudFuze's uptime in my knowledge base. However, CloudFuze's migration tools are designed to ensure zero downtime during migrations, allowing users to continue...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 85,
+      "question": "What if migration fails?",
+      "status": "SUCCESS",
+      "response_time": 6.55,
+      "answer_length": 692,
+      "answer_preview": "Based on the information available, if a migration fails, CloudFuze has implemented several mechanisms to ensure that data is not lost and that the migration can be successfully completed. Specificall...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 86,
+      "question": "How do I retry failed items?",
+      "status": "SUCCESS",
+      "response_time": 4.67,
+      "answer_length": 591,
+      "answer_preview": "Based on the information available, CloudFuze automatically retries failed requests during the migration process. This means that if any items fail to migrate initially, the system will queue those re...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 87,
+      "question": "Can you recover deleted files?",
+      "status": "SUCCESS",
+      "response_time": 4.34,
+      "answer_length": 400,
+      "answer_preview": "I don't have specific information about recovering deleted files in my knowledge base. However, CloudFuze's migration solutions are designed to ensure data integrity and prevent data loss during the m...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 88,
+      "question": "What about error reports?",
+      "status": "SUCCESS",
+      "response_time": 5.33,
+      "answer_length": 787,
+      "answer_preview": "Based on the information available, CloudFuze provides detailed tracking and reporting features during the migration process. This includes:\n\n- **Transfer success/failure logs**: These logs help IT te...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 89,
+      "question": "How do I track progress?",
+      "status": "SUCCESS",
+      "response_time": 7.39,
+      "answer_length": 1217,
+      "answer_preview": "Based on the information available, CloudFuze offers several features to help you track the progress of your migration:\n\n1. **Real-Time Monitoring**: CloudFuze provides a comprehensive admin console t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 90,
+      "question": "Question variant 89: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.64,
+      "answer_length": 2764,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are some key aspects of the migration services provided:\n\n### Types of Migrations...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 91,
+      "question": "Follow-up 89: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.19,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 92,
+      "question": "Pricing question 89: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 6.4,
+      "answer_length": 1063,
+      "answer_preview": "Based on the information available, the cost of migrating to Office 365 from Box can vary depending on several factors:\n\n1. **Licensing and Subscription Costs**: Microsoft 365 offers various licensing...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 93,
+      "question": "Question variant 92: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.82,
+      "answer_length": 2766,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are some key aspects of the migration services provided:\n\n### Types of Migrations...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 94,
+      "question": "Follow-up 92: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.86,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 95,
+      "question": "Pricing question 92: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.3,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 96,
+      "question": "Question variant 95: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.59,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 97,
+      "question": "Follow-up 95: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.29,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 98,
+      "question": "Pricing question 95: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.36,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 99,
+      "question": "Question variant 98: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.58,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 100,
+      "question": "Follow-up 98: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.29,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 101,
+      "question": "Pricing question 98: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.64,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 102,
+      "question": "Question variant 101: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.12,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 103,
+      "question": "Follow-up 101: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.34,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 104,
+      "question": "Pricing question 101: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.56,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 105,
+      "question": "Question variant 104: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.01,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 106,
+      "question": "Follow-up 104: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 10.13,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 107,
+      "question": "Pricing question 104: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.07,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 108,
+      "question": "Question variant 107: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.27,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 109,
+      "question": "Follow-up 107: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.87,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 110,
+      "question": "Pricing question 107: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.25,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 111,
+      "question": "Question variant 110: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 10.31,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 112,
+      "question": "Follow-up 110: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 10.82,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 113,
+      "question": "Pricing question 110: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.42,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 114,
+      "question": "Question variant 113: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 10.88,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 115,
+      "question": "Follow-up 113: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.37,
+      "answer_length": 2561,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 116,
+      "question": "Pricing question 113: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.05,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 117,
+      "question": "Question variant 116: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.35,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 118,
+      "question": "Follow-up 116: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.07,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 119,
+      "question": "Pricing question 116: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.7,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 120,
+      "question": "Question variant 119: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.31,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 121,
+      "question": "Follow-up 119: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.27,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 122,
+      "question": "Pricing question 119: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.69,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 123,
+      "question": "Question variant 122: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.09,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 124,
+      "question": "Follow-up 122: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 15.23,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 125,
+      "question": "Pricing question 122: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.28,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 126,
+      "question": "Question variant 125: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.7,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 127,
+      "question": "Follow-up 125: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.91,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 128,
+      "question": "Pricing question 125: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.28,
+      "answer_length": 1524,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here are the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Microsoft 365 of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 129,
+      "question": "Question variant 128: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.57,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 130,
+      "question": "Follow-up 128: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.08,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 131,
+      "question": "Pricing question 128: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.33,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 132,
+      "question": "Question variant 131: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.25,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 133,
+      "question": "Follow-up 131: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 16.92,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 134,
+      "question": "Pricing question 131: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.0,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 135,
+      "question": "Question variant 134: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.73,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 136,
+      "question": "Follow-up 134: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.13,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 137,
+      "question": "Pricing question 134: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.21,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 138,
+      "question": "Question variant 137: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.79,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 139,
+      "question": "Follow-up 137: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 15.87,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 140,
+      "question": "Pricing question 137: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.52,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 141,
+      "question": "Question variant 140: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 14.17,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 142,
+      "question": "Follow-up 140: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.3,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 143,
+      "question": "Pricing question 140: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.24,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 144,
+      "question": "Question variant 143: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.45,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 145,
+      "question": "Follow-up 143: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.73,
+      "answer_length": 2562,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: Cl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 146,
+      "question": "Pricing question 143: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.45,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 147,
+      "question": "Question variant 146: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.22,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 148,
+      "question": "Follow-up 146: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 13.97,
+      "answer_length": 2563,
+      "answer_preview": "CloudFuze offers numerous benefits that make it a preferred choice for cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to User Cloud Migration**: C...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 149,
+      "question": "Pricing question 146: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.23,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 150,
+      "question": "Question variant 149: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.13,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 151,
+      "question": "Follow-up 149: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 17.13,
+      "answer_length": 2590,
+      "answer_preview": "CloudFuze offers several benefits that make it a preferred choice for organizations looking to migrate their data. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 152,
+      "question": "Pricing question 149: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.44,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 153,
+      "question": "Question variant 152: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 14.61,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 154,
+      "question": "Follow-up 152: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 15.66,
+      "answer_length": 2598,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 155,
+      "question": "Pricing question 152: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.61,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 156,
+      "question": "Question variant 155: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 15.34,
+      "answer_length": 2424,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n-...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 157,
+      "question": "Follow-up 155: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 15.59,
+      "answer_length": 2598,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 158,
+      "question": "Pricing question 155: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.31,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 159,
+      "question": "Question variant 158: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.1,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 160,
+      "question": "Follow-up 158: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.96,
+      "answer_length": 2597,
+      "answer_preview": "CloudFuze offers several benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 161,
+      "question": "Pricing question 158: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.53,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 162,
+      "question": "Question variant 161: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.86,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 163,
+      "question": "Follow-up 161: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.23,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 164,
+      "question": "Pricing question 161: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.06,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 165,
+      "question": "Question variant 164: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.8,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 166,
+      "question": "Follow-up 164: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 15.28,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 167,
+      "question": "Pricing question 164: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.71,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 168,
+      "question": "Question variant 167: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.31,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 169,
+      "question": "Follow-up 167: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.31,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 170,
+      "question": "Pricing question 167: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.89,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 171,
+      "question": "Question variant 170: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 17.56,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 172,
+      "question": "Follow-up 170: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 18.91,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 173,
+      "question": "Pricing question 170: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 11.07,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 174,
+      "question": "Question variant 173: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 14.55,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 175,
+      "question": "Follow-up 173: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 16.26,
+      "answer_length": 2607,
+      "answer_preview": "CloudFuze offers several benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 176,
+      "question": "Pricing question 173: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 9.66,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here's a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 177,
+      "question": "Question variant 176: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.89,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 178,
+      "question": "Follow-up 176: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.48,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 179,
+      "question": "Pricing question 176: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.06,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 180,
+      "question": "Question variant 179: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 10.99,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 181,
+      "question": "Follow-up 179: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.1,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 182,
+      "question": "Pricing question 179: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.23,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here's a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 183,
+      "question": "Question variant 182: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.07,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 184,
+      "question": "Follow-up 182: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.29,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 185,
+      "question": "Pricing question 182: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.99,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 186,
+      "question": "Question variant 185: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 10.44,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 187,
+      "question": "Follow-up 185: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 13.37,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 188,
+      "question": "Pricing question 185: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.96,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 189,
+      "question": "Question variant 188: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 9.9,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 190,
+      "question": "Follow-up 188: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 12.75,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 191,
+      "question": "Pricing question 188: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.6,
+      "answer_length": 1551,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary significantly based on several factors. Here's a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 192,
+      "question": "Question variant 191: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 11.07,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 193,
+      "question": "Follow-up 191: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.83,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 194,
+      "question": "Pricing question 191: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.43,
+      "answer_length": 1551,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary significantly based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 195,
+      "question": "Question variant 194: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.32,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 196,
+      "question": "Follow-up 194: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.98,
+      "answer_length": 2608,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 197,
+      "question": "Pricing question 194: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 8.91,
+      "answer_length": 1551,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary significantly based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 198,
+      "question": "Question variant 197: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.65,
+      "answer_length": 2422,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different business needs during cloud migration. Here are the key migration options available:\n\n### 1. **Cloud-to-Cloud Migration**\n- *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 199,
+      "question": "Follow-up 197: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 17.14,
+      "answer_length": 2607,
+      "answer_preview": "CloudFuze offers several benefits for organizations looking to migrate their data across various cloud platforms. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **User to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 200,
+      "question": "Pricing question 197: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 10.84,
+      "answer_length": 1537,
+      "answer_preview": "The cost of migrating to Office 365 from Box can vary based on several factors. Here’s a breakdown of the main components that influence the pricing:\n\n### 1. **Licensing and Subscription Costs**\n- Mic...",
+      "trace_id": "test_trace"
+    }
+  ]
+}

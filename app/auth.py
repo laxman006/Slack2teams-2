@@ -6,7 +6,7 @@ Implements OAuth2 security using FastAPI's dependency injection pattern.
 Validates Microsoft OAuth tokens and enforces access control.
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
 from typing import Optional, Dict
@@ -193,4 +193,84 @@ async def get_current_user_optional(
     except HTTPException:
         # If authentication fails, return None instead of raising exception
         return None
+
+
+async def require_auth(authorization: Optional[str] = Header(None)) -> dict:
+    """
+    Verify user is authenticated with a valid Microsoft access token.
+    
+    This function:
+    1. Checks if Authorization header is present
+    2. Verifies the token with Microsoft Graph API
+    3. Validates the user's email domain (@cloudfuze.com)
+    4. Returns verified user information
+    
+    Raises:
+        HTTPException: 401 if token is missing/invalid, 403 if domain not allowed
+    
+    Returns:
+        dict: Verified user info (user_id, email, name)
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        logger.warning("Missing or invalid authorization header")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Missing or invalid authorization header. Please log in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = authorization.replace("Bearer ", "")
+    
+    try:
+        # Verify token with Microsoft Graph API
+        async with httpx.AsyncClient() as client:
+            graph_response = await client.get(
+                "https://graph.microsoft.com/v1.0/me",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10.0
+            )
+            
+            if graph_response.status_code != 200:
+                logger.warning(f"Token verification failed with status {graph_response.status_code}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Unauthorized: Invalid or expired access token. Please log in again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            user_info = graph_response.json()
+            user_email = user_info.get("mail") or user_info.get("userPrincipalName", "")
+            
+            # Validate CloudFuze email domain
+            if not user_email.endswith("@cloudfuze.com"):
+                logger.warning(f"Access denied for non-CloudFuze email: {user_email}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Only CloudFuze company accounts are allowed to access this application.",
+                )
+            
+            verified_user = {
+                "user_id": user_info.get("id"),
+                "email": user_email,
+                "name": user_info.get("displayName", "User")
+            }
+            
+            logger.info(f"User authenticated successfully: {user_email}")
+            return verified_user
+            
+    except httpx.HTTPError as e:
+        logger.error(f"Network error during token verification: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        )
+    except HTTPException:
+        # Re-raise HTTPExceptions (401/403)
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during authentication: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during authentication"
+        )
 

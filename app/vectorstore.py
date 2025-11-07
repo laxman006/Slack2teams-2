@@ -165,12 +165,25 @@ def load_existing_vectorstore():
             embedding_function=embeddings
         )
         
-        # Test if vectorstore is working
+        # SAFETY: Test if vectorstore is working with actual query
         total_docs = vectorstore._collection.count()
+        
+        # SAFETY: Verify vectorstore integrity with test query
+        test_results = vectorstore.similarity_search("test", k=1)
+        if not test_results and total_docs > 0:
+            print(f"[WARNING] Vectorstore has {total_docs} docs but query returned no results")
+        
         print(f"[OK] Loaded existing vectorstore with {total_docs} documents")
         return vectorstore
     except Exception as e:
         print(f"[!] Failed to load existing vectorstore: {e}")
+        print(f"[!] Error type: {type(e).__name__}")
+        # SAFETY: Check if there's a backup we can restore
+        backup_pattern = f"{CHROMA_DB_PATH}_backup_*"
+        import glob
+        backups = sorted(glob.glob(backup_pattern), reverse=True)
+        if backups:
+            print(f"[SAFETY] Found {len(backups)} backup(s), most recent: {backups[0]}")
         return None
 
 def rebuild_vectorstore_if_needed():
@@ -265,6 +278,15 @@ def build_incremental_vectorstore(changed_sources):
         print("[WARNING] No new documents found for changed sources")
         return existing_vectorstore
     
+    # SAFETY: Create backup before incremental update
+    backup_path = f"{CHROMA_DB_PATH}_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    try:
+        import shutil
+        shutil.copytree(CHROMA_DB_PATH, backup_path)
+        print(f"[SAFETY] Created backup before update: {backup_path}")
+    except Exception as e:
+        print(f"[WARNING] Could not create backup: {e}")
+    
     # Add new documents to existing vectorstore in batches to avoid token limit
     print(f"[*] Adding {len(new_docs)} new documents to existing vectorstore in batches...")
     batch_size = 50  # Add 50 documents at a time to stay under token limit
@@ -274,8 +296,27 @@ def build_incremental_vectorstore(changed_sources):
             batch_num = (i // batch_size) + 1
             total_batches = (len(new_docs) + batch_size - 1) // batch_size
             print(f"   [*] Adding batch {batch_num}/{total_batches} ({len(batch)} documents)...")
-            existing_vectorstore.add_documents(batch)
+            
+            # SAFETY: Try-catch per batch to prevent full corruption
+            try:
+                existing_vectorstore.add_documents(batch)
+            except Exception as batch_error:
+                print(f"[ERROR] Batch {batch_num} failed: {batch_error}")
+                print(f"[SAFETY] Restoring from backup: {backup_path}")
+                # Restore from backup if batch fails
+                if os.path.exists(backup_path):
+                    if os.path.exists(CHROMA_DB_PATH):
+                        shutil.rmtree(CHROMA_DB_PATH)
+                    shutil.copytree(backup_path, CHROMA_DB_PATH)
+                raise batch_error
+                
         print(f"[OK] Successfully added all {len(new_docs)} documents to vectorstore in {total_batches} batches")
+        
+        # SAFETY: Clean up backup after successful update
+        if os.path.exists(backup_path):
+            shutil.rmtree(backup_path)
+            print(f"[OK] Removed temporary backup")
+        
         return existing_vectorstore
     except Exception as e:
         print(f"[ERROR] Failed to add documents incrementally: {e}")

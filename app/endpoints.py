@@ -16,7 +16,8 @@ from app.vectorstore import retriever, vectorstore
 from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
 from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
-from app.auth import verify_user_access, require_admin
+from app.auth import verify_user_access, require_admin, require_auth
+from app.prompt_manager import get_system_prompt, compile_prompt
 from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
 from langchain_core.prompts import ChatPromptTemplate
 import time
@@ -167,15 +168,55 @@ Example: general_business|0.92
         return {"intent": "other", "confidence": 0.5, "method": "fallback"}
 
 
+def extract_platform_keywords(query: str) -> list:
+    """
+    Extract platform names and key terms from query for better retrieval.
+    Returns a list of important keywords that should be present in retrieved documents.
+    """
+    query_lower = query.lower()
+    
+    # Platform names to detect
+    platforms = [
+        'box', 'onedrive', 'google drive', 'gdrive', 'dropbox', 'sharepoint',
+        'slack', 'teams', 'microsoft teams', 'office 365', 'o365', 'm365',
+        'gmail', 'outlook', 'exchange', 'aws', 's3', 'azure', 'icloud'
+    ]
+    
+    detected_platforms = []
+    for platform in platforms:
+        if platform in query_lower:
+            detected_platforms.append(platform)
+    
+    # Also detect migration direction keywords
+    migration_keywords = []
+    if 'to' in query_lower or 'from' in query_lower:
+        # This is likely asking about specific source→destination migration
+        words = query_lower.split()
+        for i, word in enumerate(words):
+            if word in ['to', 'from'] and i > 0:
+                # Get the word before 'to'/'from'
+                migration_keywords.append(words[i-1])
+                # Get the word after 'to'/'from' if it exists
+                if i + 1 < len(words):
+                    migration_keywords.append(words[i+1])
+    
+    return detected_platforms + migration_keywords
+
+
 def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
     """
     Retrieve documents filtered by intent branch.
     This performs semantic search and then filters by metadata tags.
+    NOW WITH PLATFORM-SPECIFIC BOOSTING for better context relevance.
     """
     branch_config = INTENT_BRANCHES.get(intent, INTENT_BRANCHES["other"])
     
+    # Extract platform-specific keywords from query
+    important_keywords = extract_platform_keywords(query)
+    print(f"[RETRIEVAL] Detected important keywords: {important_keywords}")
+    
     # Get more documents than needed for filtering
-    all_docs = vectorstore.similarity_search_with_score(query, k=100)
+    all_docs = vectorstore.similarity_search_with_score(query, k=150)  # Increased from 100
     
     filtered_docs = []
     
@@ -191,6 +232,24 @@ def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
             tag_match = any(tag in doc_tag for tag in include_tags)
         else:
             tag_match = True
+        
+        # CRITICAL: Boost documents that contain important keywords
+        keyword_boost = 1.0
+        if important_keywords:
+            keyword_matches = sum(1 for keyword in important_keywords 
+                                if keyword in doc_content or keyword in doc_title)
+            
+            # Strong boost if document contains multiple important keywords
+            if keyword_matches >= 2:
+                keyword_boost = 0.5  # Strong boost (lower score = higher priority)
+            elif keyword_matches == 1:
+                keyword_boost = 0.8  # Moderate boost
+            else:
+                # No important keywords found - deprioritize
+                keyword_boost = 1.5  # Penalize (higher score = lower priority)
+        
+        # Apply keyword boost to score
+        score = score * keyword_boost
         
         # For general_business intent: exclude Slack→Teams specific content
         if intent == "general_business":
@@ -233,6 +292,7 @@ def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
     filtered_docs.sort(key=lambda x: x[1])
     
     # Return top k
+    print(f"[RETRIEVAL] After filtering and boosting, returning top {k} from {len(filtered_docs)} documents")
     return filtered_docs[:k]
 
 
@@ -294,6 +354,7 @@ def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
     """
     Hybrid ranking combining semantic similarity + keyword matching.
     alpha: weight for semantic score (1-alpha for keyword score)
+    NOW WITH ENHANCED PLATFORM-SPECIFIC MATCHING.
     """
     from collections import Counter
     import re
@@ -305,6 +366,9 @@ def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
     # Extract keywords from query
     query_lower = query.lower()
     query_words = set(re.findall(r'\w+', query_lower))
+    
+    # Get platform-specific keywords for extra boosting
+    important_keywords = extract_platform_keywords(query)
     
     reranked_docs = []
     
@@ -328,8 +392,18 @@ def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
             if intent_kw in doc_text:
                 keyword_matches += 1
         
+        # ENHANCED: Give extra weight to platform-specific keywords
+        platform_matches = 0
+        for platform_kw in important_keywords:
+            if platform_kw in doc_text:
+                platform_matches += 3  # Count each platform match as 3 regular matches
+            if platform_kw in doc_title:
+                platform_matches += 5  # Platform in title is very important
+        
+        keyword_matches += platform_matches
+        
         # Normalize keyword score (inverse, so lower is better like semantic)
-        keyword_score = max(0, 1.0 - (keyword_matches / 20.0))  # Normalize to 0-1
+        keyword_score = max(0, 1.0 - (keyword_matches / 25.0))  # Increased denominator for platform matches
         
         # Hybrid score (lower is better)
         hybrid_score = (alpha * semantic_component) + ((1 - alpha) * keyword_score)
@@ -337,7 +411,8 @@ def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
         reranked_docs.append((doc, hybrid_score, {
             "semantic": semantic_component,
             "keyword": keyword_score,
-            "keyword_matches": keyword_matches
+            "keyword_matches": keyword_matches,
+            "platform_matches": platform_matches
         }))
     
     # Sort by hybrid score
@@ -428,85 +503,6 @@ router = APIRouter()
 
 qa_chain = setup_qa_chain(retriever)
 
-
-# ============================================================================
-# AUTHENTICATION MIDDLEWARE - Verify Microsoft Access Tokens
-# ============================================================================
-
-async def require_auth(authorization: Optional[str] = Header(None)) -> dict:
-    """
-    Verify user is authenticated with a valid Microsoft access token.
-    
-    This function:
-    1. Checks if Authorization header is present
-    2. Verifies the token with Microsoft Graph API
-    3. Validates the user's email domain (@cloudfuze.com)
-    4. Returns verified user information
-    
-    Raises:
-        HTTPException: 401 if token is missing/invalid, 403 if domain not allowed
-    
-    Returns:
-        dict: Verified user info (user_id, email, name)
-    """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized: Missing or invalid authorization header. Please log in."
-        )
-    
-    access_token = authorization.replace("Bearer ", "")
-    
-    try:
-        # Verify token with Microsoft Graph API
-        async with httpx.AsyncClient() as client:
-            graph_response = await client.get(
-                "https://graph.microsoft.com/v1.0/me",
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=10.0
-            )
-            
-            if graph_response.status_code != 200:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Unauthorized: Invalid or expired access token. Please log in again."
-                )
-            
-            user_info = graph_response.json()
-            user_email = user_info.get("mail") or user_info.get("userPrincipalName", "")
-            
-            # Validate CloudFuze email domain
-            if not user_email.endswith("@cloudfuze.com"):
-                print(f"[AUTH] Access denied for non-CloudFuze email: {user_email}")
-                raise HTTPException(
-                    status_code=403,
-                    detail="Forbidden: Only CloudFuze company accounts are allowed to access this application."
-                )
-            
-            verified_user = {
-                "user_id": user_info.get("id"),
-                "email": user_email,
-                "name": user_info.get("displayName", "User")
-            }
-            
-            print(f"[AUTH] User authenticated: {user_email}")
-            return verified_user
-            
-    except httpx.HTTPError as e:
-        print(f"[AUTH] Token verification failed: {str(e)}")
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized: Unable to verify access token. Please log in again."
-        )
-    except HTTPException:
-        # Re-raise HTTPExceptions (401/403)
-        raise
-    except Exception as e:
-        print(f"[AUTH] Unexpected error during authentication: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error during authentication"
-        )
 
 # File path for corrected responses
 CORRECTED_RESPONSES_FILE = "./data/corrected_responses/corrected_responses.json"
@@ -674,6 +670,76 @@ def is_conversational_query(question: str) -> bool:
     
     return False
 
+
+async def is_followup_question(current_question: str, conversation_context: str) -> bool:
+    """
+    Check if the current question is a follow-up to the previous conversation.
+    Returns True if related, False if it's a new unrelated topic.
+    """
+    if not conversation_context or len(conversation_context.strip()) == 0:
+        # No previous conversation, so it can't be a follow-up
+        return False
+    
+    try:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.prompts import ChatPromptTemplate
+        
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.0, max_tokens=50)
+        
+        # Prompt to check if questions are related
+        relevance_prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a conversation analyzer. Determine if the current question is a follow-up to the previous conversation or a completely new topic.
+
+A follow-up question (treat as FOLLOWUP):
+- Refers to something mentioned in previous conversation (e.g., "what about pricing?" after discussing a product)
+- Uses pronouns referring to previous context (e.g., "how does it work?", "tell me more about that", "how it works", "what are the features")
+- Asks for clarification or additional details about the previous topic
+- Uses words like "also", "additionally", "what else", "more information", "what combinations"
+- Generic questions about process when a specific topic was just discussed (e.g., "how it works" after discussing migration)
+- Repeats similar questions that were recently discussed (e.g., asking about combinations after discussing them)
+- Asks "what type" or "what kind" questions related to the previous topic
+
+A NEW topic (only treat as NEW if clearly different):
+- Asks about a COMPLETELY DIFFERENT product/service from previous conversation
+  Example: After discussing "Google Workspace" → asking about "Dropbox to OneDrive" = NEW
+- Has ZERO connection to previous topics discussed
+- Explicitly switches context (e.g., from Slack to Box, from OneDrive to S3)
+
+IMPORTANT RULES:
+1. When in doubt, treat as FOLLOWUP to maintain helpful conversation context
+2. Generic process questions like "how it works" are always FOLLOWUP if a topic was just discussed
+3. Only treat as NEW if the user explicitly changes to a different platform/product/service
+
+Respond with ONLY one word: "FOLLOWUP" or "NEW"
+"""),
+            ("human", """Previous conversation:
+{conversation_context}
+
+Current question: {current_question}
+
+Is this a follow-up or new topic?""")
+        ])
+        
+        chain = relevance_prompt | llm
+        result = chain.invoke({
+            "conversation_context": conversation_context,
+            "current_question": current_question
+        })
+        
+        response = result.content.strip().upper()
+        is_related = "FOLLOWUP" in response
+        
+        print(f"[RELEVANCE CHECK] Question: '{current_question[:50]}...'")
+        print(f"[RELEVANCE CHECK] Result: {'FOLLOWUP' if is_related else 'NEW TOPIC'}")
+        
+        return is_related
+        
+    except Exception as e:
+        print(f"[ERROR] Relevance check failed: {e}")
+        # On error, assume it's related (safer default to maintain context when uncertain)
+        return True
+
+
 def analyze_retrieved_documents(docs_with_scores):
     """Analyze retrieved documents and extract metadata."""
     if not docs_with_scores:
@@ -761,6 +827,165 @@ class FeedbackRequest(BaseModel):
     rating: str  # "thumbs_up" or "thumbs_down"
     comment: str = None
 
+@router.post("/chat/test")
+async def chat_test(request: Request):
+    """TESTING ONLY - Unprotected chat endpoint for automated testing. 
+    Remove in production!"""
+    data = await request.json()
+    question = data.get("question", "")
+    session_id = data.get("session_id", str(uuid.uuid4()))
+    
+    # Mock auth user for testing
+    auth_user = {
+        "user_id": "test_user",
+        "email": "test@example.com",
+        "name": "Test User"
+    }
+    
+    # Use VERIFIED user info from mock auth
+    user_id = auth_user["user_id"]
+    user_name = auth_user["name"]
+    user_email = auth_user["email"]
+
+    # Use user_id if provided, otherwise fall back to session_id for backward compatibility
+    conversation_id = user_id if user_id else session_id
+
+    # FIRST: Check if we have a corrected response for this question
+    corrected_answer = find_similar_corrected_response(question)
+    
+    if corrected_answer:
+        # Use the corrected response
+        answer = corrected_answer
+    # Check if this is a conversational query
+    elif is_conversational_query(question):
+        # Handle conversational queries directly without document retrieval
+        from langchain_openai import ChatOpenAI
+        from langchain_core.prompts import ChatPromptTemplate
+        
+        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
+        
+        # Simple conversational prompt
+        conversational_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+            ("human", "{question}")
+        ])
+        
+        # Get conversation context for continuity
+        conversation_context = await get_conversation_context(conversation_id)
+        
+        # Check if this question is related to previous conversation
+        is_related = await is_followup_question(question, conversation_context)
+        
+        # Only include conversation context if the question is a follow-up
+        if is_related and conversation_context:
+            enhanced_query = f"{conversation_context}\n\nUser: {question}"
+            print(f"[CONTEXT] Using conversation history (related follow-up)")
+        else:
+            enhanced_query = question
+            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+        
+        chain = conversational_prompt | llm
+        result = chain.invoke({"question": enhanced_query})
+        answer = result.content
+    else:
+        # Handle informational queries with document retrieval
+        conversation_context = await get_conversation_context(conversation_id)
+        
+        # Check if this question is related to previous conversation
+        is_related = await is_followup_question(question, conversation_context)
+        
+        # Only include conversation context if the question is a follow-up
+        if is_related and conversation_context:
+            enhanced_query = f"{conversation_context}\n\nUser: {question}"
+            print(f"[CONTEXT] Using conversation history (related follow-up)")
+        else:
+            enhanced_query = question
+            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+        
+        # Full RAG pipeline
+        intent_result = classify_intent(question)
+        intent = intent_result["intent"]
+        intent_confidence = intent_result["confidence"]
+        
+        print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f})")
+        
+        if vectorstore is None:
+            answer = "Vectorstore not initialized."
+        else:
+            try:
+                # Expand query with intent-specific terms
+                expanded_query = expand_query_with_intent(enhanced_query, intent)
+                
+                # Retrieve documents based on intent
+                doc_results = retrieve_with_branch_filter(expanded_query, intent, k=50)
+                
+                # Rerank with hybrid scoring
+                reranked_docs = hybrid_ranking(doc_results, expanded_query, intent, alpha=0.7)
+                
+                # Get top documents (hybrid_ranking returns tuples of (doc, score, metadata))
+                top_docs = [doc for doc, score, *_ in reranked_docs[:30]]
+                
+                # Format context
+                from app.llm import format_docs
+                formatted_docs = format_docs(top_docs)
+                context = "\n\n".join(formatted_docs)
+                
+                # Get prompt
+                from app.prompt_manager import get_system_prompt, compile_prompt
+                langfuse_prompt_template, prompt_metadata = get_system_prompt()
+                
+                # Generate answer
+                from langchain_openai import ChatOpenAI
+                from langchain_core.prompts import ChatPromptTemplate
+                
+                llm = ChatOpenAI(
+                    model_name="gpt-4o-mini",
+                    streaming=False,
+                    temperature=0.3,
+                    max_tokens=1500
+                )
+                
+                if langfuse_prompt_template:
+                    compiled_prompt_text = compile_prompt(
+                        langfuse_prompt_template,
+                        context=context,
+                        question=enhanced_query
+                    )
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", compiled_prompt_text)
+                    ])
+                    chain = prompt_template | llm
+                    result = chain.invoke({})
+                else:
+                    from config import SYSTEM_PROMPT
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", SYSTEM_PROMPT),
+                        ("human", "Context: {context}\n\nQuestion: {question}")
+                    ])
+                    chain = prompt_template | llm
+                    result = chain.invoke({
+                        "context": context,
+                        "question": enhanced_query
+                    })
+                
+                answer = result.content
+                
+            except Exception as e:
+                print(f"[ERROR] RAG pipeline failed: {e}")
+                answer = f"Error processing question: {str(e)}"
+
+    # Add both user question and bot response to conversation AFTER processing
+    await add_to_conversation(conversation_id, "user", question)
+    await add_to_conversation(conversation_id, "assistant", answer)
+
+    return {
+        "answer": answer,
+        "session_id": session_id,
+        "trace_id": "test_trace",
+        "test_mode": True
+    }
+
+
 @router.post("/chat")
 async def chat(request: Request, auth_user: dict = Depends(require_auth)):
     """Chat endpoint: returns full answer from vectorstore. PROTECTED - requires valid authentication."""
@@ -798,7 +1023,17 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         
         # Get conversation context for continuity
         conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        
+        # Check if this question is related to previous conversation
+        is_related = await is_followup_question(question, conversation_context)
+        
+        # Only include conversation context if the question is a follow-up
+        if is_related and conversation_context:
+            enhanced_query = f"{conversation_context}\n\nUser: {question}"
+            print(f"[CONTEXT] Using conversation history (related follow-up)")
+        else:
+            enhanced_query = question
+            print(f"[CONTEXT] Starting fresh conversation (new topic)")
         
         chain = conversational_prompt | llm
         result = chain.invoke({"question": enhanced_query})
@@ -806,7 +1041,17 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
     else:
         # Handle informational queries with document retrieval
         conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        
+        # Check if this question is related to previous conversation
+        is_related = await is_followup_question(question, conversation_context)
+        
+        # Only include conversation context if the question is a follow-up
+        if is_related and conversation_context:
+            enhanced_query = f"{conversation_context}\n\nUser: {question}"
+            print(f"[CONTEXT] Using conversation history (related follow-up)")
+        else:
+            enhanced_query = question
+            print(f"[CONTEXT] Starting fresh conversation (new topic)")
         
         # ============ INTENT CLASSIFICATION ============
         # Classify user intent to enable branch-specific retrieval
@@ -879,10 +1124,8 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 from langchain_openai import ChatOpenAI
                 from config import SYSTEM_PROMPT
                 
-                prompt_template = ChatPromptTemplate.from_messages([
-                    ("system", SYSTEM_PROMPT),
-                    ("human", "Context: {context}\n\nQuestion: {question}")
-                ])
+                # Try to get prompt from Langfuse (non-breaking addition)
+                langfuse_prompt_template, prompt_metadata = get_system_prompt()
                 
                 llm = ChatOpenAI(
                     model_name="gpt-4o-mini",
@@ -890,11 +1133,29 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                     max_tokens=1500
                 )
                 
-                chain = prompt_template | llm
-                result = chain.invoke({
-                    "context": context,
-                    "question": enhanced_query
-                })
+                if langfuse_prompt_template:
+                    # Use Langfuse prompt (context and question already compiled)
+                    compiled_prompt_text = compile_prompt(
+                        langfuse_prompt_template,
+                        context=context,
+                        question=enhanced_query
+                    )
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", compiled_prompt_text)
+                    ])
+                    chain = prompt_template | llm
+                    result = chain.invoke({})  # No variables needed
+                else:
+                    # Fallback to existing behavior
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", SYSTEM_PROMPT),
+                        ("human", "Context: {context}\n\nQuestion: {question}")
+                    ])
+                    chain = prompt_template | llm
+                    result = chain.invoke({
+                        "context": context,
+                        "question": enhanced_query
+                    })
                 
                 answer = result.content
                 
@@ -1004,8 +1265,16 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # Get conversation context BEFORE adding current question
             conversation_context = await get_conversation_context(conversation_id)
 
-            # Combine question with conversation context for better continuity
-            enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+            # Check if this question is related to previous conversation
+            is_related = await is_followup_question(question, conversation_context)
+            
+            # Only include conversation context if the question is a follow-up
+            if is_related and conversation_context:
+                enhanced_query = f"{conversation_context}\n\nUser: {question}"
+                print(f"[CONTEXT] Using conversation history (related follow-up)")
+            else:
+                enhanced_query = question
+                print(f"[CONTEXT] Starting fresh conversation (new topic)")
             
             # Check if this is a conversational query
             is_conv = is_conversational_query(question)
@@ -1079,8 +1348,12 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
                 return
             
+            # ===== LOAD PROMPT FROM LANGFUSE =====
+            # Load prompt before creating trace so we can link them
+            langfuse_prompt_template, prompt_metadata = get_system_prompt()
+            
             # ===== START RAG PIPELINE TRACING =====
-            # Create structured Langfuse trace for RAG pipeline
+            # Create structured Langfuse trace for RAG pipeline with prompt tracking
             rag_trace = None
             try:
                 rag_trace = langfuse_tracker.create_rag_pipeline_trace(
@@ -1093,7 +1366,9 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                         "endpoint": "/chat/stream",
                         "conversational_query": False,
                         "streaming": True
-                    }
+                    },
+                    prompt_template=langfuse_prompt_template,
+                    prompt_metadata=prompt_metadata
                 )
                 
                 # Start query processing span
@@ -1391,10 +1666,26 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             from langchain_core.prompts import ChatPromptTemplate
             from config import SYSTEM_PROMPT
             
-            prompt_template = ChatPromptTemplate.from_messages([
-                ("system", SYSTEM_PROMPT),
-                ("human", "Context: {context}\n\nQuestion: {question}")
-            ])
+            # Use prompt already loaded at the start (linked to trace)
+            if langfuse_prompt_template:
+                # Use Langfuse prompt
+                compiled_prompt_text = compile_prompt(
+                    langfuse_prompt_template,
+                    context=context_text,
+                    question=enhanced_query
+                )
+                # Create messages from compiled prompt
+                prompt_template = ChatPromptTemplate.from_messages([
+                    ("system", compiled_prompt_text)
+                ])
+                messages = prompt_template.format_messages()
+            else:
+                # Fallback to existing behavior
+                prompt_template = ChatPromptTemplate.from_messages([
+                    ("system", SYSTEM_PROMPT),
+                    ("human", "Context: {context}\n\nQuestion: {question}")
+                ])
+                messages = prompt_template.format_messages(context=context_text, question=enhanced_query)
             
             # ===== START SYNTHESIS SPAN =====
             if rag_trace:
@@ -1413,7 +1704,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             
             # Stream the response with real-time streaming
             full_response = ""
-            messages = prompt_template.format_messages(context=context_text, question=enhanced_query)
+            # Messages already created above based on prompt source
             async for chunk in llm.astream(messages):
                 if hasattr(chunk, 'content'):
                     token = chunk.content

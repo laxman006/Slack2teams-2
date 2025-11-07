@@ -1,0 +1,1810 @@
+{
+  "summary": {
+    "total": 200,
+    "success": 199,
+    "failed": 1,
+    "success_rate": 99.5,
+    "avg_response_time": 7.836381909547737,
+    "session_id": "test_session_1762504335",
+    "timestamp": "2025-11-07T14:29:41.019241"
+  },
+  "results": [
+    {
+      "test_num": 1,
+      "question": "Do you support Slack to Teams migration?",
+      "status": "SUCCESS",
+      "response_time": 8.69,
+      "answer_length": 856,
+      "answer_preview": "Yes, CloudFuze supports Slack to Teams migration. Our platform enables the seamless transfer of various elements, including channels, direct messages, user permissions, and metadata from Slack to Micr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 2,
+      "question": "How does Slack to Teams migration work?",
+      "status": "SUCCESS",
+      "response_time": 15.22,
+      "answer_length": 1976,
+      "answer_preview": "To migrate from Slack to Microsoft Teams using CloudFuze, follow these steps:\n\n1. **Create a CloudFuze Account**: Start by logging into the CloudFuze platform and creating an account if you don't alre...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 3,
+      "question": "What about channel migration?",
+      "status": "SUCCESS",
+      "response_time": 9.2,
+      "answer_length": 1820,
+      "answer_preview": "CloudFuze provides comprehensive support for migrating channels from Slack to Microsoft Teams. Here’s how the channel migration process works:\n\n1. **Select Channels**: During the migration setup, you ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 4,
+      "question": "Can you preserve message history?",
+      "status": "SUCCESS",
+      "response_time": 5.96,
+      "answer_length": 940,
+      "answer_preview": "Yes, CloudFuze can preserve message history during the migration from Slack to Microsoft Teams. When you migrate channels, direct messages, and other data, CloudFuze ensures that all messages, includi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 5,
+      "question": "What's the pricing for Slack to Teams?",
+      "status": "SUCCESS",
+      "response_time": 6.76,
+      "answer_length": 954,
+      "answer_preview": "The pricing for migrating from Slack to Teams varies based on several factors, including:\n\n- **Number of Slack users to be migrated**\n- **Number of channels to be migrated**\n- **Size of files to be mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 6,
+      "question": "Tell me about Google Workspace migration",
+      "status": "SUCCESS",
+      "response_time": 14.66,
+      "answer_length": 2684,
+      "answer_preview": "Google Workspace migration involves transferring data between Google Workspace accounts, often necessary during events such as mergers, acquisitions, or organizational changes. The migration process c...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 7,
+      "question": "How long does it take?",
+      "status": "SUCCESS",
+      "response_time": 6.72,
+      "answer_length": 814,
+      "answer_preview": "The duration of a migration from Slack to Microsoft Teams using CloudFuze can vary significantly based on several factors, including:\n\n- **Number of users**: More users typically mean a longer migrati...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 8,
+      "question": "What are the requirements?",
+      "status": "SUCCESS",
+      "response_time": 10.5,
+      "answer_length": 1440,
+      "answer_preview": "The requirements for migrating from Slack to Microsoft Teams using CloudFuze include the following:\n\n1. **Admin Credentials**:\n   - You will need the **Slack admin login credentials** to access the Sl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 9,
+      "question": "Dropbox to OneDrive migration",
+      "status": "SUCCESS",
+      "response_time": 15.94,
+      "answer_length": 2564,
+      "answer_preview": "CloudFuze offers a comprehensive solution for migrating data from Dropbox to OneDrive, designed to handle various complexities and sizes of data transfers. Here are some key features and aspects of th...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 10,
+      "question": "Does it support file permissions?",
+      "status": "SUCCESS",
+      "response_time": 7.54,
+      "answer_length": 528,
+      "answer_preview": "Yes, CloudFuze supports the migration of file permissions when transferring data from Slack to Microsoft Teams. During the migration process, it ensures that files shared in Slack retain their permiss...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 11,
+      "question": "What about shared folders?",
+      "status": "SUCCESS",
+      "response_time": 6.17,
+      "answer_length": 458,
+      "answer_preview": "Yes, CloudFuze supports the migration of shared folders when transferring data from Dropbox to OneDrive. During the migration process, it ensures that all sharing permissions associated with folders a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 12,
+      "question": "What is CloudFuze?",
+      "status": "SUCCESS",
+      "response_time": 11.63,
+      "answer_length": 1775,
+      "answer_preview": "CloudFuze is a comprehensive cloud migration solution that facilitates the seamless transfer of data between various cloud platforms. It is designed to support migrations across over 40 cloud services...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 13,
+      "question": "What services do you offer?",
+      "status": "SUCCESS",
+      "response_time": 10.15,
+      "answer_length": 2145,
+      "answer_preview": "CloudFuze offers a comprehensive range of cloud migration services designed to facilitate seamless data transfers between various cloud platforms. Here are the key services provided by CloudFuze:\n\n1. ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 14,
+      "question": "Tell me more about that",
+      "status": "SUCCESS",
+      "response_time": 14.62,
+      "answer_length": 2816,
+      "answer_preview": "CloudFuze is a robust cloud migration solution that specializes in facilitating seamless data transfers between various cloud platforms. Here’s a more detailed overview of its key services and feature...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 15,
+      "question": "What platforms do you support?",
+      "status": "SUCCESS",
+      "response_time": 6.58,
+      "answer_length": 723,
+      "answer_preview": "CloudFuze supports migration across **over 40 different cloud storage platforms**, making it a versatile solution for various migration needs. Some of the key platforms include:\n\n- **Google Drive**\n- ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 16,
+      "question": "How secure is CloudFuze?",
+      "status": "SUCCESS",
+      "response_time": 7.56,
+      "answer_length": 1274,
+      "answer_preview": "CloudFuze prioritizes data security during the migration process with several robust measures in place:\n\n1. **Encryption**: CloudFuze employs **256-bit encryption** to protect data during transfer and...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 17,
+      "question": "What are your pricing plans?",
+      "status": "SUCCESS",
+      "response_time": 5.49,
+      "answer_length": 1126,
+      "answer_preview": "CloudFuze offers a variety of pricing plans tailored to meet the needs of different organizations, whether you're a small business or a large enterprise. While specific pricing details can vary based ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 18,
+      "question": "Do you offer enterprise pricing?",
+      "status": "SUCCESS",
+      "response_time": 8.73,
+      "answer_length": 997,
+      "answer_preview": "CloudFuze does offer enterprise pricing tailored to the specific needs of larger organizations. The pricing model is flexible and designed to accommodate various factors, including:\n\n1. **Custom Quote...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 19,
+      "question": "What's included in the enterprise plan?",
+      "status": "SUCCESS",
+      "response_time": 10.74,
+      "answer_length": 1764,
+      "answer_preview": "CloudFuze's enterprise plan includes a range of features and services tailored to meet the needs of larger organizations. Here are some key components typically included in the enterprise plan:\n\n1. **...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 20,
+      "question": "Is there a free trial?",
+      "status": "SUCCESS",
+      "response_time": 5.06,
+      "answer_length": 547,
+      "answer_preview": "CloudFuze does offer a limited free trial for its migration services. This trial allows potential users to explore the platform and its features before committing to a paid plan. However, the specific...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 21,
+      "question": "How do I get started?",
+      "status": "SUCCESS",
+      "response_time": 7.16,
+      "answer_length": 1282,
+      "answer_preview": "To get started with CloudFuze, follow these steps:\n\n1. **Visit the CloudFuze Website**: Go to the [CloudFuze website](https://www.cloudfuze.com).\n\n2. **Create an Account**: Sign up for a CloudFuze acc...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 22,
+      "question": "How do you handle large migrations?",
+      "status": "SUCCESS",
+      "response_time": 14.83,
+      "answer_length": 2087,
+      "answer_preview": "CloudFuze has a robust approach to handling large migrations, ensuring that the process is efficient, secure, and seamless. Here are the key components of how CloudFuze manages large migrations:\n\n1. *...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 23,
+      "question": "What about API rate limits?",
+      "status": "SUCCESS",
+      "response_time": 7.43,
+      "answer_length": 1368,
+      "answer_preview": "CloudFuze addresses API rate limits as part of its migration strategy to ensure smooth and efficient data transfers. Here are some key points regarding how CloudFuze manages API rate limits during mig...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 24,
+      "question": "Can you migrate permissions?",
+      "status": "SUCCESS",
+      "response_time": 7.97,
+      "answer_length": 1246,
+      "answer_preview": "Yes, CloudFuze can migrate permissions during the migration process. Here are the key features related to permissions migration:\n\n1. **Automated User and Permission Mapping**: CloudFuze automatically ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 25,
+      "question": "Do you support incremental migration?",
+      "status": "SUCCESS",
+      "response_time": 8.98,
+      "answer_length": 1359,
+      "answer_preview": "Yes, CloudFuze supports incremental migration through its delta migration feature. Here are the key aspects of how incremental migration works with CloudFuze:\n\n1. **Delta Migration Capability**: After...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 26,
+      "question": "What about delta migration?",
+      "status": "SUCCESS",
+      "response_time": 9.04,
+      "answer_length": 1487,
+      "answer_preview": "CloudFuze offers a robust **delta migration** feature that is designed to ensure a seamless transition during the migration process. Here are the key aspects of delta migration with CloudFuze:\n\n1. **I...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 27,
+      "question": "Box to SharePoint migration",
+      "status": "SUCCESS",
+      "response_time": 18.51,
+      "answer_length": 2417,
+      "answer_preview": "CloudFuze offers a comprehensive solution for migrating data from Box to SharePoint Online, designed to meet the needs of businesses of all sizes, especially large enterprises. Here are some key featu...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 28,
+      "question": "Can you preserve metadata?",
+      "status": "SUCCESS",
+      "response_time": 6.66,
+      "answer_length": 991,
+      "answer_preview": "Yes, CloudFuze can preserve metadata during the migration process from Box to SharePoint Online. Here are some key points regarding metadata preservation:\n\n1. **Full Metadata Retention**: CloudFuze en...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 29,
+      "question": "What about version history?",
+      "status": "SUCCESS",
+      "response_time": 8.09,
+      "answer_length": 1076,
+      "answer_preview": "Yes, CloudFuze supports the preservation of version history during the migration from Box to SharePoint Online. Here are the key aspects regarding version history:\n\n1. **Complete Version Migration**: ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 30,
+      "question": "OneDrive to Google Drive",
+      "status": "SUCCESS",
+      "response_time": 10.39,
+      "answer_length": 1420,
+      "answer_preview": "To migrate from OneDrive to Google Drive, CloudFuze provides a comprehensive solution that simplifies the process while ensuring data integrity. Here’s an overview of the steps involved in the migrati...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 31,
+      "question": "How does it work?",
+      "status": "SUCCESS",
+      "response_time": 15.04,
+      "answer_length": 1921,
+      "answer_preview": "To migrate from OneDrive to Google Drive using CloudFuze, here’s how the process works:\n\n1. **Create a CloudFuze Account**: Begin by signing up for a CloudFuze account. You can opt for a free trial to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 32,
+      "question": "How do I get support?",
+      "status": "SUCCESS",
+      "response_time": 6.73,
+      "answer_length": 813,
+      "answer_preview": "To get support from CloudFuze, you can follow these steps:\n\n1. **Visit the CloudFuze Website**: Go to the [CloudFuze contact page](https://www.cloudfuze.com/contact/).\n\n2. **Fill Out the Contact Form*...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 33,
+      "question": "Do you have documentation?",
+      "status": "SUCCESS",
+      "response_time": 5.14,
+      "answer_length": 453,
+      "answer_preview": "I don't have specific documentation available, but I can help you with information about CloudFuze's migration services and processes. If you're looking for detailed guides or documentation on specifi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 34,
+      "question": "Where can I find migration guides?",
+      "status": "SUCCESS",
+      "response_time": 4.33,
+      "answer_length": 452,
+      "answer_preview": "I don't have specific migration guides available, but I can provide information about CloudFuze's migration services and processes. For detailed guides on various migration topics, I recommend visitin...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 35,
+      "question": "Do you offer training?",
+      "status": "SUCCESS",
+      "response_time": 6.93,
+      "answer_length": 586,
+      "answer_preview": "I don't have specific information about training offerings from CloudFuze in my knowledge base. However, CloudFuze does provide extensive support throughout the migration process, which may include gu...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 36,
+      "question": "What about onboarding?",
+      "status": "SUCCESS",
+      "response_time": 6.88,
+      "answer_length": 1090,
+      "answer_preview": "CloudFuze provides comprehensive onboarding support as part of its migration services. This includes:\n\n- **User Training**: CloudFuze offers training to help users become familiar with the new interfa...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 37,
+      "question": "Are you SOC 2 compliant?",
+      "status": "SUCCESS",
+      "response_time": 5.68,
+      "answer_length": 709,
+      "answer_preview": "Yes, CloudFuze is SOC 2 compliant. We hold a SOC 2 Type 2 certification, which was last issued on March 31, 2025. This compliance ensures that we adhere to stringent security and operational standards...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 38,
+      "question": "Can I download the SOC 2 certificate?",
+      "status": "SUCCESS",
+      "response_time": 5.6,
+      "answer_length": 478,
+      "answer_preview": "Yes, you can download the SOC 2 Type 2 certificate for CloudFuze. Here is the link to download the certificate:\n\n**[Download Certificate: CloudFuze_SOC 2 Type 2 Report.pdf](https://cloudfuzecom.sharep...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 39,
+      "question": "What about GDPR compliance?",
+      "status": "SUCCESS",
+      "response_time": 9.01,
+      "answer_length": 1181,
+      "answer_preview": "Yes, CloudFuze ensures complete GDPR compliance during cloud migrations of any size for businesses across various industries. This compliance is part of our commitment to maintaining high security sta...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 40,
+      "question": "Do you encrypt data?",
+      "status": "SUCCESS",
+      "response_time": 6.61,
+      "answer_length": 520,
+      "answer_preview": "Yes, CloudFuze encrypts data during migration using **RSA 2048-bit encryption**. This encryption ensures the confidentiality and integrity of your data throughout the migration process. Additionally, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 41,
+      "question": "What security measures do you have?",
+      "status": "SUCCESS",
+      "response_time": 9.5,
+      "answer_length": 1804,
+      "answer_preview": "CloudFuze implements several robust security measures to ensure the safety and integrity of data during cloud migrations. Here are the key security features:\n\n1. **Data Encryption**: CloudFuze uses **...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 42,
+      "question": "Hi",
+      "status": "SUCCESS",
+      "response_time": 1.48,
+      "answer_length": 28,
+      "answer_preview": "Hello! How’s your day going?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 43,
+      "question": "How are you?",
+      "status": "SUCCESS",
+      "response_time": 1.68,
+      "answer_length": 74,
+      "answer_preview": "I'm doing well, thank you for asking! How about you? How's your day going?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 44,
+      "question": "Thank you",
+      "status": "SUCCESS",
+      "response_time": 1.66,
+      "answer_length": 90,
+      "answer_preview": "You're welcome! If there's anything else you need or want to talk about, just let me know!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 45,
+      "question": "That's helpful",
+      "status": "SUCCESS",
+      "response_time": 4.66,
+      "answer_length": 195,
+      "answer_preview": "I'm glad to hear that you found the information helpful! If you have any specific questions or need assistance with CloudFuze's migration services or features, feel free to ask. I'm here to help!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 46,
+      "question": "Can you help me?",
+      "status": "SUCCESS",
+      "response_time": 1.57,
+      "answer_length": 62,
+      "answer_preview": "Of course! I’m here to help. What do you need assistance with?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 47,
+      "question": "asdfghjkl",
+      "status": "SUCCESS",
+      "response_time": 2.09,
+      "answer_length": 118,
+      "answer_preview": "It looks like that might have been a slip of the keyboard! Is there something specific on your mind? I'm here to help!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 48,
+      "question": "What about dogs?",
+      "status": "SUCCESS",
+      "response_time": 3.27,
+      "answer_length": 139,
+      "answer_preview": "I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 49,
+      "question": "Tell me a story",
+      "status": "SUCCESS",
+      "response_time": 3.41,
+      "answer_length": 134,
+      "answer_preview": "I’d be happy to help! I specialize in CloudFuze's migration services. What specific information or topic would you like to know about?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 50,
+      "question": "1+1",
+      "status": "SUCCESS",
+      "response_time": 2.27,
+      "answer_length": 98,
+      "answer_preview": "1 + 1 equals 2! If you have any more questions or need help with something else, feel free to ask!",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 51,
+      "question": "What's the weather?",
+      "status": "SUCCESS",
+      "response_time": 5.19,
+      "answer_length": 140,
+      "answer_preview": "I don't have information about the weather, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 52,
+      "question": "SharePoint to Box migration",
+      "status": "SUCCESS",
+      "response_time": 4.82,
+      "answer_length": 442,
+      "answer_preview": "I don't have specific information about SharePoint to Box migration in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations to and from v...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 53,
+      "question": "Egnyte to OneDrive",
+      "status": "SUCCESS",
+      "response_time": 8.74,
+      "answer_length": 1330,
+      "answer_preview": "CloudFuze offers a comprehensive solution for migrating data from Egnyte to OneDrive. With our advanced migration tool, you can seamlessly transfer high-volume data while preserving essential metadata...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 54,
+      "question": "Google Drive to Dropbox",
+      "status": "SUCCESS",
+      "response_time": 5.54,
+      "answer_length": 459,
+      "answer_preview": "I don't have specific information about migrating from Google Drive to Dropbox in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 55,
+      "question": "Box to Google Workspace",
+      "status": "SUCCESS",
+      "response_time": 5.77,
+      "answer_length": 459,
+      "answer_preview": "I don't have specific information about migrating from Box to Google Workspace in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 56,
+      "question": "Teams to Slack migration",
+      "status": "SUCCESS",
+      "response_time": 3.73,
+      "answer_length": 351,
+      "answer_preview": "I don't have information about Teams to Slack migration in my knowledge base, but I can help you with CloudFuze's migration services or products related to migrating from Slack to Teams. What would yo...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 57,
+      "question": "OneDrive to SharePoint",
+      "status": "SUCCESS",
+      "response_time": 4.67,
+      "answer_length": 453,
+      "answer_preview": "I don't have specific information about migrating from OneDrive to SharePoint in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations bet...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 58,
+      "question": "Dropbox to Box",
+      "status": "SUCCESS",
+      "response_time": 5.93,
+      "answer_length": 441,
+      "answer_preview": "I don't have specific information about migrating from Dropbox to Box in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations to and from...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 59,
+      "question": "SharePoint to Google Drive",
+      "status": "SUCCESS",
+      "response_time": 5.13,
+      "answer_length": 461,
+      "answer_preview": "I don't have specific information about migrating from SharePoint to Google Drive in my knowledge base. However, I can assist you with CloudFuze's migration services, particularly regarding migrations...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 60,
+      "question": "Can you migrate emails?",
+      "status": "SUCCESS",
+      "response_time": 8.49,
+      "answer_length": 1445,
+      "answer_preview": "Yes, CloudFuze offers comprehensive email migration solutions. We support both standalone email migration and email migration alongside overall cloud data migration. Here are some key features of our ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 61,
+      "question": "Do you support calendar migration?",
+      "status": "SUCCESS",
+      "response_time": 4.11,
+      "answer_length": 456,
+      "answer_preview": "I don't have specific information about calendar migration in my knowledge base. However, CloudFuze does offer comprehensive email migration solutions, which typically include the migration of associa...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 62,
+      "question": "What about contact migration?",
+      "status": "SUCCESS",
+      "response_time": 6.23,
+      "answer_length": 1033,
+      "answer_preview": "Yes, CloudFuze supports contact migration as part of its comprehensive email migration solutions. Here are some key points regarding contact migration:\n\n- **Bulk Migration**: You can migrate contacts ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 63,
+      "question": "Can you migrate tasks?",
+      "status": "SUCCESS",
+      "response_time": 4.95,
+      "answer_length": 365,
+      "answer_preview": "I don't have specific information about task migration in my knowledge base. However, CloudFuze primarily focuses on email, contacts, and calendar migrations. If you have specific questions about migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 64,
+      "question": "Do you preserve timestamps?",
+      "status": "SUCCESS",
+      "response_time": 6.74,
+      "answer_length": 518,
+      "answer_preview": "Yes, CloudFuze preserves timestamps during the migration process. This includes maintaining the original sent and received timestamps for emails, as well as the timestamps for calendar events. This en...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 65,
+      "question": "What about file permissions?",
+      "status": "SUCCESS",
+      "response_time": 9.25,
+      "answer_length": 503,
+      "answer_preview": "I don't have specific information about file permissions in my knowledge base. However, CloudFuze does offer features that support user permissions control during migration, allowing administrators to...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 66,
+      "question": "Can you handle large files?",
+      "status": "SUCCESS",
+      "response_time": 6.58,
+      "answer_length": 462,
+      "answer_preview": "Yes, CloudFuze can handle large files during migration. The platform is designed to manage migrations of petabytes and terabytes of data efficiently and securely. It ensures that all files, regardless...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 67,
+      "question": "Do you support nested folders?",
+      "status": "SUCCESS",
+      "response_time": 5.52,
+      "answer_length": 558,
+      "answer_preview": "Yes, CloudFuze supports the migration of nested folders. The platform is designed to preserve the complete folder structure during the migration process, ensuring that all files and folders, including...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 68,
+      "question": "What about external sharing?",
+      "status": "SUCCESS",
+      "response_time": 5.44,
+      "answer_length": 774,
+      "answer_preview": "Yes, CloudFuze supports external sharing during migrations. The platform is designed to migrate external shared links and permissions accurately, ensuring that access levels for external collaborators...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 69,
+      "question": "Can you migrate workflows?",
+      "status": "SUCCESS",
+      "response_time": 4.77,
+      "answer_length": 360,
+      "answer_preview": "I don't have information about migrating workflows specifically in my knowledge base. However, I can help you with CloudFuze's migration services for files, folders, and other data types. If you have ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 70,
+      "question": "How many customers do you have?",
+      "status": "SUCCESS",
+      "response_time": 4.55,
+      "answer_length": 348,
+      "answer_preview": "I don't have information about the specific number of customers CloudFuze has in my knowledge base. However, I can help you with details about CloudFuze's migration services or any other related topic...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 71,
+      "question": "What industries do you serve?",
+      "status": "SUCCESS",
+      "response_time": 5.52,
+      "answer_length": 373,
+      "answer_preview": "I don't have specific information about the industries that CloudFuze serves in my knowledge base. However, I can assist you with details about CloudFuze's migration services or any other related topi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 72,
+      "question": "Do you have case studies?",
+      "status": "SUCCESS",
+      "response_time": 7.9,
+      "answer_length": 659,
+      "answer_preview": "Yes, CloudFuze has case studies that showcase successful migrations for various companies. For example, we have helped organizations like Discovery, Michigan State University, BuzzFeed, and Confluent ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 73,
+      "question": "What's your success rate?",
+      "status": "SUCCESS",
+      "response_time": 10.37,
+      "answer_length": 695,
+      "answer_preview": "At CloudFuze, we have a **100% migration success rate**. Our approach focuses on providing complete handholding throughout the migration process, ensuring that every project is successful without comp...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 74,
+      "question": "Do you offer guarantees?",
+      "status": "SUCCESS",
+      "response_time": 9.49,
+      "answer_length": 937,
+      "answer_preview": "Yes, CloudFuze offers guarantees regarding the migration process. We provide a **100% migration success rate**, which reflects our commitment to ensuring that every migration project is successful. Ou...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 75,
+      "question": "What APIs do you support?",
+      "status": "SUCCESS",
+      "response_time": 6.51,
+      "answer_length": 488,
+      "answer_preview": "I don't have specific information about the APIs supported by CloudFuze in my knowledge base. However, I can provide general insights about CloudFuze's capabilities, including its integration with var...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 76,
+      "question": "Do you have webhooks?",
+      "status": "SUCCESS",
+      "response_time": 5.25,
+      "answer_length": 354,
+      "answer_preview": "I don't have specific information about webhooks supported by CloudFuze in my knowledge base. For detailed inquiries regarding webhooks or any specific integration capabilities, I recommend reaching o...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 77,
+      "question": "Can I integrate with my system?",
+      "status": "SUCCESS",
+      "response_time": 5.65,
+      "answer_length": 480,
+      "answer_preview": "I don't have specific information about integration capabilities with external systems in my knowledge base. However, CloudFuze is designed to support various cloud services and applications, which ma...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 78,
+      "question": "Do you offer white-label solutions?",
+      "status": "SUCCESS",
+      "response_time": 4.72,
+      "answer_length": 171,
+      "answer_preview": "I don't have information about white-label solutions in my knowledge base, but I can help you with CloudFuze's migration services or products. What would you like to know?",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 79,
+      "question": "What about custom integrations?",
+      "status": "SUCCESS",
+      "response_time": 6.21,
+      "answer_length": 494,
+      "answer_preview": "I don't have specific information about custom integrations offered by CloudFuze in my knowledge base. However, CloudFuze is designed to support various cloud services and applications, which may incl...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 80,
+      "question": "How fast is the migration?",
+      "status": "SUCCESS",
+      "response_time": 6.84,
+      "answer_length": 733,
+      "answer_preview": "Based on the information available, CloudFuze's migration engine is designed for high-speed transfers and can handle large-scale data migrations, including petabytes and terabytes of data. The platfor...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 81,
+      "question": "Can you migrate in parallel?",
+      "status": "SUCCESS",
+      "response_time": 5.93,
+      "answer_length": 731,
+      "answer_preview": "Based on the information available, CloudFuze's migration tool supports parallel processing, which allows for simultaneous migrations of multiple users or data sets. This capability is particularly be...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 82,
+      "question": "What about bandwidth usage?",
+      "status": "SUCCESS",
+      "response_time": 5.34,
+      "answer_length": 546,
+      "answer_preview": "I don't have specific information about bandwidth usage during CloudFuze migrations in my knowledge base. However, it is generally important to consider bandwidth when planning large-scale data migrat...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 83,
+      "question": "Do you throttle requests?",
+      "status": "SUCCESS",
+      "response_time": 5.94,
+      "answer_length": 659,
+      "answer_preview": "Based on the information available, CloudFuze manages API throttling during migrations to ensure smooth data transfer. The platform employs strategies such as batching transfers, API request rate mana...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 84,
+      "question": "What's your uptime?",
+      "status": "SUCCESS",
+      "response_time": 5.52,
+      "answer_length": 591,
+      "answer_preview": "I don't have specific information about CloudFuze's uptime in my knowledge base. However, uptime is a critical factor for cloud migration services, as it affects the reliability and availability of th...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 85,
+      "question": "What if migration fails?",
+      "status": "SUCCESS",
+      "response_time": 6.41,
+      "answer_length": 914,
+      "answer_preview": "Based on the information available, if a migration fails while using CloudFuze, the platform has mechanisms in place to handle such situations effectively. CloudFuze automatically retries failed reque...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 86,
+      "question": "How do I retry failed items?",
+      "status": "SUCCESS",
+      "response_time": 5.05,
+      "answer_length": 600,
+      "answer_preview": "Based on the information available, CloudFuze automatically handles retries for failed requests during the migration process. If an item fails to migrate, CloudFuze's built-in retry mechanism queues t...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 87,
+      "question": "Can you recover deleted files?",
+      "status": "SUCCESS",
+      "response_time": 6.1,
+      "answer_length": 529,
+      "answer_preview": "I don't have specific information about recovering deleted files in my knowledge base. However, typically in cloud migration services, recovery options depend on the policies of the source and destina...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 88,
+      "question": "What about error reports?",
+      "status": "SUCCESS",
+      "response_time": 7.66,
+      "answer_length": 1147,
+      "answer_preview": "Based on the information available, CloudFuze provides extensive reporting and monitoring throughout the migration process, which includes error reports. These reports detail the success or failure of...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 89,
+      "question": "How do I track progress?",
+      "status": "SUCCESS",
+      "response_time": 8.21,
+      "answer_length": 1257,
+      "answer_preview": "Based on the information available, you can track the progress of your migration with CloudFuze through several features:\n\n1. **Real-Time Monitoring**: CloudFuze provides a comprehensive admin console...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 90,
+      "question": "Question variant 89: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.3,
+      "answer_length": 2183,
+      "answer_preview": "I'd be happy to help! When it comes to migration options, CloudFuze offers a comprehensive solution tailored to various cloud migration scenarios. Here are some key points regarding migration options:...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 91,
+      "question": "Follow-up 89: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.87,
+      "answer_length": 2953,
+      "answer_preview": "Based on the information available, CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Comprehensive Migration Features**\n- **Data...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 92,
+      "question": "Pricing question 89: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.79,
+      "answer_length": 509,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 93,
+      "question": "Question variant 92: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 14.13,
+      "answer_length": 2183,
+      "answer_preview": "I'd be happy to help! When it comes to migration options, CloudFuze offers a comprehensive solution tailored to various cloud migration scenarios. Here are some key points regarding migration options:...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 94,
+      "question": "Follow-up 92: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 18.31,
+      "answer_length": 3062,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 95,
+      "question": "Pricing question 92: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 5.36,
+      "answer_length": 937,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 96,
+      "question": "Question variant 95: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.66,
+      "answer_length": 2354,
+      "answer_preview": "CloudFuze offers a variety of migration options to cater to different organizational needs. Here’s an overview of the migration options available:\n\n### Types of Migrations\n1. **Cloud-to-Cloud Migratio...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 97,
+      "question": "Follow-up 95: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.67,
+      "answer_length": 3062,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 98,
+      "question": "Pricing question 95: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 5.55,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 99,
+      "question": "Question variant 98: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.37,
+      "answer_length": 2354,
+      "answer_preview": "CloudFuze offers a variety of migration options to cater to different organizational needs. Here’s an overview of the migration options available:\n\n### Types of Migrations\n1. **Cloud-to-Cloud Migratio...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 100,
+      "question": "Follow-up 98: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.97,
+      "answer_length": 3062,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 101,
+      "question": "Pricing question 98: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.39,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 102,
+      "question": "Question variant 101: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.0,
+      "answer_length": 2351,
+      "answer_preview": "CloudFuze offers a variety of migration options to cater to different organizational needs. Here’s an overview of the migration options available:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migration...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 103,
+      "question": "Follow-up 101: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 20.84,
+      "answer_length": 3062,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 104,
+      "question": "Pricing question 101: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 6.02,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 105,
+      "question": "Question variant 104: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.35,
+      "answer_length": 2351,
+      "answer_preview": "CloudFuze offers a variety of migration options to cater to different organizational needs. Here’s an overview of the migration options available:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migration...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 106,
+      "question": "Follow-up 104: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 13.46,
+      "answer_length": 3284,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 107,
+      "question": "Pricing question 104: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 6.79,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 108,
+      "question": "Question variant 107: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 23.62,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 109,
+      "question": "Follow-up 107: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.31,
+      "answer_length": 3284,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a unified migration platform, ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 110,
+      "question": "Pricing question 107: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 6.63,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 111,
+      "question": "Question variant 110: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.43,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 112,
+      "question": "Follow-up 110: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 16.86,
+      "answer_length": 3107,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 113,
+      "question": "Pricing question 110: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.55,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 114,
+      "question": "Question variant 113: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 13.37,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 115,
+      "question": "Follow-up 113: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 14.94,
+      "answer_length": 3108,
+      "answer_preview": "CloudFuze provides several benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralize...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 116,
+      "question": "Pricing question 113: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 7.24,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 117,
+      "question": "Question variant 116: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 12.14,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 118,
+      "question": "Follow-up 116: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 17.36,
+      "answer_length": 3106,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 119,
+      "question": "Pricing question 116: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 6.53,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 120,
+      "question": "Question variant 119: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 14.18,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 121,
+      "question": "Follow-up 119: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.39,
+      "answer_length": 3106,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 122,
+      "question": "Pricing question 119: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.64,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 123,
+      "question": "Question variant 122: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.16,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 124,
+      "question": "Follow-up 122: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 6.75,
+      "answer_length": 3107,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 125,
+      "question": "Pricing question 122: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.79,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 126,
+      "question": "Question variant 125: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 6.78,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 127,
+      "question": "Follow-up 125: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.15,
+      "answer_length": 3107,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 128,
+      "question": "Pricing question 125: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.13,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 129,
+      "question": "Question variant 128: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 6.96,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 130,
+      "question": "Follow-up 128: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.91,
+      "answer_length": 3107,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 131,
+      "question": "Pricing question 128: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.2,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 132,
+      "question": "Question variant 131: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 8.1,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 133,
+      "question": "Follow-up 131: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.87,
+      "answer_length": 3107,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 134,
+      "question": "Pricing question 131: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.0,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 135,
+      "question": "Question variant 134: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.28,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 136,
+      "question": "Follow-up 134: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.9,
+      "answer_length": 3106,
+      "answer_preview": "CloudFuze offers several benefits for organizations considering cloud migration. Here’s a detailed look at the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 137,
+      "question": "Pricing question 134: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.5,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 138,
+      "question": "Question variant 137: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.86,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 139,
+      "question": "Follow-up 137: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.76,
+      "answer_length": 3090,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for nav...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 140,
+      "question": "Pricing question 137: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.32,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 141,
+      "question": "Question variant 140: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.43,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 142,
+      "question": "Follow-up 140: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.61,
+      "answer_length": 3090,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are the key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for nav...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 143,
+      "question": "Pricing question 140: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.25,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 144,
+      "question": "Question variant 143: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.43,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 145,
+      "question": "Follow-up 143: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 9.4,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 146,
+      "question": "Pricing question 143: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.51,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 147,
+      "question": "Question variant 146: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.32,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 148,
+      "question": "Follow-up 146: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.07,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 149,
+      "question": "Pricing question 146: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.53,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 150,
+      "question": "Question variant 149: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.23,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 151,
+      "question": "Follow-up 149: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 9.57,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 152,
+      "question": "Pricing question 149: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.68,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 153,
+      "question": "Question variant 152: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 6.51,
+      "answer_length": 2356,
+      "answer_preview": "CloudFuze offers a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Migr...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 154,
+      "question": "Follow-up 152: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 11.13,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 155,
+      "question": "Pricing question 152: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.3,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 156,
+      "question": "Question variant 155: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.18,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 157,
+      "question": "Follow-up 155: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.05,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 158,
+      "question": "Pricing question 155: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.53,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 159,
+      "question": "Question variant 158: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.51,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 160,
+      "question": "Follow-up 158: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.97,
+      "answer_length": 3091,
+      "answer_preview": "CloudFuze offers numerous benefits for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze serves as a centralized solution for na...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 161,
+      "question": "Pricing question 158: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.54,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 162,
+      "question": "Question variant 161: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 6.73,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 163,
+      "question": "Follow-up 161: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.83,
+      "answer_length": 2874,
+      "answer_preview": "CloudFuze offers a range of benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 164,
+      "question": "Pricing question 161: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.92,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 165,
+      "question": "Question variant 164: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.38,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 166,
+      "question": "Follow-up 164: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.81,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 167,
+      "question": "Pricing question 164: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.36,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 168,
+      "question": "Question variant 167: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.03,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 169,
+      "question": "Follow-up 167: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 9.29,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 170,
+      "question": "Pricing question 167: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.85,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 171,
+      "question": "Question variant 170: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 8.57,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 172,
+      "question": "Follow-up 170: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.73,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 173,
+      "question": "Pricing question 170: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.69,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 174,
+      "question": "Question variant 173: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.67,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 175,
+      "question": "Follow-up 173: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.17,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 176,
+      "question": "Pricing question 173: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.11,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 177,
+      "question": "Question variant 176: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.51,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 178,
+      "question": "Follow-up 176: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.15,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 179,
+      "question": "Pricing question 176: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.0,
+      "answer_length": 937,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 180,
+      "question": "Question variant 179: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.53,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 181,
+      "question": "Follow-up 179: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.9,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 182,
+      "question": "Pricing question 179: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.85,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 183,
+      "question": "Question variant 182: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 9.66,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 184,
+      "question": "Follow-up 182: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 9.05,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 185,
+      "question": "Pricing question 182: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 5.72,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 186,
+      "question": "Question variant 185: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 8.31,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 187,
+      "question": "Follow-up 185: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.48,
+      "answer_length": 2871,
+      "answer_preview": "CloudFuze offers several benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 188,
+      "question": "Pricing question 185: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.82,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 189,
+      "question": "Question variant 188: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 9.12,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 190,
+      "question": "Follow-up 188: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 9.54,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 191,
+      "question": "Pricing question 188: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.33,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 192,
+      "question": "Question variant 191: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 7.77,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 193,
+      "question": "Follow-up 191: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 8.7,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 194,
+      "question": "Pricing question 191: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.3,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 195,
+      "question": "Question variant 194: Tell me about migration options",
+      "status": "SUCCESS",
+      "response_time": 8.28,
+      "answer_length": 2358,
+      "answer_preview": "CloudFuze provides a variety of migration options tailored to meet different organizational needs. Here’s an overview of the available migration options:\n\n## Types of Migrations\n1. **Cloud-to-Cloud Mi...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 196,
+      "question": "Follow-up 194: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 7.89,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 197,
+      "question": "Pricing question 194: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 4.13,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 198,
+      "question": "Question variant 197: Tell me about migration options",
+      "status": "ERROR",
+      "error": "HTTPConnectionPool(host='localhost', port=8002): Read timed out. (read timeout=30)"
+    },
+    {
+      "test_num": 199,
+      "question": "Follow-up 197: What are the benefits?",
+      "status": "SUCCESS",
+      "response_time": 27.81,
+      "answer_length": 2872,
+      "answer_preview": "CloudFuze offers numerous benefits that make it an ideal choice for organizations considering cloud migration. Here are some key advantages:\n\n### 1. **Unified Migration Platform**\nCloudFuze provides a...",
+      "trace_id": "test_trace"
+    },
+    {
+      "test_num": 200,
+      "question": "Pricing question 197: How much does it cost?",
+      "status": "SUCCESS",
+      "response_time": 3.97,
+      "answer_length": 936,
+      "answer_preview": "I don't have specific pricing information available in my knowledge base. However, CloudFuze offers flexible pricing plans that can be customized based on your organization's migration needs, such as ...",
+      "trace_id": "test_trace"
+    }
+  ]
+}
