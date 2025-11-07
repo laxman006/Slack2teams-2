@@ -796,9 +796,9 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         
         llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         
-        # Simple conversational prompt
+        # CloudFuze-focused conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+            ("system", "You are a CloudFuze AI assistant specializing in cloud migration services. For greetings like 'hi', 'hello', 'thanks', 'bye', respond warmly and professionally. For ANY other topics unrelated to CloudFuze, cloud migration, or enterprise services, politely redirect by saying: 'I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?'"),
             ("human", "{question}")
         ])
         
@@ -1032,9 +1032,9 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     max_tokens=500
                 )
                 
-                # Simple conversational prompt
+                # CloudFuze-focused conversational prompt
                 conversational_prompt = ChatPromptTemplate.from_messages([
-                    ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+                    ("system", "You are a CloudFuze AI assistant specializing in cloud migration services. For greetings like 'hi', 'hello', 'thanks', 'bye', respond warmly and professionally. For ANY other topics unrelated to CloudFuze, cloud migration, or enterprise services, politely redirect by saying: 'I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?'"),
                     ("human", "{question}")
                 ])
                 
