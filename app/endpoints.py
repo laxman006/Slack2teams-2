@@ -796,17 +796,19 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
             ("human", "{question}")
         ])
         
-        # Get conversation context for continuity
-        conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        # Don't use conversation context - treat each question independently
+        # conversation_context = await get_conversation_context(conversation_id)
+        # enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        enhanced_query = question  # Use current question only
         
         chain = conversational_prompt | llm
         result = chain.invoke({"question": enhanced_query})
         answer = result.content
     else:
         # Handle informational queries with document retrieval
-        conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        # Don't use conversation context - treat each question independently
+        # conversation_context = await get_conversation_context(conversation_id)
+        enhanced_query = question  # Use current question only
         
         # ============ INTENT CLASSIFICATION ============
         # Classify user intent to enable branch-specific retrieval
@@ -1001,11 +1003,11 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
                 return
             
-            # Get conversation context BEFORE adding current question
-            conversation_context = await get_conversation_context(conversation_id)
-
-            # Combine question with conversation context for better continuity
-            enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+            # Don't use conversation context - treat each question independently
+            # conversation_context = await get_conversation_context(conversation_id)
+            # enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+            enhanced_query = question  # Use current question only
+            conversation_context = None  # Set to None for metadata logging
             
             # Check if this is a conversational query
             is_conv = is_conversational_query(question)
@@ -1098,7 +1100,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 
                 # Start query processing span
                 if rag_trace:
-                    rag_trace.start_query(enhanced_query, metadata={"has_conversation_context": bool(conversation_context)})
+                    rag_trace.start_query(enhanced_query, metadata={"has_conversation_context": False})
             except Exception as e:
                 print(f"[WARNING] Failed to create RAG trace: {e}")
                 rag_trace = None
@@ -1121,7 +1123,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 "is_conversational_query": is_conv,
                 "query_length_words": len(question.split()),
                 "query_length_chars": len(question),
-                "has_followup": bool(conversation_context),
+                "has_followup": False,  # Conversation context disabled
             }
             
             try:
@@ -1528,9 +1530,9 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     "preparation_ms": retrieval_time_ms,
                     "truncated": len(unique_docs) > 30,
                     "conversation": {
-                        "has_history": bool(conversation_context),
-                        "turns": len(conversation_context.split("\n")) if conversation_context else 0,
-                        "size_chars": len(conversation_context) if conversation_context else 0
+                        "has_history": False,  # Conversation context disabled
+                        "turns": 0,
+                        "size_chars": 0
                     }
                 },
                 
