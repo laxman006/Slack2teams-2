@@ -21,6 +21,124 @@ from app.prompt_manager import get_system_prompt, compile_prompt
 from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
 from langchain_core.prompts import ChatPromptTemplate
 import time
+from sentence_transformers import SentenceTransformer, util
+
+
+# ============================================================================
+# CONTEXT RELEVANCE DETECTION - Semantic Similarity & Topic Gating
+# ============================================================================
+
+# Initialize sentence transformer model once (global)
+try:
+    SIMILARITY_MODEL = SentenceTransformer('all-MiniLM-L6-v2')
+    print("[OK] Sentence transformer model loaded for context relevance detection")
+except Exception as e:
+    print(f"[WARNING] Failed to load sentence transformer model: {e}")
+    SIMILARITY_MODEL = None
+
+# Topic taxonomy for all migration types and services
+MIGRATION_TOPICS = {
+    'google_workspace': ['google', 'workspace', 'gdrive', 'gmail', 'shared drives', 'google drive'],
+    'dropbox_onedrive': ['dropbox', 'onedrive', 'microsoft onedrive'],
+    'slack_teams': ['slack', 'teams', 'microsoft teams', 'channels', 'slack channels'],
+    'box': ['box', 'box storage', 'box cloud'],
+    'sharepoint': ['sharepoint', 'sharepoint online'],
+    's3': ['s3', 'amazon s3', 'aws s3'],
+    'azure': ['azure', 'azure blob'],
+    'general': ['security', 'gdpr', 'compliance', 'pricing', 'cost', 'api', 'enterprise']
+}
+
+# Ambiguous terms that could apply to multiple platforms
+AMBIGUOUS_TERMS = {
+    'shared drives': ['google_workspace', 'dropbox_onedrive'],
+    'permissions': ['google_workspace', 'dropbox_onedrive', 'slack_teams', 'box', 'sharepoint'],
+    'folders': ['google_workspace', 'dropbox_onedrive', 'box', 'sharepoint'],
+    'channels': ['slack_teams'],
+    'files': ['google_workspace', 'dropbox_onedrive', 'box', 'sharepoint'],
+    'migration': ['google_workspace', 'dropbox_onedrive', 'slack_teams', 'box', 'sharepoint']
+}
+
+
+def semantic_similarity_check(new_query: str, previous_query: str, threshold: float = 0.65) -> bool:
+    """
+    Check semantic similarity between two queries using sentence transformers.
+    Returns True if similarity >= threshold, indicating related queries.
+    
+    Args:
+        new_query: Current user question
+        previous_query: Previous user question
+        threshold: Similarity threshold (0.6-0.7 works well for topic detection)
+    
+    Returns:
+        bool: True if queries are semantically similar
+    """
+    if not previous_query or not new_query or SIMILARITY_MODEL is None:
+        return False
+    
+    try:
+        # Encode both queries
+        emb_new = SIMILARITY_MODEL.encode(new_query, convert_to_tensor=True)
+        emb_prev = SIMILARITY_MODEL.encode(previous_query, convert_to_tensor=True)
+        
+        # Calculate cosine similarity
+        similarity = util.cos_sim(emb_new, emb_prev).item()
+        
+        print(f"[SEMANTIC SIMILARITY] Score: {similarity:.3f} (threshold: {threshold})")
+        return similarity >= threshold
+        
+    except Exception as e:
+        print(f"[ERROR] Semantic similarity check failed: {e}")
+        return False
+
+
+def detect_query_topic(query: str) -> str:
+    """
+    Detect which migration topic/platform the query relates to.
+    
+    Args:
+        query: User question
+    
+    Returns:
+        str: Topic key (e.g., 'google_workspace', 'slack_teams', 'general')
+    """
+    query_lower = query.lower()
+    
+    # Check each topic's keywords
+    for topic, keywords in MIGRATION_TOPICS.items():
+        if any(keyword in query_lower for keyword in keywords):
+            return topic
+    
+    return 'general'
+
+
+def needs_clarification(query: str, previous_topic: str = None) -> tuple:
+    """
+    Check if query uses ambiguous terms that could apply to multiple platforms.
+    
+    Args:
+        query: User question
+        previous_topic: Previously discussed topic (if any)
+    
+    Returns:
+        tuple: (needs_clarification: bool, ambiguous_term: str, applicable_topics: list)
+    """
+    query_lower = query.lower()
+    
+    for term, applicable_topics in AMBIGUOUS_TERMS.items():
+        if term in query_lower:
+            # If previous topic is one of the applicable ones, no clarification needed
+            if previous_topic and previous_topic in applicable_topics:
+                return False, None, None
+            
+            # If query explicitly mentions one of the platforms, no clarification needed
+            detected_topic = detect_query_topic(query)
+            if detected_topic in applicable_topics:
+                return False, None, None
+            
+            # Otherwise, need clarification
+            return True, term, applicable_topics
+    
+    return False, None, None
 
 
 # ============================================================================
@@ -203,11 +321,186 @@ def extract_platform_keywords(query: str) -> list:
     return detected_platforms + migration_keywords
 
 
+# ============================================================================
+# TRUE HYBRID SEARCH - BM25 + Vector + Reciprocal Rank Fusion (RRF)
+# ============================================================================
+
+# Global BM25 index (built once, reused)
+_BM25_INDEX = None
+_BM25_DOCS = None
+_BM25_LAST_BUILD = None
+
+def build_bm25_index():
+    """Build BM25 index from all documents in vectorstore. Cached for reuse."""
+    global _BM25_INDEX, _BM25_DOCS, _BM25_LAST_BUILD
+    
+    # Check if we need to rebuild (cache for 1 hour)
+    import time
+    current_time = time.time()
+    if _BM25_INDEX is not None and _BM25_LAST_BUILD is not None:
+        if current_time - _BM25_LAST_BUILD < 3600:  # 1 hour cache
+            return _BM25_INDEX, _BM25_DOCS
+    
+    if vectorstore is None:
+        print("[WARNING] Cannot build BM25 index: vectorstore not available")
+        return None, None
+    
+    try:
+        from rank_bm25 import BM25Okapi
+        import time as time_module
+        
+        start_time = time_module.time()
+        print("[BM25] Building BM25 index from vectorstore...")
+        
+        # Get all documents from vectorstore
+        collection = vectorstore._collection
+        all_data = collection.get(include=['documents', 'metadatas'])
+        
+        _BM25_DOCS = []
+        tokenized_corpus = []
+        
+        for i, (doc_text, metadata) in enumerate(zip(all_data['documents'], all_data['metadatas'])):
+            # Store document with metadata for retrieval
+            from langchain_core.documents import Document
+            doc_obj = Document(page_content=doc_text, metadata=metadata)
+            _BM25_DOCS.append(doc_obj)
+            
+            # Tokenize for BM25 (simple word splitting)
+            tokens = doc_text.lower().split()
+            tokenized_corpus.append(tokens)
+        
+        # Build BM25 index
+        _BM25_INDEX = BM25Okapi(tokenized_corpus)
+        _BM25_LAST_BUILD = current_time
+        
+        elapsed = time_module.time() - start_time
+        print(f"[BM25] ✓ Built BM25 index with {len(_BM25_DOCS)} documents in {elapsed:.2f}s")
+        
+        return _BM25_INDEX, _BM25_DOCS
+        
+    except Exception as e:
+        print(f"[BM25] ERROR building index: {e}")
+        return None, None
+
+
+def bm25_search(query: str, k: int = 50):
+    """Perform BM25 keyword search."""
+    bm25_index, bm25_docs = build_bm25_index()
+    
+    if bm25_index is None or bm25_docs is None:
+        return []
+    
+    try:
+        # Tokenize query
+        query_tokens = query.lower().split()
+        
+        # Get BM25 scores
+        scores = bm25_index.get_scores(query_tokens)
+        
+        # Get top k document indices
+        import numpy as np
+        top_indices = np.argsort(scores)[::-1][:k]
+        
+        # Return documents with scores
+        results = []
+        for idx in top_indices:
+            if scores[idx] > 0:  # Only include docs with non-zero score
+                results.append((bm25_docs[idx], float(scores[idx])))
+        
+        print(f"[BM25] Found {len(results)} results with scores > 0")
+        return results
+        
+    except Exception as e:
+        print(f"[BM25] ERROR during search: {e}")
+        return []
+
+
+def reciprocal_rank_fusion(vector_results, bm25_results, k=60):
+    """
+    Merge vector and BM25 results using Reciprocal Rank Fusion (RRF).
+    
+    RRF formula: score(doc) = sum(1 / (k + rank_i)) for all rankings where doc appears
+    
+    Args:
+        vector_results: List of (Document, score) tuples from vector search
+        bm25_results: List of (Document, score) tuples from BM25
+        k: Constant for RRF (typically 60)
+    
+    Returns:
+        List of (Document, rrf_score) tuples, sorted by RRF score (descending)
+    """
+    from collections import defaultdict
+    
+    # Track RRF scores for each document
+    rrf_scores = defaultdict(float)
+    doc_objects = {}  # Map doc_id to Document object
+    
+    # Process vector search results (rank 1 is best)
+    for rank, (doc, score) in enumerate(vector_results, start=1):
+        doc_id = id(doc)  # Use object id as unique identifier
+        doc_objects[doc_id] = doc
+        rrf_scores[doc_id] += 1.0 / (k + rank)
+    
+    # Process BM25 results (rank 1 is best)
+    for rank, (doc, score) in enumerate(bm25_results, start=1):
+        doc_id = id(doc)
+        if doc_id not in doc_objects:
+            doc_objects[doc_id] = doc
+        rrf_scores[doc_id] += 1.0 / (k + rank)
+    
+    # Sort by RRF score (descending)
+    sorted_results = sorted(
+        [(doc_objects[doc_id], score) for doc_id, score in rrf_scores.items()],
+        key=lambda x: x[1],
+        reverse=True
+    )
+    
+    print(f"[RRF] Merged {len(vector_results)} vector + {len(bm25_results)} BM25 results → {len(sorted_results)} unique documents")
+    
+    return sorted_results
+
+
+def hybrid_retrieve(query: str, k: int = 50):
+    """
+    TRUE HYBRID SEARCH: Combines BM25 keyword search + Vector semantic search.
+    Uses Reciprocal Rank Fusion (RRF) to merge results.
+    
+    This is the industry best practice for enterprise RAG systems.
+    """
+    # 1. Vector search (semantic)
+    if vectorstore is not None:
+        vector_results = vectorstore.similarity_search_with_score(query, k=k)
+        print(f"[HYBRID] Vector search: {len(vector_results)} results")
+    else:
+        vector_results = []
+        print(f"[HYBRID] No vectorstore available")
+    
+    # 2. BM25 search (keyword)
+    bm25_results = bm25_search(query, k=k)
+    print(f"[HYBRID] BM25 search: {len(bm25_results)} results")
+    
+    # 3. Merge with Reciprocal Rank Fusion
+    if len(vector_results) == 0 and len(bm25_results) == 0:
+        print(f"[HYBRID] No results from either search method")
+        return []
+    elif len(vector_results) == 0:
+        print(f"[HYBRID] Using BM25 results only")
+        return bm25_results
+    elif len(bm25_results) == 0:
+        print(f"[HYBRID] Using vector results only")
+        return vector_results
+    else:
+        # True hybrid: merge both
+        merged_results = reciprocal_rank_fusion(vector_results, bm25_results, k=60)
+        print(f"[HYBRID] ✓ Merged results using RRF: {len(merged_results)} documents")
+        return merged_results
+
+
 def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
     """
     Retrieve documents filtered by intent branch.
-    This performs semantic search and then filters by metadata tags.
-    NOW WITH PLATFORM-SPECIFIC BOOSTING for better context relevance.
+    NOW USES TRUE HYBRID SEARCH (BM25 + Vector + RRF).
+    Platform-specific boosting for better context relevance.
     """
     branch_config = INTENT_BRANCHES.get(intent, INTENT_BRANCHES["other"])
     
@@ -215,8 +508,9 @@ def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
     important_keywords = extract_platform_keywords(query)
     print(f"[RETRIEVAL] Detected important keywords: {important_keywords}")
     
-    # Get more documents than needed for filtering
-    all_docs = vectorstore.similarity_search_with_score(query, k=150)  # Increased from 100
+    # Get more documents than needed for filtering using HYBRID SEARCH
+    # This combines BM25 keyword search + vector semantic search
+    all_docs = hybrid_retrieve(query, k=150)  # TRUE HYBRID SEARCH!
     
     filtered_docs = []
     
@@ -250,6 +544,13 @@ def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
         
         # Apply keyword boost to score
         score = score * keyword_boost
+        
+        # UNIVERSAL SharePoint Boost: Prioritize SharePoint docs over blogs for ALL intents
+        # This ensures official documentation is ranked higher than blog content
+        if source_type == "sharepoint":
+            score = score * 0.6  # Strong boost for SharePoint (lower score = higher priority)
+        elif source_type == "blog":
+            score = score * 1.2  # Slight penalty for blogs (prefer official docs)
         
         # For general_business intent: exclude Slack→Teams specific content
         if intent == "general_business":
@@ -671,16 +972,106 @@ def is_conversational_query(question: str) -> bool:
     return False
 
 
-async def is_followup_question(current_question: str, conversation_context: str) -> bool:
+async def is_followup_question(current_question: str, conversation_context: str, previous_query: str = None) -> dict:
     """
     Check if the current question is a follow-up to the previous conversation.
-    Returns True if related, False if it's a new unrelated topic.
+    Uses BOTH LLM-based checking AND semantic similarity for robust detection.
+    
+    Args:
+        current_question: The new user question
+        conversation_context: Previous conversation history
+        previous_query: The immediately previous user question (for semantic similarity)
+    
+    Returns:
+        dict: {
+            'is_related': bool,  # True if follow-up, False if new topic
+            'similarity_score': float,  # Semantic similarity score
+            'llm_decision': str,  # LLM decision ('FOLLOWUP' or 'NEW')
+            'needs_clarification': bool,  # True if ambiguous
+            'clarification_message': str,  # Message to ask for clarification
+            'current_topic': str,  # Detected topic of current question
+            'previous_topic': str  # Detected topic from context
+        }
     """
     if not conversation_context or len(conversation_context.strip()) == 0:
         # No previous conversation, so it can't be a follow-up
-        return False
+        return {
+            'is_related': False,
+            'similarity_score': 0.0,
+            'llm_decision': 'NEW',
+            'needs_clarification': False,
+            'clarification_message': None,
+            'current_topic': detect_query_topic(current_question),
+            'previous_topic': None
+        }
     
     try:
+        # Extract previous query from conversation context if not provided
+        if not previous_query and conversation_context:
+            lines = conversation_context.split('\n')
+            for line in reversed(lines):
+                if line.startswith('User:'):
+                    previous_query = line.replace('User:', '').strip()
+                    break
+        
+        # Detect topics
+        current_topic = detect_query_topic(current_question)
+        previous_topic = detect_query_topic(previous_query) if previous_query else None
+        
+        print(f"[TOPIC DETECTION] Current: {current_topic}, Previous: {previous_topic}")
+        
+        # Check for ambiguous terms that need clarification
+        needs_clarif, ambig_term, applicable_topics = needs_clarification(current_question, previous_topic)
+        if needs_clarif:
+            topic_names = {
+                'google_workspace': 'Google Workspace',
+                'dropbox_onedrive': 'Dropbox/OneDrive',
+                'slack_teams': 'Slack/Teams',
+                'box': 'Box',
+                'sharepoint': 'SharePoint',
+                's3': 'Amazon S3',
+                'azure': 'Azure'
+            }
+            clarif_msg = f"I see you're asking about '{ambig_term}'. Are you referring to "
+            clarif_msg += " or ".join([topic_names.get(t, t) for t in applicable_topics]) + "?"
+            
+            return {
+                'is_related': False,
+                'similarity_score': 0.0,
+                'llm_decision': 'CLARIFICATION_NEEDED',
+                'needs_clarification': True,
+                'clarification_message': clarif_msg,
+                'current_topic': current_topic,
+                'previous_topic': previous_topic
+            }
+        
+        # Explicit topic change detection
+        if previous_topic and current_topic != previous_topic and current_topic != 'general':
+            print(f"[TOPIC CHANGE] Switching from {previous_topic} to {current_topic}")
+            return {
+                'is_related': False,
+                'similarity_score': 0.0,
+                'llm_decision': 'TOPIC_CHANGE',
+                'needs_clarification': False,
+                'clarification_message': None,
+                'current_topic': current_topic,
+                'previous_topic': previous_topic
+            }
+        
+        # Semantic similarity check
+        similarity_score = 0.0
+        is_similar_semantic = False
+        if previous_query and SIMILARITY_MODEL:
+            try:
+                emb_new = SIMILARITY_MODEL.encode(current_question, convert_to_tensor=True)
+                emb_prev = SIMILARITY_MODEL.encode(previous_query, convert_to_tensor=True)
+                similarity_score = util.cos_sim(emb_new, emb_prev).item()
+                is_similar_semantic = similarity_score >= 0.65
+                print(f"[SEMANTIC SIMILARITY] Score: {similarity_score:.3f}")
+            except Exception as e:
+                print(f"[ERROR] Semantic similarity failed: {e}")
+        
+        # LLM-based relevance check
         from langchain_openai import ChatOpenAI
         from langchain_core.prompts import ChatPromptTemplate
         
@@ -691,24 +1082,16 @@ async def is_followup_question(current_question: str, conversation_context: str)
             ("system", """You are a conversation analyzer. Determine if the current question is a follow-up to the previous conversation or a completely new topic.
 
 A follow-up question (treat as FOLLOWUP):
-- Refers to something mentioned in previous conversation (e.g., "what about pricing?" after discussing a product)
-- Uses pronouns referring to previous context (e.g., "how does it work?", "tell me more about that", "how it works", "what are the features")
+- Refers to something mentioned in previous conversation
+- Uses pronouns referring to previous context (e.g., "how does it work?", "tell me more")
 - Asks for clarification or additional details about the previous topic
-- Uses words like "also", "additionally", "what else", "more information", "what combinations"
-- Generic questions about process when a specific topic was just discussed (e.g., "how it works" after discussing migration)
-- Repeats similar questions that were recently discussed (e.g., asking about combinations after discussing them)
-- Asks "what type" or "what kind" questions related to the previous topic
+- Uses words like "also", "additionally", "what else"
+- Generic questions about process when a specific topic was just discussed
 
 A NEW topic (only treat as NEW if clearly different):
-- Asks about a COMPLETELY DIFFERENT product/service from previous conversation
-  Example: After discussing "Google Workspace" → asking about "Dropbox to OneDrive" = NEW
+- Asks about a COMPLETELY DIFFERENT product/service/platform
 - Has ZERO connection to previous topics discussed
-- Explicitly switches context (e.g., from Slack to Box, from OneDrive to S3)
-
-IMPORTANT RULES:
-1. When in doubt, treat as FOLLOWUP to maintain helpful conversation context
-2. Generic process questions like "how it works" are always FOLLOWUP if a topic was just discussed
-3. Only treat as NEW if the user explicitly changes to a different platform/product/service
+- Explicitly switches context between platforms
 
 Respond with ONLY one word: "FOLLOWUP" or "NEW"
 """),
@@ -722,22 +1105,52 @@ Is this a follow-up or new topic?""")
         
         chain = relevance_prompt | llm
         result = chain.invoke({
-            "conversation_context": conversation_context,
+            "conversation_context": conversation_context[-500:],  # Last 500 chars to avoid token limits
             "current_question": current_question
         })
         
         response = result.content.strip().upper()
-        is_related = "FOLLOWUP" in response
+        is_related_llm = "FOLLOWUP" in response
+        
+        # DOUBLE GATING: Both checks must agree (unless similarity is very high)
+        if similarity_score > 0.75:
+            # Very high similarity - definitely related
+            is_related = True
+            final_decision = "FOLLOWUP (high similarity)"
+        elif similarity_score < 0.50 and not is_related_llm:
+            # Low similarity AND LLM says NEW - definitely new topic
+            is_related = False
+            final_decision = "NEW (low similarity + LLM)"
+        else:
+            # Use LLM decision but require semantic agreement
+            is_related = is_related_llm and is_similar_semantic
+            final_decision = f"{'FOLLOWUP' if is_related else 'NEW'} (LLM: {response}, Similarity: {similarity_score:.2f})"
         
         print(f"[RELEVANCE CHECK] Question: '{current_question[:50]}...'")
-        print(f"[RELEVANCE CHECK] Result: {'FOLLOWUP' if is_related else 'NEW TOPIC'}")
+        print(f"[RELEVANCE CHECK] Result: {final_decision}")
         
-        return is_related
+        return {
+            'is_related': is_related,
+            'similarity_score': similarity_score,
+            'llm_decision': response,
+            'needs_clarification': False,
+            'clarification_message': None,
+            'current_topic': current_topic,
+            'previous_topic': previous_topic
+        }
         
     except Exception as e:
         print(f"[ERROR] Relevance check failed: {e}")
         # On error, assume it's related (safer default to maintain context when uncertain)
-        return True
+        return {
+            'is_related': True,
+            'similarity_score': 0.0,
+            'llm_decision': 'ERROR',
+            'needs_clarification': False,
+            'clarification_message': None,
+            'current_topic': detect_query_topic(current_question),
+            'previous_topic': None
+        }
 
 
 def analyze_retrieved_documents(docs_with_scores):
@@ -873,16 +1286,26 @@ async def chat_test(request: Request):
         # Get conversation context for continuity
         conversation_context = await get_conversation_context(conversation_id)
         
-        # Check if this question is related to previous conversation
-        is_related = await is_followup_question(question, conversation_context)
+        # Check if this question is related to previous conversation using both LLM + semantic similarity
+        relevance_result = await is_followup_question(question, conversation_context)
+        is_related = relevance_result['is_related']
+        
+        # Check if clarification is needed
+        if relevance_result['needs_clarification']:
+            answer = relevance_result['clarification_message']
+            print(f"[CLARIFICATION NEEDED] {answer}")
+            # Note: This returns early with clarification message
         
         # Only include conversation context if the question is a follow-up
         if is_related and conversation_context:
             enhanced_query = f"{conversation_context}\n\nUser: {question}"
-            print(f"[CONTEXT] Using conversation history (related follow-up)")
+            print(f"[CONTEXT] Using conversation history (related follow-up, similarity: {relevance_result['similarity_score']:.2f})")
         else:
             enhanced_query = question
-            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+            if relevance_result.get('previous_topic') and relevance_result.get('current_topic'):
+                print(f"[CONTEXT] Starting fresh conversation (topic change: {relevance_result['previous_topic']} → {relevance_result['current_topic']})")
+            else:
+                print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         chain = conversational_prompt | llm
         result = chain.invoke({"question": enhanced_query})
@@ -891,16 +1314,26 @@ async def chat_test(request: Request):
         # Handle informational queries with document retrieval
         conversation_context = await get_conversation_context(conversation_id)
         
-        # Check if this question is related to previous conversation
-        is_related = await is_followup_question(question, conversation_context)
+        # Check if this question is related to previous conversation using both LLM + semantic similarity
+        relevance_result = await is_followup_question(question, conversation_context)
+        is_related = relevance_result['is_related']
+        
+        # Check if clarification is needed
+        if relevance_result['needs_clarification']:
+            answer = relevance_result['clarification_message']
+            print(f"[CLARIFICATION NEEDED] {answer}")
+            # Note: This returns early with clarification message
         
         # Only include conversation context if the question is a follow-up
         if is_related and conversation_context:
             enhanced_query = f"{conversation_context}\n\nUser: {question}"
-            print(f"[CONTEXT] Using conversation history (related follow-up)")
+            print(f"[CONTEXT] Using conversation history (related follow-up, similarity: {relevance_result['similarity_score']:.2f})")
         else:
             enhanced_query = question
-            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+            if relevance_result.get('previous_topic') and relevance_result.get('current_topic'):
+                print(f"[CONTEXT] Starting fresh conversation (topic change: {relevance_result['previous_topic']} → {relevance_result['current_topic']})")
+            else:
+                print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         # Full RAG pipeline
         intent_result = classify_intent(question)
@@ -913,8 +1346,8 @@ async def chat_test(request: Request):
             answer = "Vectorstore not initialized."
         else:
             try:
-                # Expand query with intent-specific terms
-                expanded_query = expand_query_with_intent(enhanced_query, intent)
+                # CRITICAL: Use original question for retrieval consistency
+                expanded_query = expand_query_with_intent(question, intent)
                 
                 # Retrieve documents based on intent
                 doc_results = retrieve_with_branch_filter(expanded_query, intent, k=50)
@@ -946,16 +1379,30 @@ async def chat_test(request: Request):
                 )
                 
                 if langfuse_prompt_template:
-                    compiled_prompt_text = compile_prompt(
-                        langfuse_prompt_template,
-                        context=context,
-                        question=enhanced_query
-                    )
-                    prompt_template = ChatPromptTemplate.from_messages([
-                        ("system", compiled_prompt_text)
-                    ])
-                    chain = prompt_template | llm
-                    result = chain.invoke({})
+                    try:
+                        compiled_prompt_text = compile_prompt(
+                            langfuse_prompt_template,
+                            context=context,
+                            question=enhanced_query
+                        )
+                        prompt_template = ChatPromptTemplate.from_messages([
+                            ("system", compiled_prompt_text)
+                        ])
+                        chain = prompt_template | llm
+                        result = chain.invoke({})
+                    except Exception as prompt_error:
+                        print(f"[WARNING] Langfuse prompt failed: {prompt_error}")
+                        print("[FALLBACK] Using local SYSTEM_PROMPT")
+                        from config import SYSTEM_PROMPT
+                        prompt_template = ChatPromptTemplate.from_messages([
+                            ("system", SYSTEM_PROMPT),
+                            ("human", "Context: {context}\n\nQuestion: {question}")
+                        ])
+                        chain = prompt_template | llm
+                        result = chain.invoke({
+                            "context": context,
+                            "question": enhanced_query
+                        })
                 else:
                     from config import SYSTEM_PROMPT
                     prompt_template = ChatPromptTemplate.from_messages([
@@ -1024,16 +1471,26 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         # Get conversation context for continuity
         conversation_context = await get_conversation_context(conversation_id)
         
-        # Check if this question is related to previous conversation
-        is_related = await is_followup_question(question, conversation_context)
+        # Check if this question is related to previous conversation using both LLM + semantic similarity
+        relevance_result = await is_followup_question(question, conversation_context)
+        is_related = relevance_result['is_related']
+        
+        # Check if clarification is needed
+        if relevance_result['needs_clarification']:
+            answer = relevance_result['clarification_message']
+            print(f"[CLARIFICATION NEEDED] {answer}")
+            # Note: This returns early with clarification message
         
         # Only include conversation context if the question is a follow-up
         if is_related and conversation_context:
             enhanced_query = f"{conversation_context}\n\nUser: {question}"
-            print(f"[CONTEXT] Using conversation history (related follow-up)")
+            print(f"[CONTEXT] Using conversation history (related follow-up, similarity: {relevance_result['similarity_score']:.2f})")
         else:
             enhanced_query = question
-            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+            if relevance_result.get('previous_topic') and relevance_result.get('current_topic'):
+                print(f"[CONTEXT] Starting fresh conversation (topic change: {relevance_result['previous_topic']} → {relevance_result['current_topic']})")
+            else:
+                print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         chain = conversational_prompt | llm
         result = chain.invoke({"question": enhanced_query})
@@ -1042,16 +1499,26 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         # Handle informational queries with document retrieval
         conversation_context = await get_conversation_context(conversation_id)
         
-        # Check if this question is related to previous conversation
-        is_related = await is_followup_question(question, conversation_context)
+        # Check if this question is related to previous conversation using both LLM + semantic similarity
+        relevance_result = await is_followup_question(question, conversation_context)
+        is_related = relevance_result['is_related']
+        
+        # Check if clarification is needed
+        if relevance_result['needs_clarification']:
+            answer = relevance_result['clarification_message']
+            print(f"[CLARIFICATION NEEDED] {answer}")
+            # Note: This returns early with clarification message
         
         # Only include conversation context if the question is a follow-up
         if is_related and conversation_context:
             enhanced_query = f"{conversation_context}\n\nUser: {question}"
-            print(f"[CONTEXT] Using conversation history (related follow-up)")
+            print(f"[CONTEXT] Using conversation history (related follow-up, similarity: {relevance_result['similarity_score']:.2f})")
         else:
             enhanced_query = question
-            print(f"[CONTEXT] Starting fresh conversation (new topic)")
+            if relevance_result.get('previous_topic') and relevance_result.get('current_topic'):
+                print(f"[CONTEXT] Starting fresh conversation (topic change: {relevance_result['previous_topic']} → {relevance_result['current_topic']})")
+            else:
+                print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         # ============ INTENT CLASSIFICATION ============
         # Classify user intent to enable branch-specific retrieval
@@ -1070,8 +1537,9 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         else:
             try:
                 # ============ QUERY EXPANSION ============
-                # Expand query with intent-specific terms for better retrieval
-                expanded_query = expand_query_with_intent(enhanced_query, intent)
+                # CRITICAL: Use original question for retrieval to ensure consistency
+                # Only use enhanced_query (with context) for final LLM prompt
+                expanded_query = expand_query_with_intent(question, intent)
                 
                 # ============ BRANCH-SPECIFIC RETRIEVAL ============
                 # Use intent-based filtering to retrieve relevant documents
@@ -1135,16 +1603,30 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 
                 if langfuse_prompt_template:
                     # Use Langfuse prompt (context and question already compiled)
-                    compiled_prompt_text = compile_prompt(
-                        langfuse_prompt_template,
-                        context=context,
-                        question=enhanced_query
-                    )
-                    prompt_template = ChatPromptTemplate.from_messages([
-                        ("system", compiled_prompt_text)
-                    ])
-                    chain = prompt_template | llm
-                    result = chain.invoke({})  # No variables needed
+                    try:
+                        compiled_prompt_text = compile_prompt(
+                            langfuse_prompt_template,
+                            context=context,
+                            question=enhanced_query
+                        )
+                        prompt_template = ChatPromptTemplate.from_messages([
+                            ("system", compiled_prompt_text)
+                        ])
+                        chain = prompt_template | llm
+                        result = chain.invoke({})  # No variables needed
+                    except Exception as prompt_error:
+                        print(f"[WARNING] Langfuse prompt failed: {prompt_error}")
+                        print("[FALLBACK] Using local SYSTEM_PROMPT")
+                        # Fallback to existing behavior
+                        prompt_template = ChatPromptTemplate.from_messages([
+                            ("system", SYSTEM_PROMPT),
+                            ("human", "Context: {context}\n\nQuestion: {question}")
+                        ])
+                        chain = prompt_template | llm
+                        result = chain.invoke({
+                            "context": context,
+                            "question": enhanced_query
+                        })
                 else:
                     # Fallback to existing behavior
                     prompt_template = ChatPromptTemplate.from_messages([
@@ -1418,8 +1900,8 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     diversity_metrics = {}
                 else:
                     # ============ QUERY EXPANSION ============
-                    # Expand query with intent-specific terms for better retrieval
-                    expanded_query = expand_query_with_intent(enhanced_query, intent)
+                    # CRITICAL: Use original question for retrieval consistency
+                    expanded_query = expand_query_with_intent(question, intent)
                     
                     # ============ BRANCH-SPECIFIC RETRIEVAL ============
                     # Use intent-based filtering to retrieve relevant documents
@@ -1674,11 +2156,21 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     context=context_text,
                     question=enhanced_query
                 )
-                # Create messages from compiled prompt
-                prompt_template = ChatPromptTemplate.from_messages([
-                    ("system", compiled_prompt_text)
-                ])
-                messages = prompt_template.format_messages()
+                # Create messages from compiled prompt with error handling
+                try:
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", compiled_prompt_text)
+                    ])
+                    messages = prompt_template.format_messages()
+                except Exception as prompt_error:
+                    print(f"[WARNING] Langfuse prompt formatting failed: {prompt_error}")
+                    print("[FALLBACK] Using local SYSTEM_PROMPT instead")
+                    # Fallback to local prompt
+                    prompt_template = ChatPromptTemplate.from_messages([
+                        ("system", SYSTEM_PROMPT),
+                        ("human", "Context: {context}\n\nQuestion: {question}")
+                    ])
+                    messages = prompt_template.format_messages(context=context_text, question=enhanced_query)
             else:
                 # Fallback to existing behavior
                 prompt_template = ChatPromptTemplate.from_messages([
