@@ -194,7 +194,7 @@ def build_vectorstore(url: str):
     vectorstore = Chroma.from_documents(docs, embeddings, persist_directory=CHROMA_DB_PATH)
     return vectorstore
 
-def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None, sharepoint_enabled: bool = False):
+def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None, sharepoint_enabled: bool = False, outlook_enabled: bool = False):
     """Build and persist embeddings for enabled sources only."""
     all_docs = []
     
@@ -250,6 +250,20 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
             print("  - SharePoint documents: 0 (failed)")
     else:
         print("SharePoint processing disabled - skipping...")
+    
+    # Process Outlook email content if enabled
+    if outlook_enabled:
+        print("Processing Outlook email content...")
+        try:
+            from app.outlook_processor import process_outlook_content
+            outlook_docs = process_outlook_content()
+            all_docs.extend(outlook_docs)
+            print(f"  - Outlook email documents: {len(outlook_docs)}")
+        except Exception as e:
+            print(f"[ERROR] Outlook processing failed: {e}")
+            print("  - Outlook email documents: 0 (failed)")
+    else:
+        print("Outlook processing disabled - skipping...")
     
     print(f"Total documents to process: {len(all_docs)}")
     

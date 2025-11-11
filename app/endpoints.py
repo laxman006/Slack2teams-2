@@ -87,10 +87,16 @@ INTENT_BRANCHES = {
         "include_tags": ["blog", "sharepoint"],
         "query_expansion": ["product capabilities", "feature list", "platform features"]
     },
+    "email_conversations": {
+        "description": "Questions about email threads, conversations, and discussions",
+        "keywords": ["email", "thread", "conversation", "discussed", "bugs", "participants", "srcs", "what did", "who said"],
+        "include_tags": ["email"],
+        "query_expansion": ["email thread", "conversation", "discussion"]
+    },
     "other": {
         "description": "Fallback for uncategorized queries",
         "keywords": [],
-        "include_tags": ["blog", "sharepoint"],
+        "include_tags": ["blog", "sharepoint", "email"],
         "query_expansion": []
     }
 }
@@ -106,6 +112,9 @@ def classify_intent(query: str) -> dict:
     query_lower = query.lower()
     
     # Quick keyword-based pre-filter for common cases (faster)
+    if any(kw in query_lower for kw in ["email", "thread", "conversation", "bugs raised", "discussed", "srcs folder", "participants"]):
+        return {"intent": "email_conversations", "confidence": 0.90, "method": "keyword"}
+    
     if any(kw in query_lower for kw in ["certificate", "download", "soc", "policy"]) and "sharepoint" not in query_lower:
         if any(word in query_lower for word in ["certificate", "compliance", "security", "policy"]):
             return {"intent": "sharepoint_docs", "confidence": 0.85, "method": "keyword"}
@@ -127,6 +136,7 @@ def classify_intent(query: str) -> dict:
 Query: "{query}"
 
 CRITICAL RULES:
+- If query asks about emails, conversations, threads, or discusses what was said in emails → "email_conversations"
 - If query asks about general business value, benefits, or "what is CloudFuze" WITHOUT mentioning specific platforms → "general_business"
 - If query mentions BOTH "Slack" AND "Teams" → "slack_teams_migration"
 - If query asks about general migration (without specific platforms) → "migration_general"
@@ -663,13 +673,19 @@ def is_conversational_query(question: str) -> bool:
         if re.match(pattern, question_lower):
             return True
     
-    # Check for very short queries (likely conversational)
-    if len(question.strip()) < 10 and not any(word in question_lower for word in ['what', 'how', 'why', 'when', 'where', 'who', 'which']):
+    # Check for very short queries (ONLY 1-2 words, no question marks)
+    # This ensures queries like "emojis ?" go through RAG, not conversational
+    words = question.split()
+    has_question_mark = '?' in question
+    has_question_word = any(word in question_lower for word in ['what', 'how', 'why', 'when', 'where', 'who', 'which'])
+    
+    # Only treat as conversational if: very short (1-2 words), no '?', no question words
+    if len(words) <= 2 and len(question.strip()) < 6 and not has_question_mark and not has_question_word:
         return True
     
-    # Check if it's a simple greeting or social interaction
+    # Check if it's a simple greeting or social interaction (still allow short social phrases)
     social_words = ['hi', 'hello', 'hey', 'thanks', 'bye', 'good', 'nice', 'great', 'cool', 'awesome']
-    if any(word in question_lower for word in social_words) and len(question.split()) <= 3:
+    if any(word in question_lower for word in social_words) and len(words) <= 2 and not has_question_mark:
         return True
     
     return False
@@ -790,23 +806,25 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         
         llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7)
         
-        # Simple conversational prompt
+        # CloudFuze-focused conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+            ("system", "You are a CloudFuze AI assistant specializing in cloud migration services. For greetings like 'hi', 'hello', 'thanks', 'bye', respond warmly and professionally. For ANY other topics unrelated to CloudFuze, cloud migration, or enterprise services, politely redirect by saying: 'I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?'"),
             ("human", "{question}")
         ])
         
-        # Get conversation context for continuity
-        conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        # Don't use conversation context - treat each question independently
+        # conversation_context = await get_conversation_context(conversation_id)
+        # enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        enhanced_query = question  # Use current question only
         
         chain = conversational_prompt | llm
         result = chain.invoke({"question": enhanced_query})
         answer = result.content
     else:
         # Handle informational queries with document retrieval
-        conversation_context = await get_conversation_context(conversation_id)
-        enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+        # Don't use conversation context - treat each question independently
+        # conversation_context = await get_conversation_context(conversation_id)
+        enhanced_query = question  # Use current question only
         
         # ============ INTENT CLASSIFICATION ============
         # Classify user intent to enable branch-specific retrieval
@@ -1001,11 +1019,11 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
                 return
             
-            # Get conversation context BEFORE adding current question
-            conversation_context = await get_conversation_context(conversation_id)
-
-            # Combine question with conversation context for better continuity
-            enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+            # Don't use conversation context - treat each question independently
+            # conversation_context = await get_conversation_context(conversation_id)
+            # enhanced_query = f"{conversation_context}\n\nUser: {question}" if conversation_context else question
+            enhanced_query = question  # Use current question only
+            conversation_context = None  # Set to None for metadata logging
             
             # Check if this is a conversational query
             is_conv = is_conversational_query(question)
@@ -1024,9 +1042,9 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     max_tokens=500
                 )
                 
-                # Simple conversational prompt
+                # CloudFuze-focused conversational prompt
                 conversational_prompt = ChatPromptTemplate.from_messages([
-                    ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+                    ("system", "You are a CloudFuze AI assistant specializing in cloud migration services. For greetings like 'hi', 'hello', 'thanks', 'bye', respond warmly and professionally. For ANY other topics unrelated to CloudFuze, cloud migration, or enterprise services, politely redirect by saying: 'I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?'"),
                     ("human", "{question}")
                 ])
                 
@@ -1098,7 +1116,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 
                 # Start query processing span
                 if rag_trace:
-                    rag_trace.start_query(enhanced_query, metadata={"has_conversation_context": bool(conversation_context)})
+                    rag_trace.start_query(enhanced_query, metadata={"has_conversation_context": False})
             except Exception as e:
                 print(f"[WARNING] Failed to create RAG trace: {e}")
                 rag_trace = None
@@ -1121,7 +1139,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 "is_conversational_query": is_conv,
                 "query_length_words": len(question.split()),
                 "query_length_chars": len(question),
-                "has_followup": bool(conversation_context),
+                "has_followup": False,  # Conversation context disabled
             }
             
             try:
@@ -1528,9 +1546,9 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     "preparation_ms": retrieval_time_ms,
                     "truncated": len(unique_docs) > 30,
                     "conversation": {
-                        "has_history": bool(conversation_context),
-                        "turns": len(conversation_context.split("\n")) if conversation_context else 0,
-                        "size_chars": len(conversation_context) if conversation_context else 0
+                        "has_history": False,  # Conversation context disabled
+                        "turns": 0,
+                        "size_chars": 0
                     }
                 },
                 
@@ -1654,6 +1672,35 @@ async def clear_chat_history(
     try:
         await clear_user_chat_history(user_id)
         return {"message": f"Chat history cleared for user {user_id}"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.post("/chat/history/rebuild")
+async def rebuild_chat_history(
+    request: Request,
+    current_user: dict = Depends(verify_user_access)
+):
+    """Rebuild chat history for a user after message editing. Protected against IDOR."""
+    try:
+        body = await request.json()
+        user_id = body.get("user_id")
+        messages = body.get("messages", [])
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        # Clear existing history first
+        await clear_user_chat_history(user_id)
+        
+        # Re-add all messages in order
+        for message in messages:
+            role = message.get("role")
+            content = message.get("content")
+            
+            if role and content:
+                await add_to_conversation(user_id, role, content)
+        
+        return {"message": f"Chat history rebuilt for user {user_id}", "message_count": len(messages)}
     except Exception as e:
         return {"error": str(e)}
 

@@ -38,7 +38,7 @@ SYSTEM_PROMPT = """You are a CloudFuze AI assistant with access to CloudFuze's k
     3. WHEN TO ANSWER vs ACKNOWLEDGE LIMITATIONS:
        - ANSWER CONFIDENTLY: When context directly addresses the question
        - ANSWER WITH CAVEATS: When context partially addresses the question (e.g., "Based on the information available, CloudFuze supports...")
-       - ACKNOWLEDGE GAPS: When context doesn't contain the specific information requested (e.g., "I don't have information about [specific topic] in my knowledge base")
+       - ACKNOWLEDGE GAPS: When context doesn't contain the specific information requested (e.g., "I don't have information about [specific topic]")
        - NEVER FABRICATE: Do not invent company names, case studies, statistics, or specific details not in the context
        - ASK FOR CLARIFICATION: When the question is too generic (e.g., "tell me a story"), ask what specific information they need
     
@@ -57,7 +57,7 @@ SYSTEM_PROMPT = """You are a CloudFuze AI assistant with access to CloudFuze's k
        - IMPORTANT - Handling requests without exact matches:
          a) If user asks for a specific document that is NOT in the context, first suggest SIMILAR documents that ARE available
          b) Say: "I don't have that exact document, but I found similar documents: [list similar documents with names]"
-         c) If the user INSISTS on the specific document (says "no", "I need that specific one", "only that one"), then say: "I'm sorry, I don't have access to that specific document in my knowledge base."
+         c) If the user INSISTS on the specific document (says "no", "I need that specific one", "only that one"), then say: "I'm sorry, I don't have that specific document available."
        - Format download links based on document type:
          - Certificates: **[Download Certificate: {{file_name}}]({{download_url}})**
          - Policy documents: **[Download Policy: {{file_name}}]({{download_url}})**
@@ -180,6 +180,7 @@ ENABLE_PDF_SOURCE = os.getenv("ENABLE_PDF_SOURCE", "false").lower() == "true"
 ENABLE_EXCEL_SOURCE = os.getenv("ENABLE_EXCEL_SOURCE", "false").lower() == "true"
 ENABLE_DOC_SOURCE = os.getenv("ENABLE_DOC_SOURCE", "false").lower() == "true"
 ENABLE_SHAREPOINT_SOURCE = os.getenv("ENABLE_SHAREPOINT_SOURCE", "false").lower() == "true"
+ENABLE_OUTLOOK_SOURCE = os.getenv("ENABLE_OUTLOOK_SOURCE", "false").lower() == "true"
 
 # Source-specific settings
 WEB_SOURCE_URL = os.getenv("WEB_SOURCE_URL", "https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100")
@@ -194,6 +195,12 @@ SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL", "https://cloudfuzecom.sha
 SHAREPOINT_START_PAGE = os.getenv("SHAREPOINT_START_PAGE", "")  # Changed from child page to empty for parent Documents library
 SHAREPOINT_MAX_DEPTH = int(os.getenv("SHAREPOINT_MAX_DEPTH", "999"))  # Changed to 999 for unlimited depth
 SHAREPOINT_EXCLUDE_FILES = os.getenv("SHAREPOINT_EXCLUDE_FILES", "true").lower() == "true"
+
+# Outlook Email Configuration
+OUTLOOK_USER_EMAIL = os.getenv("OUTLOOK_USER_EMAIL", "")  # Email address to access (required for application permissions)
+OUTLOOK_FOLDER_NAME = os.getenv("OUTLOOK_FOLDER_NAME", "Inbox")  # Folder name to extract emails from
+OUTLOOK_MAX_EMAILS = int(os.getenv("OUTLOOK_MAX_EMAILS", "500"))  # Maximum number of emails to fetch
+OUTLOOK_DATE_FILTER = os.getenv("OUTLOOK_DATE_FILTER", "")  # Options: last_month, last_3_months, last_6_months, last_year, or empty for all
 
 # SharePoint Downloadable Folders (files in these folders can be downloaded)
 # Add folder paths that contain files users can download (certificates, policy documents, guides, etc.)
