@@ -22,5 +22,5 @@ echo 🔍 Checking service health...
 docker-compose ps
 
 echo ✅ Services restarted! The 405 error should now be fixed.
-echo 🌐 You can now test the login at: https://newcf3.cloudfuze.com/login.html
+echo 🌐 You can now test the login at: https://ai.cloudfuze.com/login.html
 pause

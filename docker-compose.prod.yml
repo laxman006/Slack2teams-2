@@ -88,7 +88,7 @@ services:
   #   environment:
   #     DATABASE_URL: "postgresql://user:password@db:5432/langfuse"
   #     NEXTAUTH_SECRET: "${NEXTAUTH_SECRET}"
-  #     NEXTAUTH_URL: "https://newcf3.cloudfuze.com"
+  #     NEXTAUTH_URL: "https://ai.cloudfuze.com"
   #   depends_on:
   #     - db
   #   healthcheck:
