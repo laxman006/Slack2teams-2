@@ -87,10 +87,16 @@ INTENT_BRANCHES = {
         "include_tags": ["blog", "sharepoint"],
         "query_expansion": ["product capabilities", "feature list", "platform features"]
     },
+    "email_conversations": {
+        "description": "Questions about email threads, conversations, and discussions",
+        "keywords": ["email", "thread", "conversation", "discussed", "bugs", "participants", "srcs", "what did", "who said"],
+        "include_tags": ["email"],
+        "query_expansion": ["email thread", "conversation", "discussion"]
+    },
     "other": {
         "description": "Fallback for uncategorized queries",
         "keywords": [],
-        "include_tags": ["blog", "sharepoint"],
+        "include_tags": ["blog", "sharepoint", "email"],
         "query_expansion": []
     }
 }
@@ -106,6 +112,9 @@ def classify_intent(query: str) -> dict:
     query_lower = query.lower()
     
     # Quick keyword-based pre-filter for common cases (faster)
+    if any(kw in query_lower for kw in ["email", "thread", "conversation", "bugs raised", "discussed", "srcs folder", "participants"]):
+        return {"intent": "email_conversations", "confidence": 0.90, "method": "keyword"}
+    
     if any(kw in query_lower for kw in ["certificate", "download", "soc", "policy"]) and "sharepoint" not in query_lower:
         if any(word in query_lower for word in ["certificate", "compliance", "security", "policy"]):
             return {"intent": "sharepoint_docs", "confidence": 0.85, "method": "keyword"}
@@ -127,6 +136,7 @@ def classify_intent(query: str) -> dict:
 Query: "{query}"
 
 CRITICAL RULES:
+- If query asks about emails, conversations, threads, or discusses what was said in emails → "email_conversations"
 - If query asks about general business value, benefits, or "what is CloudFuze" WITHOUT mentioning specific platforms → "general_business"
 - If query mentions BOTH "Slack" AND "Teams" → "slack_teams_migration"
 - If query asks about general migration (without specific platforms) → "migration_general"

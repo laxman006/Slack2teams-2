@@ -2,9 +2,10 @@ from app.helpers import build_vectorstore, build_combined_vectorstore
 from app.pdf_processor import process_pdf_directory, chunk_pdf_documents
 from config import (
     CHROMA_DB_PATH, INITIALIZE_VECTORSTORE,
-    ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE, ENABLE_SHAREPOINT_SOURCE,
+    ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE, ENABLE_SHAREPOINT_SOURCE, ENABLE_OUTLOOK_SOURCE,
     WEB_SOURCE_URL, PDF_SOURCE_DIR, EXCEL_SOURCE_DIR, DOC_SOURCE_DIR, BLOG_START_PAGE,
     SHAREPOINT_SITE_URL, SHAREPOINT_START_PAGE,
+    OUTLOOK_USER_EMAIL, OUTLOOK_FOLDER_NAME,
 )
 import os
 import shutil
@@ -74,6 +75,11 @@ def get_current_metadata():
         sharepoint_path = f"{SHAREPOINT_START_PAGE}" if SHAREPOINT_START_PAGE else "Documents Library"
         metadata["sharepoint"] = f"{SHAREPOINT_SITE_URL}/{sharepoint_path}"
         metadata["enabled_sources"].append("sharepoint")
+    
+    if ENABLE_OUTLOOK_SOURCE:
+        # Store Outlook metadata - folder and user email
+        metadata["outlook"] = f"{OUTLOOK_USER_EMAIL}/{OUTLOOK_FOLDER_NAME}"
+        metadata["enabled_sources"].append("outlook")
     
     return metadata
 
@@ -261,6 +267,16 @@ def build_incremental_vectorstore(changed_sources):
         except Exception as e:
             print(f"[ERROR] SharePoint processing failed: {e}")
     
+    if "outlook" in changed_sources:
+        print("[*] Processing changed Outlook email content...")
+        from app.outlook_processor import process_outlook_content
+        try:
+            outlook_docs = process_outlook_content()
+            new_docs.extend(outlook_docs)
+            print(f"[OK] Processed {len(outlook_docs)} Outlook email documents")
+        except Exception as e:
+            print(f"[ERROR] Outlook processing failed: {e}")
+    
     if not new_docs:
         print("[WARNING] No new documents found for changed sources")
         return existing_vectorstore
@@ -313,13 +329,17 @@ def build_selective_vectorstore():
     if ENABLE_SHAREPOINT_SOURCE:
         enabled_sources.append("sharepoint")
     
+    # Check Outlook source
+    if ENABLE_OUTLOOK_SOURCE:
+        enabled_sources.append("outlook")
+    
     print(f"Building vectorstore with sources: {', '.join(enabled_sources)}")
     
     # Build based on enabled sources
     if len(enabled_sources) == 1 and "web" in enabled_sources:
         # Only web source enabled
         return build_vectorstore(WEB_SOURCE_URL)
-    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE:
+    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE or ENABLE_OUTLOOK_SOURCE:
         # Multiple sources enabled
         pdf_dir = PDF_SOURCE_DIR if ENABLE_PDF_SOURCE else None
         excel_dir = EXCEL_SOURCE_DIR if ENABLE_EXCEL_SOURCE else None
@@ -327,7 +347,7 @@ def build_selective_vectorstore():
         
         return build_combined_vectorstore(
             WEB_SOURCE_URL if ENABLE_WEB_SOURCE else None,
-            pdf_dir, excel_dir, doc_dir, ENABLE_SHAREPOINT_SOURCE
+            pdf_dir, excel_dir, doc_dir, ENABLE_SHAREPOINT_SOURCE, ENABLE_OUTLOOK_SOURCE
         )
     else:
         # No sources enabled - create empty vectorstore

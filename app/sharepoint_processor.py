@@ -36,7 +36,7 @@ class SharePointProcessor:
         # Initialize text splitter
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1500,
-            chunk_overlap=300,
+            chunk_overlap=200,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
         
@@ -492,7 +492,7 @@ class SharePointProcessor:
             print(f"[ERROR] Failed to find child URLs: {e}")
             return []
 
-def chunk_sharepoint_documents(documents: List[Document], chunk_size: int = 1500, chunk_overlap: int = 300) -> List[Document]:
+def chunk_sharepoint_documents(documents: List[Document], chunk_size: int = 1500, chunk_overlap: int = 200) -> List[Document]:
     """Split SharePoint documents into smaller chunks for better retrieval."""
     if not documents:
         return documents
@@ -539,7 +539,7 @@ def process_sharepoint_content() -> List[Document]:
     
     # Chunk the documents for better search and cost efficiency
     print("[*] Chunking SharePoint documents...")
-    chunked_docs = chunk_sharepoint_documents(raw_docs, chunk_size=1500, chunk_overlap=300)
+    chunked_docs = chunk_sharepoint_documents(raw_docs, chunk_size=1500, chunk_overlap=200)
     print(f"[OK] Created {len(chunked_docs)} chunked documents")
     
     return chunked_docs
