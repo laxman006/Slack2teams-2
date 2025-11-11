@@ -1675,6 +1675,35 @@ async def clear_chat_history(
     except Exception as e:
         return {"error": str(e)}
 
+@router.post("/chat/history/rebuild")
+async def rebuild_chat_history(
+    request: Request,
+    current_user: dict = Depends(verify_user_access)
+):
+    """Rebuild chat history for a user after message editing. Protected against IDOR."""
+    try:
+        body = await request.json()
+        user_id = body.get("user_id")
+        messages = body.get("messages", [])
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        # Clear existing history first
+        await clear_user_chat_history(user_id)
+        
+        # Re-add all messages in order
+        for message in messages:
+            role = message.get("role")
+            content = message.get("content")
+            
+            if role and content:
+                await add_to_conversation(user_id, role, content)
+        
+        return {"message": f"Chat history rebuilt for user {user_id}", "message_count": len(messages)}
+    except Exception as e:
+        return {"error": str(e)}
+
 # ---------------- Feedback Endpoint ----------------
 
 @router.post("/feedback")

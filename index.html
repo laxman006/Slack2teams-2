@@ -331,7 +331,26 @@
       background: #e1ecff; 
       color: black; 
       margin-left: auto; 
-      text-align: right; 
+      text-align: left;
+    }
+    
+    .user-message-wrapper {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin: 8px 0;
+      margin-left: auto;
+      max-width: 70%;
+    }
+    
+    .user-message-wrapper.editing {
+      max-width: 70%;
+    }
+    
+    .user-message-wrapper .message.user {
+      margin: 0;
+      width: auto;
+      max-width: none;
     }
 
     .bot { 
@@ -552,6 +571,114 @@
       font-size: 11px;
       color: #6c757d;
       margin-left: 4px;
+    }
+
+    /* Edit button for user messages - matching feedback button style */
+    .edit-button-container {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+      margin-right: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .edit-btn {
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6e6e80;
+      width: 28px;
+      height: 28px;
+    }
+
+    .edit-btn:hover {
+      background: #f4f4f4;
+      color: #1a1a1a;
+    }
+
+    .edit-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    
+    /* Make edit button SVG match the filtered icon style */
+    .edit-btn svg {
+      opacity: 0.7;
+    }
+    
+    .edit-btn:hover svg {
+      opacity: 1;
+    }
+
+    /* Edit mode styles - inline editing */
+    .user-message-wrapper.editing .message.user {
+      padding: 0;
+      border: 2px solid #0129ac;
+      box-shadow: 0 0 0 1px rgba(1, 41, 172, 0.1);
+    }
+
+    .edit-textarea {
+      width: 100%;
+      min-height: 40px;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 20px;
+      font-family: inherit;
+      font-size: 16px;
+      resize: none;
+      box-sizing: border-box;
+      line-height: 1.5;
+      background: transparent;
+      color: black;
+      overflow: hidden;
+    }
+
+    .edit-textarea:focus {
+      outline: none;
+    }
+
+    .edit-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .edit-action-btn {
+      padding: 6px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .edit-save-btn {
+      background: #0129ac;
+      color: white;
+    }
+
+    .edit-save-btn:hover {
+      background: #0056b3;
+    }
+
+    .edit-cancel-btn {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    .edit-cancel-btn:hover {
+      background: #dee2e6;
     }
 
     /* Scroll to bottom button */
@@ -794,14 +921,49 @@
       console.log('[SESSION] Created new session:', sessionId);
     }
 
+    // Helper function to remove edit button from previous user messages
+    function removeAllEditButtons() {
+      const allWrappers = messagesDiv.querySelectorAll('.user-message-wrapper');
+      allWrappers.forEach(wrapper => {
+        const editContainer = wrapper.querySelector('.edit-button-container');
+        if (editContainer) {
+          editContainer.remove();
+        }
+      });
+    }
+
     function addMessage(content, sender) {
-      const div = document.createElement("div");
-      div.className = "message " + sender;
-      div.innerText = content;
-      messagesDiv.appendChild(div);
-      console.log(`[UI] Added ${sender} message. Total messages now: ${messagesDiv.children.length}`);
-      scrollToBottom();
-      return div;
+      if (sender === "user") {
+        // Remove edit button from any previous user messages
+        removeAllEditButtons();
+        
+        // For user messages, create wrapper with message and edit button below
+        const wrapper = document.createElement("div");
+        wrapper.className = "user-message-wrapper";
+        wrapper.innerHTML = `
+          <div class="message user">${content}</div>
+          <div class="edit-button-container">
+            <button class="edit-btn" onclick="editMessage(this)" title="Edit message">
+              <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+              </svg>
+            </button>
+          </div>
+        `;
+        messagesDiv.appendChild(wrapper);
+        console.log(`[UI] Added ${sender} message. Total messages now: ${messagesDiv.children.length}`);
+        scrollToBottom();
+        return wrapper;
+      } else {
+        // For bot messages, keep simple structure
+        const div = document.createElement("div");
+        div.className = "message " + sender;
+        div.innerText = content;
+        messagesDiv.appendChild(div);
+        console.log(`[UI] Added ${sender} message. Total messages now: ${messagesDiv.children.length}`);
+        scrollToBottom();
+        return div;
+      }
     }
 
     function addMessageHTML(content, sender, traceId = null) {
@@ -1136,14 +1298,231 @@
       }
     }
 
-    async function sendMessage() {
-      const question = input.value.trim();
+    // Auto-resize textarea to fit content
+    function autoResizeTextarea(textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    // Edit message functionality - inline editing
+    function editMessage(button) {
+      const wrapper = button.closest('.user-message-wrapper');
+      const messageDiv = wrapper.querySelector('.message.user');
+      const originalText = messageDiv.textContent || messageDiv.innerText || '';
+      
+      // Store original content and width for cancel
+      wrapper.dataset.originalContent = originalText;
+      const originalWidth = messageDiv.offsetWidth;
+      wrapper.dataset.originalWidth = originalWidth;
+      
+      // Add editing class to wrapper
+      wrapper.classList.add('editing');
+      
+      // Set minimum width to preserve message size
+      messageDiv.style.minWidth = originalWidth + 'px';
+      
+      // Replace message content with textarea and buttons
+      messageDiv.innerHTML = `<textarea class="edit-textarea" autofocus>${originalText}</textarea>`;
+      
+      // Hide edit button and add action buttons
+      const editButtonContainer = wrapper.querySelector('.edit-button-container');
+      editButtonContainer.style.display = 'none';
+      
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'edit-actions';
+      actionsDiv.innerHTML = `
+        <button class="edit-action-btn edit-cancel-btn" onclick="cancelEdit(this)">Cancel</button>
+        <button class="edit-action-btn edit-save-btn" onclick="saveEdit(this)">Save & Resend</button>
+      `;
+      wrapper.appendChild(actionsDiv);
+      
+      // Focus textarea and move cursor to end
+      const textarea = messageDiv.querySelector('.edit-textarea');
+      
+      // Auto-resize textarea to fit content
+      autoResizeTextarea(textarea);
+      
+      // Add input event listener for auto-resize
+      textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+      
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      
+      // Add keyboard shortcuts
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          saveEdit(wrapper.querySelector('.edit-save-btn'));
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEdit(wrapper.querySelector('.edit-cancel-btn'));
+        }
+      });
+    }
+
+    // Cancel edit and restore original content
+    function cancelEdit(button) {
+      const wrapper = button.closest('.user-message-wrapper');
+      const originalContent = wrapper.dataset.originalContent || '';
+      const messageDiv = wrapper.querySelector('.message.user');
+      
+      // Remove editing class
+      wrapper.classList.remove('editing');
+      
+      // Remove min-width constraint
+      messageDiv.style.minWidth = '';
+      
+      // Restore original message content
+      messageDiv.innerHTML = originalContent;
+      
+      // Remove action buttons
+      const actionsDiv = wrapper.querySelector('.edit-actions');
+      if (actionsDiv) {
+        actionsDiv.remove();
+      }
+      
+      // Show edit button again
+      const editButtonContainer = wrapper.querySelector('.edit-button-container');
+      if (editButtonContainer) {
+        editButtonContainer.style.display = 'flex';
+      }
+    }
+
+    // Save edited message and resend
+    async function saveEdit(button) {
+      const wrapper = button.closest('.user-message-wrapper');
+      const textarea = wrapper.querySelector('.edit-textarea');
+      const newText = textarea.value.trim();
+      
+      if (!newText) {
+        alert('Message cannot be empty');
+        return;
+      }
+      
+      const messageDiv = wrapper.querySelector('.message.user');
+      
+      // Remove editing class
+      wrapper.classList.remove('editing');
+      
+      // Remove min-width constraint
+      messageDiv.style.minWidth = '';
+      
+      // Update message content with new text
+      messageDiv.innerHTML = newText;
+      
+      // Remove action buttons
+      const actionsDiv = wrapper.querySelector('.edit-actions');
+      if (actionsDiv) {
+        actionsDiv.remove();
+      }
+      
+      // Show edit button again
+      const editButtonContainer = wrapper.querySelector('.edit-button-container');
+      if (editButtonContainer) {
+        editButtonContainer.style.display = 'flex';
+      }
+      
+      // Remove all messages after this one from DOM
+      let nextSibling = wrapper.nextElementSibling;
+      while (nextSibling) {
+        const toRemove = nextSibling;
+        nextSibling = nextSibling.nextElementSibling;
+        toRemove.remove();
+      }
+      
+      console.log('[EDIT] Message edited and subsequent messages removed. Updating server history...');
+      
+      // Update chat history on server
+      await updateChatHistoryAfterEdit(wrapper, newText);
+      
+      // Resend the edited message
+      await sendMessageText(newText);
+    }
+    
+    // Update chat history on server after editing
+    async function updateChatHistoryAfterEdit(editedWrapper, editedText) {
+      if (!currentUser || !currentUser.id || !currentUser.access_token) {
+        console.error('[EDIT] User not authenticated');
+        return;
+      }
+      
+      try {
+        // Collect all messages up to (but not including) the edited one
+        const messagesToKeep = [];
+        const allMessages = messagesDiv.children;
+        
+        for (let i = 0; i < allMessages.length; i++) {
+          const messageElement = allMessages[i];
+          
+          // Stop when we reach the edited message
+          if (messageElement === editedWrapper) {
+            break;
+          }
+          
+          // Extract user messages
+          if (messageElement.classList.contains('user-message-wrapper')) {
+            const userMsg = messageElement.querySelector('.message.user');
+            if (userMsg) {
+              messagesToKeep.push({
+                role: 'user',
+                content: userMsg.textContent || userMsg.innerText || ''
+              });
+            }
+          }
+          // Extract bot messages
+          else if (messageElement.classList.contains('message') && messageElement.classList.contains('bot')) {
+            const contentDiv = messageElement.querySelector('.message-content');
+            if (contentDiv) {
+              messagesToKeep.push({
+                role: 'assistant',
+                content: contentDiv.textContent || contentDiv.innerText || ''
+              });
+            }
+          }
+        }
+        
+        // Don't add the edited message here - it will be added by sendMessageText
+        // messagesToKeep already contains all messages up to (but not including) the edited one
+        
+        console.log('[EDIT] Updating server with', messagesToKeep.length, 'messages (edited message will be added when resent)');
+        
+        // Clear the chat history on server
+        await fetch(`${getApiBase()}/chat/history/${currentUser.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${currentUser.access_token}`
+          }
+        });
+        
+        // Rebuild the chat history by sending all messages
+        const response = await fetch(`${getApiBase()}/chat/history/rebuild`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentUser.access_token}`
+          },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            messages: messagesToKeep
+          })
+        });
+        
+        if (response.ok) {
+          console.log('[EDIT] Chat history updated successfully on server');
+        } else {
+          console.error('[EDIT] Failed to update chat history on server');
+        }
+        
+      } catch (error) {
+        console.error('[EDIT] Error updating chat history:', error);
+      }
+    }
+
+    // Send message with specific text (used for editing)
+    async function sendMessageText(question) {
       if (!question) return;
 
-      addMessage(question, "user");
-      input.value = "";
-
-      // Show thinking animation (addMessageHTML will scroll automatically)
+      // Show thinking animation
       const botDiv = addMessageHTML("", "bot");
       botDiv.innerHTML = `
         <div class="thinking">
@@ -1326,11 +1705,16 @@
       }
     }
 
+    async function sendMessage() {
+      const question = input.value.trim();
+      if (!question) return;
 
-
-
-
-
+      addMessage(question, "user");
+      input.value = "";
+      
+      // Send the message
+      await sendMessageText(question);
+    }
 
     sendBtn.addEventListener("click", sendMessage);
     input.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
@@ -1878,7 +2262,7 @@
                 // Note: Historical messages won't have trace_id, so feedback won't work for them
                 addMessageHTML(renderMarkdown(message.content), sender, null);
               } else {
-                // Keep plain text for user messages
+                // Add user messages with edit button
                 addMessage(message.content, sender);
               }
             }
