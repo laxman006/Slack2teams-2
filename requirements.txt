@@ -44,6 +44,7 @@ xlrd==2.0.1
 
 # Text Processing
 markdown==3.5.1
+nltk>=3.9.0
 
 # Database
 motor==3.3.2

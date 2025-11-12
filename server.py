@@ -41,14 +41,66 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Add a simple health check endpoint
+# Health check endpoints
 @app.get("/")
 async def root():
     return {"message": "CF Chatbot API is running"}
 
 @app.get("/health")
 async def health_check():
+    """Basic health check - always returns 200 if server is up."""
     return {"status": "healthy", "message": "Server is running"}
+
+@app.get("/ready")
+async def readiness_check():
+    """
+    Readiness check - verifies all dependencies are ready.
+    Returns 200 if ready, 503 if not ready.
+    """
+    from fastapi import status
+    from fastapi.responses import JSONResponse
+    
+    health_status = {
+        "ready": True,
+        "checks": {}
+    }
+    
+    # Check MongoDB connectivity
+    try:
+        from app.mongodb_memory import mongodb_memory
+        await mongodb_memory.connect()
+        health_status["checks"]["mongodb"] = "connected"
+    except Exception as e:
+        health_status["ready"] = False
+        health_status["checks"]["mongodb"] = f"error: {str(e)}"
+    
+    # Check vectorstore availability
+    try:
+        from app.vectorstore import vectorstore
+        if vectorstore:
+            health_status["checks"]["vectorstore"] = "available"
+        else:
+            health_status["ready"] = False
+            health_status["checks"]["vectorstore"] = "not initialized"
+    except Exception as e:
+        health_status["ready"] = False
+        health_status["checks"]["vectorstore"] = f"error: {str(e)}"
+    
+    # Check Langfuse connectivity
+    try:
+        from app.langfuse_integration import langfuse_tracker
+        if langfuse_tracker and langfuse_tracker.client:
+            health_status["checks"]["langfuse"] = "connected"
+        else:
+            # Langfuse is optional, so mark as warning not failure
+            health_status["checks"]["langfuse"] = "not configured"
+    except Exception as e:
+        health_status["checks"]["langfuse"] = f"warning: {str(e)}"
+    
+    if health_status["ready"]:
+        return JSONResponse(content=health_status, status_code=status.HTTP_200_OK)
+    else:
+        return JSONResponse(content=health_status, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 app.include_router(chat_router)
 

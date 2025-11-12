@@ -189,6 +189,67 @@ class RAGPipelineTrace:
             print(f"[ERROR] Query span failed: {e}")
             return None
     
+    def log_ngram_detection(self, query: str, detected_ngrams: list, ngram_weights: Dict[str, float], 
+                           technical_score: float, is_technical: bool, metadata: Optional[Dict[str, Any]] = None):
+        """Log N-gram detection and technical query classification."""
+        try:
+            if not self.query_span:
+                print("[WARNING] Cannot log N-gram detection: query_span not started")
+                return None
+            
+            ngram_span = self.query_span.span(
+                name="ngram_detection",
+                input=query,
+                output={
+                    "detected_ngrams": detected_ngrams,
+                    "ngram_weights": ngram_weights,
+                    "technical_score": technical_score,
+                    "is_technical_query": is_technical,
+                    "total_ngrams_detected": len(detected_ngrams)
+                },
+                metadata={
+                    **(metadata or {}),
+                    "timestamp": datetime.now().isoformat(),
+                    "boost_applied": is_technical
+                }
+            )
+            
+            print(f"[LANGFUSE] Logged N-gram detection: {len(detected_ngrams)} technical phrases, score={technical_score:.2f}")
+            return ngram_span
+            
+        except Exception as e:
+            print(f"[ERROR] N-gram detection span failed: {e}")
+            return None
+    
+    def log_ngram_reranking(self, original_doc_count: int, reranked_doc_count: int, 
+                           top_docs_info: list, metadata: Optional[Dict[str, Any]] = None):
+        """Log N-gram based document reranking results."""
+        try:
+            if not self.query_span:
+                print("[WARNING] Cannot log N-gram reranking: query_span not started")
+                return None
+            
+            reranking_span = self.query_span.span(
+                name="ngram_reranking",
+                input=f"Reranking {original_doc_count} documents",
+                output={
+                    "reranked_count": reranked_doc_count,
+                    "top_documents": top_docs_info[:10]  # Log top 10 for reference
+                },
+                metadata={
+                    **(metadata or {}),
+                    "timestamp": datetime.now().isoformat(),
+                    "ranking_method": "hybrid_semantic_ngram"
+                }
+            )
+            
+            print(f"[LANGFUSE] Logged N-gram reranking: {reranked_doc_count} documents reranked")
+            return reranking_span
+            
+        except Exception as e:
+            print(f"[ERROR] N-gram reranking span failed: {e}")
+            return None
+    
     def log_retrieval(self, query: str, retrieved_docs: list, doc_count: int, sources_breakdown: Dict[str, int], metadata: Optional[Dict[str, Any]] = None):
         """Log document retrieval with nested embedding span."""
         try:
@@ -242,9 +303,13 @@ class RAGPipelineTrace:
                 "metadata": {**(metadata or {}), "timestamp": datetime.now().isoformat()}
             }
             
-            # If we have a Langfuse prompt template, link it to the generation
+            # If we have a Langfuse prompt template, log metadata but DON'T pass the template object
+            # Passing the template object causes Langfuse SDK to compile it internally, which breaks on {curly braces} in context
             if self.prompt_template:
-                generation_params["prompt"] = self.prompt_template
+                # Instead of linking the template object, just add metadata about which prompt was used
+                generation_params["metadata"]["prompt_name"] = self.prompt_metadata.get('prompt_name')
+                generation_params["metadata"]["prompt_version"] = self.prompt_metadata.get('version')
+                generation_params["metadata"]["prompt_source"] = self.prompt_metadata.get('source')
                 print(f"[PROMPT] Linked prompt to generation: {self.prompt_metadata.get('prompt_name')} v{self.prompt_metadata.get('version')}")
             
             return self.synthesize_span.generation(**generation_params)

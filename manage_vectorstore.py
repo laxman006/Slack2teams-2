@@ -16,10 +16,24 @@ import os
 import json
 from datetime import datetime
 
+# Set environment variables BEFORE importing app modules
+# This ensures metadata is saved with correct enabled_sources
+os.environ["INITIALIZE_VECTORSTORE"] = "true"
+
+# Load .env file first to get source settings
+from dotenv import load_dotenv
+load_dotenv()
+
+# Set default enabled sources if not in .env
+if "ENABLE_WEB_SOURCE" not in os.environ:
+    os.environ["ENABLE_WEB_SOURCE"] = "true"
+if "ENABLE_SHAREPOINT_SOURCE" not in os.environ:
+    os.environ["ENABLE_SHAREPOINT_SOURCE"] = "true"
+
 def check_status():
     """Check current vectorstore status."""
     from config import CHROMA_DB_PATH
-    from app.vectorstore import load_stored_metadata, get_current_metadata
+    from app.vectorstore import load_stored_metadata, get_current_metadata, METADATA_FILE
     
     print("=" * 60)
     print("VECTORSTORE STATUS CHECK")
@@ -48,19 +62,50 @@ def check_status():
     if stored_metadata:
         print(f"Last updated: {stored_metadata.get('timestamp', 'Unknown')}")
         print(f"Blog URL: {stored_metadata.get('url', 'Unknown')}")
+        
+        # Display enabled sources
+        enabled_sources = stored_metadata.get('enabled_sources', [])
+        if enabled_sources:
+            print(f"Enabled sources: {', '.join(enabled_sources)}")
+        else:
+            print("Enabled sources: NONE (metadata may be corrupted)")
     else:
         print("No stored metadata found")
+    
+    print("\n" + "=" * 60)
+    print("CURRENT ENVIRONMENT SETTINGS")
+    print("=" * 60)
+    current_enabled = current_metadata.get('enabled_sources', [])
+    if current_enabled:
+        print(f"Currently enabled sources: {', '.join(current_enabled)}")
+    else:
+        print("⚠️  WARNING: No sources currently enabled!")
+        print("Check your .env file or environment variables")
     
     print("=" * 60)
 
 def rebuild_vectorstore():
     """Manually rebuild the vectorstore."""
+    from app.vectorstore import get_current_metadata
+    
     print("=" * 60)
     print("MANUAL VECTORSTORE REBUILD")
     print("=" * 60)
     print("⚠️  WARNING: This will cost $16-20 in OpenAI API calls!")
     print("This will fetch and process all blog content from CloudFuze.")
     
+    # Show what will be enabled
+    current_metadata = get_current_metadata()
+    enabled_sources = current_metadata.get('enabled_sources', [])
+    print("\nSources that will be enabled:")
+    if enabled_sources:
+        for source in enabled_sources:
+            print(f"  ✓ {source}")
+    else:
+        print("  ⚠️  WARNING: No sources enabled! Check your .env file")
+        print("     Set ENABLE_WEB_SOURCE=true and ENABLE_SHAREPOINT_SOURCE=true")
+    
+    print()
     response = input("Do you want to continue? (yes/no): ").lower().strip()
     
     if response not in ['yes', 'y']:
@@ -68,20 +113,29 @@ def rebuild_vectorstore():
         return
     
     try:
-        from app.vectorstore import rebuild_vectorstore_if_needed, save_metadata, get_current_metadata
+        from app.vectorstore import rebuild_vectorstore_if_needed, save_metadata, get_current_metadata, METADATA_FILE
         
         print("Starting vectorstore rebuild...")
         vectorstore = rebuild_vectorstore_if_needed()
         
         if vectorstore:
-            # Save metadata
+            # Save metadata with enabled sources
             current_metadata = get_current_metadata()
             save_metadata(current_metadata)
             
             total_docs = vectorstore._collection.count()
-            print(f"✅ Vectorstore rebuilt successfully!")
+            print(f"\n✅ Vectorstore rebuilt successfully!")
             print(f"Total documents: {total_docs}")
             print(f"Timestamp: {datetime.now().isoformat()}")
+            
+            # Show what was enabled
+            enabled_sources = current_metadata.get('enabled_sources', [])
+            if enabled_sources:
+                print(f"\n✓ Metadata saved with enabled sources: {', '.join(enabled_sources)}")
+            else:
+                print(f"\n⚠️  WARNING: Metadata saved but no sources were enabled!")
+            
+            print(f"\nMetadata file: {METADATA_FILE}")
         else:
             print("❌ Failed to rebuild vectorstore")
             

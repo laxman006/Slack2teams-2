@@ -1,9 +1,17 @@
 
 import asyncio
+import hashlib
 from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_openai import ChatOpenAI
 # RetrievalQA is now handled differently in langchain 1.x
 from config import SYSTEM_PROMPT
+from app.ngram_retrieval import (
+    detect_technical_ngrams,
+    rerank_documents_with_ngrams,
+    get_ngram_diagnostics,
+    is_technical_query,
+    expand_technical_query
+)
 
 
 class AsyncStreamHandler(BaseCallbackHandler):
@@ -106,55 +114,139 @@ def setup_qa_chain(retriever):
         def invoke(self, inputs):
             # Extract the query from the inputs dict
             query = inputs.get("query", "")
+            user_id = inputs.get("user_id") or inputs.get("metadata", {}).get("user_id")
+            
+            # Get conversation context if user_id provided
+            user_context = ""
+            if user_id:
+                try:
+                    # Try async mongodb memory first
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is already running, we can't use asyncio.run
+                        # Fall back to synchronous memory or skip
+                        print(f"[CONTEXT] Event loop already running, skipping context injection")
+                    else:
+                        from app.mongodb_memory import get_conversation_context
+                        user_context = loop.run_until_complete(get_conversation_context(user_id))
+                        if user_context:
+                            print(f"[CONTEXT] Injected conversation history for user {user_id}")
+                except Exception as e:
+                    print(f"[CONTEXT] Failed to get conversation context: {e}")
+            
+            # Enhance query with conversation context if available
+            query_with_history = f"{user_context}\n\nCurrent question: {query}" if user_context else query
             
             # Get relevant documents using pure semantic search
             from app.vectorstore import vectorstore
             
-            # PURE SEMANTIC SEARCH - Let the vectorstore handle semantic understanding
-            # No predefined keywords, no hardcoded terms, no forced inclusions
+            # ================================================================
+            # HYBRID RETRIEVAL: Semantic Search + N-gram Boosting
+            # ================================================================
             
-            # Primary semantic search with the original query
-            relevant_docs = vectorstore.similarity_search(query, k=25)
+            # Step 1: Detect technical n-grams in the query (use enhanced query for detection)
+            detected_ngrams, ngram_weights = detect_technical_ngrams(query_with_history)
+            is_tech_query = is_technical_query(query_with_history)
             
-            # Secondary semantic search with query rephrasing for better coverage
-            # This helps catch semantically similar but differently worded content
-            try:
-                # Use the LLM to create a semantic variation of the query
-                rephrase_prompt = f"""
-                Rephrase this question in 2-3 different ways to help find relevant information:
-                Original: {query}
+            print(f"[N-GRAM DETECTION] Query: {query}")
+            print(f"[N-GRAM DETECTION] Technical keywords detected: {detected_ngrams}")
+            print(f"[N-GRAM DETECTION] Is technical: {is_tech_query}")
+            
+            # Step 2: Primary semantic search - EXPAND query with detected keywords
+            # This helps the vector search focus on documents with these technical terms
+            if detected_ngrams:
+                # Add detected keywords to boost vector similarity
+                keyword_expansion = " ".join(detected_ngrams[:5])  # Limit to top 5 to avoid query dilution
+                expanded_search_query = f"{query_with_history} {keyword_expansion}"
+                print(f"[N-GRAM BOOST] Expanding search query with keywords: {keyword_expansion}")
+                relevant_docs = vectorstore.similarity_search(expanded_search_query, k=25)
+            else:
+                relevant_docs = vectorstore.similarity_search(query_with_history, k=25)
+            
+            # Step 3: If technical query, expand with technical variations
+            if is_tech_query:
+                print(f"[N-GRAM BOOST] Applying technical query expansion...")
+                expanded_queries = expand_technical_query(query)
                 
-                Provide 2-3 alternative phrasings that mean the same thing but use different words.
-                Each rephrasing should be on a new line and be concise.
-                """
-                
-                rephrase_result = llm.invoke(rephrase_prompt)
-                rephrased_queries = [line.strip() for line in rephrase_result.content.split('\n') if line.strip()]
-                
-                # Search with each rephrased query
-                for rephrased_query in rephrased_queries[:2]:  # Limit to 2 rephrasings
-                    additional_docs = vectorstore.similarity_search(rephrased_query, k=12)
+                # Search with expanded queries
+                for expanded_query in expanded_queries[1:3]:  # Skip first (original), limit to 2 expansions
+                    print(f"[N-GRAM BOOST] Expanded query: {expanded_query}")
+                    additional_docs = vectorstore.similarity_search(expanded_query, k=10)
                     relevant_docs.extend(additional_docs)
+            else:
+                # For non-technical queries, use LLM rephrasing
+                try:
+                    # Use the LLM to create a semantic variation of the query
+                    rephrase_prompt = f"""
+                    Rephrase this question in 2-3 different ways to help find relevant information:
+                    Original: {query}
                     
-            except Exception as e:
-                # If rephrasing fails, continue with original query only
-                print(f"Query rephrasing failed: {e}")
-                pass
+                    Provide 2-3 alternative phrasings that mean the same thing but use different words.
+                    Each rephrasing should be on a new line and be concise.
+                    """
+                    
+                    rephrase_output = llm.invoke(rephrase_prompt)
+                    # Safe extraction of text from LLM response
+                    rephrase_text = ""
+                    if hasattr(rephrase_output, "content"):
+                        rephrase_text = rephrase_output.content
+                    elif isinstance(rephrase_output, str):
+                        rephrase_text = rephrase_output
+                    else:
+                        try:
+                            rephrase_text = str(rephrase_output)
+                        except:
+                            rephrase_text = ""
+                    
+                    rephrased_queries = [line.strip() for line in rephrase_text.split('\n') if line.strip()]
+                    
+                    # Search with each rephrased query
+                    for rephrased_query in rephrased_queries[:2]:  # Limit to 2 rephrasings
+                        additional_docs = vectorstore.similarity_search(rephrased_query, k=12)
+                        relevant_docs.extend(additional_docs)
+                        
+                except Exception as e:
+                    # If rephrasing fails, continue with original query only
+                    print(f"[LLM REPHRASE] Failed: {e}")
+                    pass
             
             # Deduplicate documents while preserving relevance order
+            # Using hash of source + larger content window for better uniqueness
             seen_ids = set()
             unique_docs = []
             
             for doc in relevant_docs:
-                # Create a unique identifier for the document
-                doc_id = f"{doc.metadata.get('source', '')}_{doc.page_content[:50]}"
+                # Create a unique identifier using hash of source + first 500 chars
+                doc_key = (doc.metadata.get('source', '') + doc.page_content[:500])
+                doc_id = hashlib.md5(doc_key.encode('utf-8')).hexdigest()
                 if doc_id not in seen_ids:
                     seen_ids.add(doc_id)
                     unique_docs.append(doc)
             
-            # Limit to reasonable number of documents for processing
-            # Too many documents can overwhelm the LLM and reduce quality
-            final_docs = unique_docs[:30]
+            # Step 4: Apply N-gram reranking if technical query detected
+            MAX_CONTEXT_DOCS = 10  # Limit context to top 10 docs to prevent overload
+            
+            if is_tech_query and detected_ngrams:
+                print(f"[N-GRAM BOOST] Reranking {len(unique_docs)} documents with n-gram boosting...")
+                
+                # Rerank documents based on n-gram matching (use original query, not history-enhanced)
+                reranked_docs = rerank_documents_with_ngrams(unique_docs, query)
+                
+                # Extract documents from scored tuples and log scores
+                final_docs = []
+                for doc, score in reranked_docs[:MAX_CONTEXT_DOCS]:  # Take top N after reranking
+                    final_docs.append(doc)
+                    # Log top documents for debugging
+                    if len(final_docs) <= 5:
+                        source = doc.metadata.get('source', 'Unknown')[:50]
+                        tag = doc.metadata.get('tag', 'unknown')
+                        print(f"[N-GRAM BOOST] Top doc #{len(final_docs)}: score={score:.2f}, tag={tag}, source={source}")
+            else:
+                # No technical n-grams, use original order
+                final_docs = unique_docs[:MAX_CONTEXT_DOCS]
+                print(f"[N-GRAM BOOST] No technical n-grams detected, using semantic order")
+            
+            print(f"[CONTEXT] Using {len(final_docs)} documents for LLM context")
             
             # Format the documents for the context
             formatted_docs = format_docs(final_docs)

@@ -499,14 +499,30 @@ def hybrid_retrieve(query: str, k: int = 50):
 def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
     """
     Retrieve documents filtered by intent branch.
-    NOW USES TRUE HYBRID SEARCH (BM25 + Vector + RRF).
+    NOW USES TRUE HYBRID SEARCH (BM25 + Vector + RRF + N-gram Boosting).
     Platform-specific boosting for better context relevance.
     """
+    from app.ngram_retrieval import (
+        detect_technical_ngrams,
+        score_document_for_ngrams,
+        get_query_technical_score,
+        is_technical_query
+    )
+    
     branch_config = INTENT_BRANCHES.get(intent, INTENT_BRANCHES["other"])
     
     # Extract platform-specific keywords from query
     important_keywords = extract_platform_keywords(query)
     print(f"[RETRIEVAL] Detected important keywords: {important_keywords}")
+    
+    # Detect technical N-grams for boosting
+    detected_ngrams, ngram_weights = detect_technical_ngrams(query)
+    is_tech_query = is_technical_query(query)
+    technical_score = get_query_technical_score(query)
+    
+    if detected_ngrams:
+        print(f"[N-GRAM] Detected {len(detected_ngrams)} technical phrases: {detected_ngrams}")
+        print(f"[N-GRAM] Technical score: {technical_score:.2f}")
     
     # Get more documents than needed for filtering using HYBRID SEARCH
     # This combines BM25 keyword search + vector semantic search
@@ -545,12 +561,23 @@ def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
         # Apply keyword boost to score
         score = score * keyword_boost
         
-        # UNIVERSAL SharePoint Boost: Prioritize SharePoint docs over blogs for ALL intents
-        # This ensures official documentation is ranked higher than blog content
-        if source_type == "sharepoint":
-            score = score * 0.6  # Strong boost for SharePoint (lower score = higher priority)
-        elif source_type == "blog":
-            score = score * 1.2  # Slight penalty for blogs (prefer official docs)
+        # N-GRAM BOOSTING: Apply technical phrase boosting if technical query detected
+        ngram_boost = 1.0
+        if is_tech_query and detected_ngrams:
+            # Calculate N-gram boost score for this document
+            ngram_score = score_document_for_ngrams(
+                doc.page_content,
+                doc.metadata,
+                detected_ngrams,
+                ngram_weights
+            )
+            
+            # Convert ngram_score to a multiplier (lower score = higher priority in RRF)
+            # Higher ngram_score means more technical relevance, so reduce RRF score
+            if ngram_score > 0:
+                ngram_boost = 1.0 / (1.0 + (ngram_score * 0.1))  # Scale factor
+            
+            score = score * ngram_boost
         
         # For general_business intent: exclude Slack→Teams specific content
         if intent == "general_business":
@@ -1335,28 +1362,25 @@ async def chat_test(request: Request):
             else:
                 print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
-        # Full RAG pipeline
-        intent_result = classify_intent(question)
-        intent = intent_result["intent"]
-        intent_confidence = intent_result["confidence"]
-        
-        print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f})")
-        
+        # Full RAG pipeline with unified retrieval
         if vectorstore is None:
             answer = "Vectorstore not initialized."
         else:
             try:
-                # CRITICAL: Use original question for retrieval consistency
-                expanded_query = expand_query_with_intent(question, intent)
+                # Use unified retrieval
+                from app.unified_retrieval import unified_retrieve
                 
-                # Retrieve documents based on intent
-                doc_results = retrieve_with_branch_filter(expanded_query, intent, k=50)
+                print(f"[UNIFIED RETRIEVAL] Processing test query")
                 
-                # Rerank with hybrid scoring
-                reranked_docs = hybrid_ranking(doc_results, expanded_query, intent, alpha=0.7)
+                doc_results = unified_retrieve(
+                    query=question,
+                    vectorstore=vectorstore,
+                    bm25_retriever=None,
+                    k=50
+                )
                 
-                # Get top documents (hybrid_ranking returns tuples of (doc, score, metadata))
-                top_docs = [doc for doc, score, *_ in reranked_docs[:30]]
+                # Get top documents
+                top_docs = [doc for doc, score in doc_results[:30]]
                 
                 # Format context
                 from app.llm import format_docs
@@ -1385,8 +1409,10 @@ async def chat_test(request: Request):
                             context=context,
                             question=enhanced_query
                         )
+                        # Escape curly braces for LangChain template
+                        safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
                         prompt_template = ChatPromptTemplate.from_messages([
-                            ("system", compiled_prompt_text)
+                            ("system", safe_prompt_text)
                         ])
                         chain = prompt_template | llm
                         result = chain.invoke({})
@@ -1520,15 +1546,6 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
             else:
                 print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
-        # ============ INTENT CLASSIFICATION ============
-        # Classify user intent to enable branch-specific retrieval
-        intent_result = classify_intent(question)
-        intent = intent_result["intent"]
-        intent_confidence = intent_result["confidence"]
-        intent_method = intent_result.get("method", "unknown")
-        
-        print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
-        
         # Check if vectorstore is available
         if vectorstore is None:
             print("Warning: Vectorstore not initialized. Using default qa_chain.")
@@ -1536,44 +1553,22 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
             answer = result["result"]
         else:
             try:
-                # ============ QUERY EXPANSION ============
-                # CRITICAL: Use original question for retrieval to ensure consistency
-                # Only use enhanced_query (with context) for final LLM prompt
-                expanded_query = expand_query_with_intent(question, intent)
+                # ============ UNIFIED RETRIEVAL ============
+                # Use unified hybrid retrieval (replaces intent-based branching)
+                from app.unified_retrieval import unified_retrieve
                 
-                # ============ BRANCH-SPECIFIC RETRIEVAL ============
-                # Use intent-based filtering to retrieve relevant documents
+                print(f"[UNIFIED RETRIEVAL] Processing query with full knowledge base")
+                
+                # Retrieve documents with unified pipeline
                 RETRIEVAL_K = 50  # Number of documents to retrieve from vectorstore
-                doc_results = retrieve_with_branch_filter(
-                    query=expanded_query,
-                    intent=intent,
+                doc_results = unified_retrieve(
+                    query=question,  # Use original question
+                    vectorstore=vectorstore,
+                    bm25_retriever=None,  # Optional: add BM25 if available
                     k=RETRIEVAL_K
                 )
                 
-                print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
-                
-                # ============ CONFIDENCE-BASED FALLBACK ============
-                # If confidence is low, try alternative retrieval strategies
-                doc_results, fallback_strategy = confidence_based_fallback(
-                    doc_results=doc_results,
-                    intent=intent,
-                    intent_confidence=intent_confidence,
-                    query=enhanced_query
-                )
-                
-                if fallback_strategy != "no_fallback":
-                    print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
-                
-                # ============ HYBRID RANKING ============
-                # Combine semantic similarity with keyword matching
-                doc_results = hybrid_ranking(
-                    doc_results=doc_results,
-                    query=question,  # Use original query for keyword matching
-                    intent=intent,
-                    alpha=0.7  # 70% semantic, 30% keyword
-                )
-                
-                print(f"[HYBRID RANKING] Reranked {len(doc_results)} documents with semantic + keyword scores")
+                print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents via unified pipeline")
                 
                 # ============ DOCUMENT DIVERSITY ============
                 # Calculate diversity metrics for retrieved documents
@@ -1609,8 +1604,10 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                             context=context,
                             question=enhanced_query
                         )
+                        # Escape curly braces for LangChain template
+                        safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
                         prompt_template = ChatPromptTemplate.from_messages([
-                            ("system", compiled_prompt_text)
+                            ("system", safe_prompt_text)
                         ])
                         chain = prompt_template | llm
                         result = chain.invoke({})  # No variables needed
@@ -1882,57 +1879,28 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             }
             
             try:
-                # ============ INTENT CLASSIFICATION ============
-                # Classify user intent to enable branch-specific retrieval
-                intent_result = classify_intent(question)
-                intent = intent_result["intent"]
-                intent_confidence = intent_result["confidence"]
-                intent_method = intent_result.get("method", "unknown")
+                # ============ UNIFIED RETRIEVAL ============
+                # Use unified hybrid retrieval (replaces intent-based branching)
+                from app.unified_retrieval import unified_retrieve
                 
-                print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
+                print(f"[UNIFIED RETRIEVAL] Processing query with full knowledge base")
                 
                 # Check if vectorstore is available
                 if vectorstore is None:
                     print("Warning: Vectorstore not initialized. Please rebuild vectorstore manually.")
                     final_docs = []
                     doc_results = []
-                    fallback_strategy = "no_vectorstore"
                     diversity_metrics = {}
                 else:
-                    # ============ QUERY EXPANSION ============
-                    # CRITICAL: Use original question for retrieval consistency
-                    expanded_query = expand_query_with_intent(question, intent)
-                    
-                    # ============ BRANCH-SPECIFIC RETRIEVAL ============
-                    # Use intent-based filtering to retrieve relevant documents
-                    doc_results = retrieve_with_branch_filter(
-                        query=expanded_query,  # Use expanded query
-                        intent=intent,
+                    # Retrieve documents with unified pipeline
+                    doc_results = unified_retrieve(
+                        query=question,  # Use original question
+                        vectorstore=vectorstore,
+                        bm25_retriever=None,  # Optional: add BM25 if available
                         k=RETRIEVAL_K
                     )
                     
-                    print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
-                    
-                    # ============ CONFIDENCE-BASED FALLBACK ============
-                    # If confidence is low, try alternative retrieval strategies
-                    doc_results, fallback_strategy = confidence_based_fallback(
-                        doc_results=doc_results,
-                        intent=intent,
-                        intent_confidence=intent_confidence,
-                        query=enhanced_query
-                    )
-                    
-                    if fallback_strategy != "no_fallback":
-                        print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
-                    
-                    # ============ HYBRID RANKING ============
-                    # Combine semantic similarity with keyword matching
-                    doc_results = hybrid_ranking(
-                        doc_results=doc_results,
-                        query=question,  # Use original query for keyword matching
-                        intent=intent,
-                        alpha=0.7  # 70% semantic, 30% keyword
-                    )
+                    print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents via unified pipeline")
                     
                     print(f"[HYBRID RANKING] Reranked {len(doc_results)} documents with semantic + keyword scores")
                     
@@ -2158,8 +2126,13 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 )
                 # Create messages from compiled prompt with error handling
                 try:
+                    # CRITICAL: Escape any remaining curly braces in compiled text
+                    # SharePoint docs may contain {workspace}, {adminCloudId}, etc.
+                    # LangChain's ChatPromptTemplate treats {...} as template variables
+                    safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
+                    
                     prompt_template = ChatPromptTemplate.from_messages([
-                        ("system", compiled_prompt_text)
+                        ("system", safe_prompt_text)
                     ])
                     messages = prompt_template.format_messages()
                 except Exception as prompt_error:
@@ -2218,7 +2191,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # Calculate overall confidence score
             avg_similarity = doc_analysis.get("avg_similarity_score", 0.5)
             overall_confidence = calculate_confidence(
-                intent_confidence=intent_confidence,
+                intent_confidence=0.95,  # High confidence with unified retrieval (no intent misclassification)
                 retrieval_docs=len(final_docs),
                 avg_similarity=avg_similarity
             )
@@ -2236,20 +2209,19 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     "timestamp": datetime.now().isoformat()
                 },
                 
-                # ===== INTENT CLASSIFICATION (NEW) =====
-                "intent": {
-                    "detected": intent,
-                    "confidence": intent_confidence,
-                    "method": intent_method,
-                    "branch_description": INTENT_BRANCHES[intent]["description"]
+                # ===== UNIFIED RETRIEVAL (NEW) =====
+                "retrieval_method": {
+                    "type": "unified_hybrid_retrieval",
+                    "description": "Unified retrieval without intent classification",
+                    "confidence": 0.95
                 },
                 
                 # ===== CONFIDENCE SCORING (NEW) =====
                 "confidence": {
                     "overall": overall_confidence,
                     "breakdown": {
-                        "intent": intent_confidence,
-                        "retrieval": min(len(final_docs) / 30.0, 1.0),
+                        "unified_retrieval": 0.95,
+                        "document_count": min(len(final_docs) / 30.0, 1.0),
                         "similarity": max(0, 1.0 - avg_similarity) if avg_similarity else 0.5
                     }
                 },
@@ -2269,14 +2241,11 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 },
                 
                 "retrieval": {
-                    "method": "advanced_rag_pipeline",
-                    "branch": intent,
-                    "techniques_applied": ["intent_classification", "query_expansion", "hybrid_ranking", "diversity_scoring"],
-                    "fallback_strategy": fallback_strategy,
-                    "query_expansion": {
+                    "method": "unified_hybrid_retrieval",
+                    "techniques_applied": ["keyword_detection", "ngram_boosting", "vector_search", "metadata_filtering", "diversity_scoring"],
+                    "query_info": {
                         "original": question,
-                        "expanded": expanded_query if 'expanded_query' in locals() else question,
-                        "expansion_terms": INTENT_BRANCHES[intent].get("query_expansion", [])
+                        "enhanced": enhanced_query if 'enhanced_query' in locals() else question
                     },
                     "documents": {
                         "requested": RETRIEVAL_K,
