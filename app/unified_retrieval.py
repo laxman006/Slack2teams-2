@@ -1,262 +1,332 @@
+# app/unified_retrieval.py
 """
-Unified Retrieval Pipeline
-===========================
-
-Production-ready retrieval that replaces intent-based branching with:
-- Unified hybrid search (BM25 + Vector + N-gram)
-- Metadata-based soft boosting (not hard filtering)
-- Automatic keyword and technical phrase detection
-- Scalable to 50K+ documents without retraining
-
-This architecture follows modern RAG best practices used by ChatGPT Enterprise,
-Perplexity, and Cohere Command-R.
+Production-grade Hybrid Retrieval (ChatGPT-Enterprise style)
+- Similarity-first (higher = better)
+- Combines vector similarity + BM25 + phrase/metadata boosts
+- Optimized for CloudFuze knowledge base structure
+- Uses `source_type` for relevance (sharepoint vs. web/blog)
+- NO recency weighting (removed per user request)
 """
 
-from typing import List, Tuple, Dict, Any
-from app.ngram_retrieval import (
-    detect_technical_ngrams,
-    score_document_for_ngrams,
-    get_query_technical_score,
-    is_technical_query
-)
+from typing import List, Tuple, Optional, Dict, Any
+import logging
+import re
+import math
+from app.ngram_retrieval import detect_technical_ngrams, expand_technical_query
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# ============================================================
+# CONFIGURATION (tune these)
+# ============================================================
+DEFAULT_K = 50
+MAX_RETURN = 50
+
+# Use similarity-based weighting
+SHAREPOINT_BOOST = 2.6
+SHAREPOINT_DOC_EXTRA = 1.6
+
+WEB_NEUTRAL = 1.0
+WEB_PENALTY = 0.96   # keep blogs low, but still available
+
+PHRASE_HIT_BOOST = 1.2
+FILENAME_MATCH_BOOST = 1.18
+
+FINAL_DOC_LIMIT = 50
+
+_norm_re = re.compile(r'[^a-z0-9\s]')
 
 
-def unified_retrieve(
+# ============================================================
+# NORMALIZATION HELPERS
+# ============================================================
+def normalize_text(t: str) -> str:
+    if not t:
+        return ""
+    t = t.lower()
+    t = _norm_re.sub(" ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _as_similarity(raw: Any) -> float:
+    """
+    Convert raw vectorstore score → similarity (higher = better).
+    If score is between 0..1 = distance → convert via 1/(1+d).
+    Otherwise assume it's already similarity-like.
+    """
+    try:
+        s = float(raw)
+    except:
+        return 0.0
+
+    if 0.0 <= s <= 1.0:
+        return 1.0 / (1.0 + s)
+
+    return s
+
+
+# ============================================================
+# SOURCE TYPE → BOOSTING LOGIC
+# ============================================================
+def _doc_source_type(md: Dict[str, Any]) -> str:
+    return (md.get("source_type") or md.get("content_type") or "").lower()
+
+
+def _apply_source_boosts(md: Dict[str, Any], base_sim: float) -> float:
+    st = _doc_source_type(md)
+    sim = float(base_sim)
+
+    # SharePoint (official guides, pdf, docx, faq)
+    if st in ("sharepoint", "faq", "pdf", "docx", "doc", "table", "text"):
+        sim *= SHAREPOINT_BOOST
+
+        # extra boost for official manuals, guides, faqs
+        content_type = (md.get("content_type") or "").lower()
+        page_url = (md.get("page_url") or "").lower()
+        if any(k in content_type for k in ["pdf", "doc", "docx", "guide", "manual", "faq", "table"]) or any(k in page_url for k in [".pdf", ".doc", ".docx"]):
+            sim *= SHAREPOINT_DOC_EXTRA
+            logger.info(f"[BOOST] SharePoint doc: {md.get('page_title') or md.get('source')}")
+
+    # Web / blog / external articles
+    elif st in ("web", "blog", "article") or md.get("is_blog_post"):
+        sim *= WEB_NEUTRAL
+        sim *= WEB_PENALTY   # keep blogs lower unless very relevant
+
+    return sim
+
+
+# ============================================================
+# NORMALIZATION AND DEDUPLICATION
+# ============================================================
+def _normalize_candidates(candidates: List[Tuple[Any, float]]) -> List[Tuple[Any, float]]:
+    """
+    Deduplicate by (source + file_name + first 512 chars of content).
+    Include file_name to prevent PDF/DOCX variants from being treated as duplicates.
+    """
+    seen = {}
+    for doc, score in candidates:
+        md = getattr(doc, "metadata", {}) or {}
+        source = str(md.get("source", ""))
+        file_name = str(md.get("file_name", "")) or str(md.get("page_title", "")) or str(md.get("post_title", ""))
+        content_sample = (doc.page_content or "")[:512]
+        key = f"{source}||{file_name}||{content_sample}"
+
+        if key not in seen:
+            seen[key] = (doc, score)
+        else:
+            _, existing_score = seen[key]
+            if _as_similarity(score) > _as_similarity(existing_score):
+                seen[key] = (doc, score)
+
+    return list(seen.values())
+
+
+# ============================================================
+# CORE RERANKER
+# ============================================================
+def _compute_combined_score(semantic_sim: float, bm25: float, keyword_bonus: float) -> float:
+    """
+    Weighted combination:
+    - semantic similarity: 0.55
+    - BM25 score: 0.35
+    - phrase/keyword bonus: 0.10
+    """
+    return (
+        0.55 * semantic_sim +
+        0.35 * bm25 +
+        0.10 * keyword_bonus
+    )
+
+
+def rerank_with_metadata_and_ngrams(
+    candidates: List[Tuple[Any, float]],
     query: str,
-    vectorstore,
-    bm25_retriever=None,
-    k: int = 50,
-    max_tokens: int = 4000
+    detected_ngrams: List[str],
+    ngram_weights: Dict[str, float]
 ) -> List[Tuple[Any, float]]:
     """
-    Unified retrieval pipeline that searches entire knowledge base.
-    
-    Args:
-        query: User query
-        vectorstore: Vector database (Chroma/FAISS)
-        bm25_retriever: Optional BM25 retriever for hybrid search
-        k: Number of documents to retrieve
-        max_tokens: Maximum context tokens (for future compression)
-    
-    Returns:
-        List of (document, score) tuples, sorted by relevance
+    Sorts by semantic similarity, BM25, phrase hits, and SharePoint priority.
+    Output: list of (doc, final_similarity) sorted descending.
     """
+
+    qnorm = normalize_text(query)
+    phrase_norms = [normalize_text(p) for p in detected_ngrams]
+
+    # collect scores for min-max normalization
+    sem_raws = []
+    bm_raws = []
+
+    for doc, raw in candidates:
+        sem_raws.append(_as_similarity(raw))
+        bm_raws.append(float(getattr(doc, "_bm25_score", 0.0)))
+
+    def minmax(x, arr):
+        if not arr:
+            return 0.0
+        lo, hi = min(arr), max(arr)
+        if hi - lo < 1e-9:
+            return 0.0
+        return (x - lo) / (hi - lo)
+
+    scored = []
+
+    for doc, raw in candidates:
+        md = getattr(doc, "metadata", {}) or {}
+
+        # normalize scores
+        sem = minmax(_as_similarity(raw), sem_raws)
+        bm25 = minmax(float(getattr(doc, "_bm25_score", 0.0)), bm_raws)
+
+        # phrase hits
+        content_low = (doc.page_content or "").lower()
+        kb = 0.0
+        phrase_hit = False
+
+        page_title = normalize_text(md.get("page_title", "") or md.get("post_title", "") or md.get("source", ""))
+        file_name = normalize_text(md.get("file_name", ""))
+
+        for ph in phrase_norms:
+            if ph and (ph in content_low or ph in page_title or ph in file_name):
+                phrase_hit = True
+                kb += ngram_weights.get(ph, 1.0)
+                logger.info(f"[PHRASE HIT] {page_title or file_name or 'unnamed'} - matched: {ph}")
+
+        # small token-level fallback
+        for tok, wt in ngram_weights.items():
+            if tok in content_low:
+                kb += 0.1 * wt
+
+        # boost for phrase hit
+        base_sim = sem
+        if phrase_hit:
+            base_sim *= PHRASE_HIT_BOOST
+            setattr(doc, "_phrase_hit", True)
+
+            # extra boost when filename or page_title matches query tokens
+            name_hits = sum(1 for w in qnorm.split() if len(w) > 3 and w in page_title)
+            if name_hits >= 2:
+                base_sim *= FILENAME_MATCH_BOOST
+                logger.info(f"[FILENAME MATCH] {page_title or 'unnamed'} - {name_hits} terms matched")
+        else:
+            setattr(doc, "_phrase_hit", False)
+
+        # metadata boosts (SharePoint > web/blog)
+        base_sim = _apply_source_boosts(md, base_sim)
+
+        # final score
+        final = _compute_combined_score(base_sim, bm25, kb)
+        scored.append((doc, final))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored
+
+
+# ============================================================
+# MAIN HYBRID RETRIEVAL ENTRYPOINT
+# ============================================================
+def unified_retrieve(query: str, vectorstore, bm25_retriever=None, k: int = DEFAULT_K):
     print(f"\n{'='*70}")
     print(f"[UNIFIED RETRIEVAL] Query: {query}")
     print('='*70)
     
-    # Step 1: Detect technical keywords and phrases
+    logger.info(f"[UNIFIED] Query: {query}")
+
     detected_ngrams, ngram_weights = detect_technical_ngrams(query)
-    is_tech = is_technical_query(query)
-    tech_score = get_query_technical_score(query)
-    
+    logger.info(f"[UNIFIED] Detected phrases: {detected_ngrams}")
     print(f"[KEYWORDS] Detected: {detected_ngrams}")
-    print(f"[TECHNICAL] Is technical query: {is_tech} (score: {tech_score:.2f})")
-    
-    # Step 2: Hybrid retrieval (Vector + BM25)
-    all_docs = []
-    
-    # Vector search
+
+    # CRITICAL: Check if vectorstore is available
+    if vectorstore is None:
+        print(f"[ERROR] Vectorstore not initialized - cannot perform retrieval")
+        return []
+
+    candidates = []
+
+    # 1) Vector search
     try:
-        vector_results = vectorstore.similarity_search_with_score(query, k=k*2)
-        all_docs.extend(vector_results)
-        print(f"[VECTOR] Retrieved {len(vector_results)} documents")
+        if hasattr(vectorstore, "similarity_search_with_score"):
+            vs = vectorstore.similarity_search_with_score(query, k=max(k, 100))
+            candidates.extend(vs)
+            print(f"[VECTOR] Retrieved {len(vs)} documents with scores")
+        else:
+            vs = vectorstore.similarity_search(query, k=max(k, 100))
+            candidates.extend([(doc, 0.0) for doc in vs])
+            print(f"[VECTOR] Retrieved {len(vs)} documents (no scores)")
     except Exception as e:
+        logger.warning(f"[UNIFIED] Vector search failed: {e}")
         print(f"[VECTOR] Error: {e}")
-        vector_results = []
     
-    # BM25 search (if available)
+    # 2) BM25 retrieval
     if bm25_retriever:
         try:
-            bm25_results = bm25_retriever.get_relevant_documents(query)
-            # Add with default score
-            bm25_docs = [(doc, 0.5) for doc in bm25_results[:k]]
-            all_docs.extend(bm25_docs)
-            print(f"[BM25] Retrieved {len(bm25_results)} documents")
+            bm_docs = bm25_retriever.get_relevant_documents(query)
+            for i, doc in enumerate(bm_docs):
+                setattr(doc, "_bm25_score", float(len(bm_docs) - i))
+            candidates.extend([(doc, 0.0) for doc in bm_docs])
+            print(f"[BM25] Retrieved {len(bm_docs)} documents")
+            logger.info(f"[UNIFIED] BM25 retrieved {len(bm_docs)} docs")
         except Exception as e:
+            logger.warning(f"[UNIFIED] BM25 failed: {e}")
             print(f"[BM25] Error: {e}")
-    
-    # CRITICAL: Add targeted SharePoint search for technical queries
-    # This ensures SharePoint technical docs are always considered
-    if is_tech and detected_ngrams:
+    else:
+        # Fallback: Try to use BM25 from endpoints if available
         try:
-            # Create a search query with detected technical terms
-            sharepoint_query = " ".join(detected_ngrams[:5])  # Top 5 keywords
-            sharepoint_results = vectorstore.similarity_search_with_score(
-                f"{sharepoint_query} documentation guide",
-                k=20  # Get 20 more docs
-            )
-            # Filter for SharePoint docs only
-            sharepoint_docs = [
-                (doc, score * 0.7)  # Give them a boost (multiply score by 0.7 = lower score = better)
-                for doc, score in sharepoint_results
-                if doc.metadata.get('source_type') == 'sharepoint'
-            ]
-            if sharepoint_docs:
-                all_docs.extend(sharepoint_docs)
-                print(f"[SHAREPOINT] Added {len(sharepoint_docs)} targeted SharePoint documents")
+            from app.endpoints import bm25_search
+            bm25_results = bm25_search(query, k=k)
+            if bm25_results:
+                candidates.extend(bm25_results)
+                print(f"[BM25] Retrieved {len(bm25_results)} documents from endpoints")
         except Exception as e:
-            print(f"[SHAREPOINT] Error: {e}")
+            print(f"[BM25] Not available: {e}")
     
-    if not all_docs:
+    if not candidates:
         print("[WARNING] No documents retrieved!")
         return []
     
-    # Step 3: Deduplicate
-    seen = set()
-    unique_docs = []
-    for doc, score in all_docs:
-        doc_id = id(doc) if hasattr(doc, '__hash__') else hash(doc.page_content[:100])
-        if doc_id not in seen:
-            seen.add(doc_id)
-            unique_docs.append((doc, score))
+    # 3) Dedupe
+    candidates = _normalize_candidates(candidates)
+    logger.info(f"[UNIFIED] Candidates after dedupe: {len(candidates)}")
+    print(f"[DEDUP] Normalized to {len(candidates)} unique documents")
+
+    # 4) Rerank
+    reranked = rerank_with_metadata_and_ngrams(candidates, query, detected_ngrams, ngram_weights)
+
+    # 5) Debug logging
+    top_titles = []
+    sharepoint_in_top10 = []
+    for d, s in reranked[:10]:
+        md = getattr(d, "metadata", {}) or {}
+        title = md.get("page_title") or md.get("post_title") or md.get("source") or "unnamed"
+        top_titles.append((title, round(s, 4)))
+        if _doc_source_type(md) in ("sharepoint", "doc", "pdf", "faq"):
+            sharepoint_in_top10.append(title)
     
-    print(f"[DEDUP] {len(all_docs)} → {len(unique_docs)} unique documents")
-    
-    # Step 4: Apply smart reranking
-    reranked_docs = rerank_with_metadata_and_ngrams(
-        unique_docs,
-        query,
-        detected_ngrams,
-        ngram_weights,
-        is_tech
-    )
-    
-    # Step 5: Limit to top k
-    final_docs = reranked_docs[:k]
-    
-    print(f"[FINAL] Returning top {len(final_docs)} documents")
-    print(f"[TOP 3 SCORES] {[f'{score:.3f}' for _, score in final_docs[:3]]}")
+    logger.info(f"[UNIFIED] Top docs (first 10): {top_titles}")
+    print(f"[TOP 3 SCORES] {[f'{s:.3f}' for _, s in reranked[:3]]}")
+    if sharepoint_in_top10:
+        print(f"[TOP 10 SHAREPOINT] {sharepoint_in_top10}")
+
+    print(f"[FINAL] Returning top {min(len(reranked), MAX_RETURN)} documents")
     print('='*70)
     
-    return final_docs
+    # 6) Return top-N results
+    return reranked[:min(len(reranked), MAX_RETURN)]
 
 
-def rerank_with_metadata_and_ngrams(
-    docs: List[Tuple[Any, float]],
-    query: str,
-    detected_ngrams: List[str],
-    ngram_weights: Dict[str, float],
-    is_tech: bool
-) -> List[Tuple[Any, float]]:
-    """
-    Rerank documents using metadata + N-gram boosting.
-    
-    This is the CORE intelligence - replaces intent classification with smart,
-    automatic relevance detection.
-    """
-    query_lower = query.lower()
-    scored_docs = []
-    
-    for doc, base_score in docs:
-        # Start with base score (lower is better for similarity)
-        final_score = base_score
-        
-        # Extract metadata
-        metadata = doc.metadata
-        content_lower = doc.page_content.lower()
-        source = metadata.get('source', '')
-        tag = metadata.get('tag', '').lower()
-        source_type = metadata.get('source_type', '').lower()
-        
-        # ===== METADATA-BASED SOFT BOOSTING =====
-        
-        # Boost SharePoint documents for SharePoint queries
-        if 'sharepoint' in query_lower and source_type == 'sharepoint':
-            final_score *= 0.7  # 30% boost
-        
-        # Boost blog posts for general questions
-        if 'blog' in tag and not is_tech:
-            final_score *= 0.85  # 15% boost
-        
-        # Boost technical docs for technical queries
-        if is_tech and any(t in tag for t in ['technical', 'api', 'developer']):
-            final_score *= 0.75  # 25% boost
-        
-        # ===== SHAREPOINT DOCUMENT TITLE/FILENAME BOOST =====
-        
-        # CRITICAL: Strong boost for SharePoint docs with filenames matching query
-        file_name = metadata.get('file_name', '').lower()
-        if file_name and source_type == 'sharepoint':
-            # Check if query terms appear in filename
-            query_words = [w.lower() for w in query.split() if len(w) > 3]
-            filename_matches = sum(1 for word in query_words if word in file_name)
-            
-            if filename_matches >= 3:  # If 3+ query words in filename
-                final_score *= 0.3  # MASSIVE 70% boost - prioritize exact file matches!
-                print(f"[BOOST] SharePoint file '{file_name}' matches {filename_matches} query terms - strong boost applied")
-            elif filename_matches >= 2:
-                final_score *= 0.5  # 50% boost
-        
-        # ===== KEYWORD MATCHING BOOST =====
-        
-        # Extract key query terms (simple but effective)
-        query_terms = [term for term in query_lower.split() if len(term) > 3]
-        matched_terms = sum(1 for term in query_terms if term in content_lower)
-        
-        if matched_terms > 0:
-            # Boost based on term overlap
-            term_boost = 1.0 - (matched_terms * 0.05)  # Up to 50% boost for 10+ terms
-            final_score *= max(term_boost, 0.5)
-        
-        # ===== N-GRAM BOOSTING =====
-        
-        if is_tech and detected_ngrams:
-            # Calculate N-gram relevance score for this document
-            ngram_score = score_document_for_ngrams(
-                doc.page_content,
-                metadata,
-                detected_ngrams,
-                ngram_weights
-            )
-            
-            if ngram_score > 0:
-                # Convert ngram score to boost (higher ngram score = better document)
-                # Scale: ngram_score of 5.0 = 40% boost
-                ngram_boost = 1.0 - (min(ngram_score, 10.0) * 0.04)
-                final_score *= ngram_boost
-        
-        # ===== DETECTED KEYWORD EXACT MATCH BOOST =====
-        
-        # Strong boost for documents containing detected keywords
-        keyword_matches = sum(1 for kw in detected_ngrams if kw in content_lower)
-        if keyword_matches > 0:
-            keyword_boost = 0.8 ** keyword_matches  # Exponential boost
-            final_score *= keyword_boost
-        
-        scored_docs.append((doc, final_score))
-    
-    # Sort by final score (lower is better)
-    scored_docs.sort(key=lambda x: x[1])
-    
-    return scored_docs
-
-
+# ============================================================
+# LEGACY EXPORTS (for backward compatibility)
+# ============================================================
 def extract_query_keywords(query: str, min_length: int = 3) -> List[str]:
-    """
-    Extract important keywords from query.
-    Simple but effective approach.
-    """
-    # Common stop words to skip
-    stop_words = {'the', 'is', 'at', 'which', 'on', 'and', 'or', 'but', 
-                  'what', 'how', 'when', 'where', 'who', 'why', 'does',
-                  'do', 'did', 'will', 'would', 'could', 'should', 'can',
-                  'has', 'have', 'had', 'been', 'being', 'are', 'was', 'were',
-                  'for', 'with', 'about', 'from', 'into', 'through', 'during'}
-    
-    words = query.lower().split()
-    keywords = [w for w in words if len(w) >= min_length and w not in stop_words]
-    
-    return keywords
+    """Extract keywords from query (legacy function)."""
+    detected_ngrams, _ = detect_technical_ngrams(query)
+    return detected_ngrams
 
 
-def create_unified_prompt(context_docs: List[Any], query: str) -> str:
+def create_unified_prompt(context_docs: List, query: str) -> str:
     """
-    Create unified prompt that works for all query types.
-    
-    This replaces per-intent prompts with a single, flexible prompt.
+    Create unified prompt that works for all query types (legacy function).
     """
-    # Format documents
     formatted_context = []
     
     for i, doc in enumerate(context_docs, 1):
@@ -269,8 +339,8 @@ def create_unified_prompt(context_docs: List[Any], query: str) -> str:
         
         # Format based on content type
         if metadata.get('source_type') == 'sharepoint':
-            file_name = metadata.get('file_name', '')
-            formatted_context.append(f"[Document {i} - {tag} - {file_name}]\n{content}")
+            page_title = metadata.get('page_title', '')
+            formatted_context.append(f"[Document {i} - {tag} - {page_title}]\n{content}")
         else:
             formatted_context.append(f"[Document {i} - {tag}]\n{content}")
     
@@ -303,18 +373,8 @@ Answer:"""
     return prompt
 
 
-# ===== HELPER: Get retriever (for use in endpoints.py) =====
-
 def get_unified_retriever(vectorstore, bm25_retriever=None):
-    """
-    Factory function to create a unified retriever.
-    
-    Usage in endpoints.py:
-        retriever = get_unified_retriever(vectorstore, bm25_retriever)
-        docs = retriever(query, k=50)
-    """
-    def retrieve(query: str, k: int = 50):
+    """Get retriever function for use in endpoints (legacy function)."""
+    def retriever(query: str, k: int = DEFAULT_K):
         return unified_retrieve(query, vectorstore, bm25_retriever, k)
-    
-    return retrieve
-
+    return retriever

@@ -15,6 +15,39 @@ from app.doc_processor import process_doc_directory, chunk_doc_documents
 from app.sharepoint_processor import process_sharepoint_content
 
 
+def normalize_chain_output(result) -> str:
+    """
+    Normalize any LangChain/OpenAI chain output to a plain string.
+    Handles:
+    - LangChain RunnableOutput with .content
+    - Dict outputs with "result", "text", "answer", "output" keys
+    - Plain strings
+    - Objects with .text or .content attributes
+    """
+    # If it's already a string, return it
+    if isinstance(result, str):
+        return result
+    
+    # If it's a dict, try common keys
+    if isinstance(result, dict):
+        for key in ["result", "text", "answer", "content", "output"]:
+            if key in result:
+                return str(result[key])
+        # Fallback: convert entire dict to string
+        return str(result)
+    
+    # If it has a .content attribute (LangChain standard)
+    if hasattr(result, "content"):
+        return str(result.content)
+    
+    # If it has a .text attribute
+    if hasattr(result, "text"):
+        return str(result.text)
+    
+    # Final fallback: convert to string
+    return str(result)
+
+
 def fetch_posts(base_url: str, per_page=10, max_pages=6, start_page=1, extra_params: dict | None = None):
     """Fetch posts from WordPress API with pagination support.
 

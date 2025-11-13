@@ -14,7 +14,7 @@ from datetime import datetime
 from app.llm import setup_qa_chain
 from app.vectorstore import retriever, vectorstore
 from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
-from app.helpers import strip_markdown, preserve_markdown
+from app.helpers import preserve_markdown, normalize_chain_output
 from app.langfuse_integration import langfuse_tracker
 from app.auth import verify_user_access, require_admin, require_auth
 from app.prompt_manager import get_system_prompt, compile_prompt
@@ -141,184 +141,10 @@ def needs_clarification(query: str, previous_topic: str = None) -> tuple:
     return False, None, None
 
 
-# ============================================================================
-# INTENT CLASSIFICATION SYSTEM - Branch-Specific Retrieval
-# ============================================================================
-
-# Define intent branches with their characteristics
-INTENT_BRANCHES = {
-    "general_business": {
-        "description": "General business questions, CloudFuze overview, benefits",
-        "keywords": ["business", "help", "benefits", "useful", "value", "cloudfuze", "services", "offer", "advantages"],
-        "include_tags": ["blog"],
-        "exclude_keywords": ["slack", "teams", "migration", "migrate"],
-        "exclude_if_both": [("slack", "teams")],
-        "query_expansion": ["cloud solutions", "data migration platform", "SaaS management"]
-    },
-    "slack_teams_migration": {
-        "description": "Slack to Teams migration specific questions",
-        "keywords": ["slack", "teams", "slack to teams", "migrate slack", "migration"],
-        "include_tags": ["blog", "sharepoint"],
-        "require_keywords": [["slack", "teams"], ["slack-to-teams"]],
-        "query_expansion": ["channel migration", "workspace transfer", "conversation history"]
-    },
-    "sharepoint_docs": {
-        "description": "SharePoint documents, certificates, policies",
-        "keywords": ["certificate", "download", "policy", "document", "soc", "compliance", "security"],
-        "include_tags": ["sharepoint"],
-        "priority_source": "sharepoint",
-        "query_expansion": ["compliance documentation", "security certification", "audit reports"]
-    },
-    "pricing": {
-        "description": "Pricing, costs, payment questions",
-        "keywords": ["pricing", "cost", "price", "how much", "payment", "subscription", "plan"],
-        "include_tags": ["blog"],
-        "query_expansion": ["subscription plans", "licensing", "payment options"]
-    },
-    "troubleshooting": {
-        "description": "Errors, issues, stuck migrations",
-        "keywords": ["error", "stuck", "not working", "failed", "issue", "problem", "fix"],
-        "include_tags": ["blog", "sharepoint"],
-        "query_expansion": ["error resolution", "migration issues", "technical support"]
-    },
-    "migration_general": {
-        "description": "General migration questions (not platform-specific)",
-        "keywords": ["migrate", "migration", "transfer", "move data", "cloud migration"],
-        "include_tags": ["blog", "sharepoint"],
-        "exclude_if_both": [("slack", "teams")],
-        "query_expansion": ["data transfer", "cloud-to-cloud migration", "platform migration"]
-    },
-    "enterprise_solutions": {
-        "description": "Enterprise features, large-scale deployments",
-        "keywords": ["enterprise", "large scale", "organization", "corporate", "enterprise-grade"],
-        "include_tags": ["blog", "sharepoint"],
-        "query_expansion": ["enterprise deployment", "large organization", "corporate solutions"]
-    },
-    "integrations": {
-        "description": "API, integrations, third-party connections",
-        "keywords": ["api", "integration", "webhook", "connector", "third-party", "integrate with"],
-        "include_tags": ["blog", "sharepoint"],
-        "query_expansion": ["API integration", "third-party connectors", "platform connectivity"]
-    },
-    "features": {
-        "description": "Product features and capabilities",
-        "keywords": ["features", "capabilities", "what can", "functionality", "does it support"],
-        "include_tags": ["blog", "sharepoint"],
-        "query_expansion": ["product capabilities", "feature list", "platform features"]
-    },
-    "other": {
-        "description": "Fallback for uncategorized queries",
-        "keywords": [],
-        "include_tags": ["blog", "sharepoint"],
-        "query_expansion": []
-    }
-}
 
 
-def classify_intent(query: str) -> dict:
-    """
-    Classify user query intent using LLM-based classification.
-    Returns intent name and confidence score.
-    """
-    from langchain_openai import ChatOpenAI
-    
-    query_lower = query.lower()
-    
-    # Quick keyword-based pre-filter for common cases (faster)
-    if any(kw in query_lower for kw in ["certificate", "download", "soc", "policy"]) and "sharepoint" not in query_lower:
-        if any(word in query_lower for word in ["certificate", "compliance", "security", "policy"]):
-            return {"intent": "sharepoint_docs", "confidence": 0.85, "method": "keyword"}
-    
-    if "slack" in query_lower and "teams" in query_lower:
-        return {"intent": "slack_teams_migration", "confidence": 0.90, "method": "keyword"}
-    
-    if any(kw in query_lower for kw in ["pricing", "cost", "price", "how much"]):
-        return {"intent": "pricing", "confidence": 0.85, "method": "keyword"}
-    
-    # For ambiguous queries, use LLM classification
-    intent_descriptions = "\n".join([f"{i+1}. {key}: {config['description']}" 
-                                     for i, (key, config) in enumerate(INTENT_BRANCHES.items())])
-    
-    classifier_prompt = f"""Classify this user query into ONE of these intents:
-
-{intent_descriptions}
-
-Query: "{query}"
-
-CRITICAL RULES:
-- If query asks about general business value, benefits, or "what is CloudFuze" WITHOUT mentioning specific platforms → "general_business"
-- If query mentions BOTH "Slack" AND "Teams" → "slack_teams_migration"
-- If query asks about general migration (without specific platforms) → "migration_general"
-- If query asks for certificates, documents, or policies → "sharepoint_docs"
-- If query asks about pricing or costs → "pricing"
-- If query describes errors or problems → "troubleshooting"
-- If query asks about enterprise features or large-scale → "enterprise_solutions"
-- If query asks about API, integrations, or connectors → "integrations"
-- If query asks about features or capabilities → "features"
-- Otherwise → "other"
-
-Respond with EXACTLY this format (no extra text):
-intent_name|confidence
-
-Example: general_business|0.92
-"""
-    
-    try:
-        llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
-        response = llm.invoke(classifier_prompt)
-        
-        parts = response.content.strip().split('|')
-        intent = parts[0].strip()
-        confidence = float(parts[1].strip()) if len(parts) > 1 else 0.7
-        
-        # Validate intent exists
-        if intent not in INTENT_BRANCHES:
-            intent = "other"
-            confidence = 0.5
-        
-        return {
-            "intent": intent,
-            "confidence": confidence,
-            "method": "llm"
-        }
-    except Exception as e:
-        print(f"[ERROR] Intent classification failed: {e}")
-        return {"intent": "other", "confidence": 0.5, "method": "fallback"}
 
 
-def extract_platform_keywords(query: str) -> list:
-    """
-    Extract platform names and key terms from query for better retrieval.
-    Returns a list of important keywords that should be present in retrieved documents.
-    """
-    query_lower = query.lower()
-    
-    # Platform names to detect
-    platforms = [
-        'box', 'onedrive', 'google drive', 'gdrive', 'dropbox', 'sharepoint',
-        'slack', 'teams', 'microsoft teams', 'office 365', 'o365', 'm365',
-        'gmail', 'outlook', 'exchange', 'aws', 's3', 'azure', 'icloud'
-    ]
-    
-    detected_platforms = []
-    for platform in platforms:
-        if platform in query_lower:
-            detected_platforms.append(platform)
-    
-    # Also detect migration direction keywords
-    migration_keywords = []
-    if 'to' in query_lower or 'from' in query_lower:
-        # This is likely asking about specific source→destination migration
-        words = query_lower.split()
-        for i, word in enumerate(words):
-            if word in ['to', 'from'] and i > 0:
-                # Get the word before 'to'/'from'
-                migration_keywords.append(words[i-1])
-                # Get the word after 'to'/'from' if it exists
-                if i + 1 < len(words):
-                    migration_keywords.append(words[i+1])
-    
-    return detected_platforms + migration_keywords
 
 
 # ============================================================================
@@ -496,258 +322,11 @@ def hybrid_retrieve(query: str, k: int = 50):
         return merged_results
 
 
-def retrieve_with_branch_filter(query: str, intent: str, k: int = 50):
-    """
-    Retrieve documents filtered by intent branch.
-    NOW USES TRUE HYBRID SEARCH (BM25 + Vector + RRF + N-gram Boosting).
-    Platform-specific boosting for better context relevance.
-    """
-    from app.ngram_retrieval import (
-        detect_technical_ngrams,
-        score_document_for_ngrams,
-        get_query_technical_score,
-        is_technical_query
-    )
-    
-    branch_config = INTENT_BRANCHES.get(intent, INTENT_BRANCHES["other"])
-    
-    # Extract platform-specific keywords from query
-    important_keywords = extract_platform_keywords(query)
-    print(f"[RETRIEVAL] Detected important keywords: {important_keywords}")
-    
-    # Detect technical N-grams for boosting
-    detected_ngrams, ngram_weights = detect_technical_ngrams(query)
-    is_tech_query = is_technical_query(query)
-    technical_score = get_query_technical_score(query)
-    
-    if detected_ngrams:
-        print(f"[N-GRAM] Detected {len(detected_ngrams)} technical phrases: {detected_ngrams}")
-        print(f"[N-GRAM] Technical score: {technical_score:.2f}")
-    
-    # Get more documents than needed for filtering using HYBRID SEARCH
-    # This combines BM25 keyword search + vector semantic search
-    all_docs = hybrid_retrieve(query, k=150)  # TRUE HYBRID SEARCH!
-    
-    filtered_docs = []
-    
-    for doc, score in all_docs:
-        doc_tag = doc.metadata.get('tag', '').lower()
-        doc_content = doc.page_content.lower()
-        doc_title = doc.metadata.get('post_title', '').lower()
-        source_type = doc.metadata.get('source_type', '').lower()
-        
-        # Check inclusion tags
-        include_tags = branch_config.get("include_tags", [])
-        if include_tags:
-            tag_match = any(tag in doc_tag for tag in include_tags)
-        else:
-            tag_match = True
-        
-        # CRITICAL: Boost documents that contain important keywords
-        keyword_boost = 1.0
-        if important_keywords:
-            keyword_matches = sum(1 for keyword in important_keywords 
-                                if keyword in doc_content or keyword in doc_title)
-            
-            # Strong boost if document contains multiple important keywords
-            if keyword_matches >= 2:
-                keyword_boost = 0.5  # Strong boost (lower score = higher priority)
-            elif keyword_matches == 1:
-                keyword_boost = 0.8  # Moderate boost
-            else:
-                # No important keywords found - deprioritize
-                keyword_boost = 1.5  # Penalize (higher score = lower priority)
-        
-        # Apply keyword boost to score
-        score = score * keyword_boost
-        
-        # N-GRAM BOOSTING: Apply technical phrase boosting if technical query detected
-        ngram_boost = 1.0
-        if is_tech_query and detected_ngrams:
-            # Calculate N-gram boost score for this document
-            ngram_score = score_document_for_ngrams(
-                doc.page_content,
-                doc.metadata,
-                detected_ngrams,
-                ngram_weights
-            )
-            
-            # Convert ngram_score to a multiplier (lower score = higher priority in RRF)
-            # Higher ngram_score means more technical relevance, so reduce RRF score
-            if ngram_score > 0:
-                ngram_boost = 1.0 / (1.0 + (ngram_score * 0.1))  # Scale factor
-            
-            score = score * ngram_boost
-        
-        # For general_business intent: exclude Slack→Teams specific content
-        if intent == "general_business":
-            # Check if document is Slack→Teams specific
-            exclude_keywords = branch_config.get("exclude_keywords", [])
-            has_excluded = False
-            
-            # Strong exclusion: if both "slack" and "teams" appear multiple times
-            slack_count = doc_content.count("slack")
-            teams_count = doc_content.count("teams")
-            if slack_count >= 2 and teams_count >= 2:
-                has_excluded = True
-            
-            # Title-based exclusion
-            if "slack to teams" in doc_title or "slack-to-teams" in doc_title:
-                has_excluded = True
-            
-            if has_excluded:
-                continue  # Skip this document
-        
-        # For slack_teams_migration: prioritize relevant content
-        elif intent == "slack_teams_migration":
-            # Must have both slack and teams keywords
-            if "slack" not in doc_content and "slack" not in doc_title:
-                tag_match = False
-            if "teams" not in doc_content and "teams" not in doc_title:
-                tag_match = False
-        
-        # For sharepoint_docs: prioritize SharePoint source
-        elif intent == "sharepoint_docs":
-            if source_type == "sharepoint":
-                # Boost SharePoint docs by improving their score
-                score = score * 0.7  # Lower score = higher priority
-        
-        # Add document if it passes filters
-        if tag_match:
-            filtered_docs.append((doc, score))
-    
-    # Sort by score (lower is better in similarity search)
-    filtered_docs.sort(key=lambda x: x[1])
-    
-    # Return top k
-    print(f"[RETRIEVAL] After filtering and boosting, returning top {k} from {len(filtered_docs)} documents")
-    return filtered_docs[:k]
 
 
-def calculate_confidence(intent_confidence: float, retrieval_docs: int, avg_similarity: float = None):
-    """
-    Calculate overall confidence score for the response.
-    Combines intent classification confidence with retrieval metrics.
-    """
-    # Intent confidence weight: 50%
-    # Document count weight: 30%
-    # Similarity weight: 20%
-    
-    # Normalize document count (30 is ideal)
-    doc_confidence = min(retrieval_docs / 30.0, 1.0)
-    
-    if avg_similarity is not None:
-        # Similarity scores are distances (lower is better), typically 0.3-0.6
-        # Convert to confidence: 0.3 → 0.95, 0.6 → 0.4
-        similarity_confidence = max(0, 1.0 - avg_similarity)
-        
-        overall_confidence = (
-            intent_confidence * 0.5 +
-            doc_confidence * 0.3 +
-            similarity_confidence * 0.2
-        )
-    else:
-        overall_confidence = (
-            intent_confidence * 0.6 +
-            doc_confidence * 0.4
-        )
-    
-    return round(overall_confidence, 3)
 
 
-# ============================================================================
-# ADVANCED RAG IMPROVEMENTS
-# ============================================================================
 
-def expand_query_with_intent(query: str, intent: str) -> str:
-    """
-    Expand query with intent-specific keywords for better retrieval.
-    Uses query expansion terms defined in intent branches.
-    """
-    branch_config = INTENT_BRANCHES.get(intent, {})
-    expansion_terms = branch_config.get("query_expansion", [])
-    
-    if not expansion_terms:
-        return query
-    
-    # Add expansion terms to original query
-    expanded = f"{query} {' '.join(expansion_terms[:2])}"  # Add top 2 terms
-    
-    print(f"[QUERY EXPANSION] Original: '{query}' → Expanded: '{expanded}'")
-    
-    return expanded
-
-
-def hybrid_ranking(doc_results, query: str, intent: str, alpha=0.7):
-    """
-    Hybrid ranking combining semantic similarity + keyword matching.
-    alpha: weight for semantic score (1-alpha for keyword score)
-    NOW WITH ENHANCED PLATFORM-SPECIFIC MATCHING.
-    """
-    from collections import Counter
-    import re
-    
-    # Get keywords from intent branch
-    branch_config = INTENT_BRANCHES.get(intent, {})
-    intent_keywords = branch_config.get("keywords", [])
-    
-    # Extract keywords from query
-    query_lower = query.lower()
-    query_words = set(re.findall(r'\w+', query_lower))
-    
-    # Get platform-specific keywords for extra boosting
-    important_keywords = extract_platform_keywords(query)
-    
-    reranked_docs = []
-    
-    for doc, semantic_score in doc_results:
-        # Semantic score (already normalized, lower is better)
-        semantic_component = semantic_score
-        
-        # Keyword matching score
-        doc_text = doc.page_content.lower()
-        doc_title = doc.metadata.get('post_title', '').lower()
-        
-        # Count keyword matches
-        keyword_matches = 0
-        for keyword in query_words:
-            if len(keyword) > 3:  # Skip short words
-                keyword_matches += doc_text.count(keyword)
-                keyword_matches += doc_title.count(keyword) * 2  # Title matches count more
-        
-        # Count intent keyword matches
-        for intent_kw in intent_keywords:
-            if intent_kw in doc_text:
-                keyword_matches += 1
-        
-        # ENHANCED: Give extra weight to platform-specific keywords
-        platform_matches = 0
-        for platform_kw in important_keywords:
-            if platform_kw in doc_text:
-                platform_matches += 3  # Count each platform match as 3 regular matches
-            if platform_kw in doc_title:
-                platform_matches += 5  # Platform in title is very important
-        
-        keyword_matches += platform_matches
-        
-        # Normalize keyword score (inverse, so lower is better like semantic)
-        keyword_score = max(0, 1.0 - (keyword_matches / 25.0))  # Increased denominator for platform matches
-        
-        # Hybrid score (lower is better)
-        hybrid_score = (alpha * semantic_component) + ((1 - alpha) * keyword_score)
-        
-        reranked_docs.append((doc, hybrid_score, {
-            "semantic": semantic_component,
-            "keyword": keyword_score,
-            "keyword_matches": keyword_matches,
-            "platform_matches": platform_matches
-        }))
-    
-    # Sort by hybrid score
-    reranked_docs.sort(key=lambda x: x[1])
-    
-    # Return in original format (doc, score)
-    return [(doc, score) for doc, score, _ in reranked_docs]
 
 
 def calculate_document_diversity(doc_results):
@@ -788,43 +367,6 @@ def calculate_document_diversity(doc_results):
     }
 
 
-def confidence_based_fallback(doc_results, intent: str, intent_confidence: float, query: str):
-    """
-    If confidence is low, try fallback retrieval strategies.
-    Returns enhanced doc_results or original if fallback not needed.
-    """
-    # If confidence is already high, no fallback needed
-    if intent_confidence >= 0.75:
-        return doc_results, "no_fallback"
-    
-    print(f"[FALLBACK] Low confidence ({intent_confidence:.2f}), trying fallback strategies...")
-    
-    # Strategy 1: Try with "other" intent (broader search)
-    if intent != "other" and intent_confidence < 0.6:
-        print(f"[FALLBACK] Strategy 1: Expanding to 'other' branch")
-        fallback_docs = retrieve_with_branch_filter(query, "other", k=50)
-        
-        # Merge with original results (deduplicate)
-        seen = set()
-        merged = []
-        
-        for doc, score in doc_results + fallback_docs:
-            doc_id = f"{doc.metadata.get('source', '')}_{doc.page_content[:100]}"
-            if doc_id not in seen:
-                seen.add(doc_id)
-                merged.append((doc, score))
-        
-        # Re-sort and limit
-        merged.sort(key=lambda x: x[1])
-        return merged[:50], "fallback_other_branch"
-    
-    # Strategy 2: If still low confidence, use simple semantic search
-    if intent_confidence < 0.5:
-        print(f"[FALLBACK] Strategy 2: Simple semantic search (no filtering)")
-        fallback_docs = vectorstore.similarity_search_with_score(query, k=50)
-        return fallback_docs, "fallback_semantic_only"
-    
-    return doc_results, "no_fallback"
 
 
 router = APIRouter()
@@ -925,26 +467,6 @@ def classify_query_category(question: str) -> str:
     else:
         return "general"
 
-def extract_query_intent(question: str) -> str:
-    """Extract user intent from the query."""
-    question_lower = question.lower()
-    
-    if question.endswith("?"):
-        if any(word in question_lower for word in ["how", "what", "why", "when", "where"]):
-            return "request_information"
-        elif any(word in question_lower for word in ["can", "could", "should", "is it possible"]):
-            return "request_capability"
-    
-    if any(word in question_lower for word in ["download", "get", "need", "want"]):
-        return "request_resource"
-    elif any(word in question_lower for word in ["compare", "difference", "vs", "versus", "better"]):
-        return "compare"
-    elif any(word in question_lower for word in ["fix", "solve", "troubleshoot", "error"]):
-        return "troubleshoot"
-    elif any(word in question_lower for word in ["show", "list", "tell me"]):
-        return "request_information"
-    
-    return "general_query"
 
 def get_vectorstore_build_date() -> str:
     """Get the actual vectorstore build date from metadata file."""
@@ -1131,7 +653,7 @@ Is this a follow-up or new topic?""")
         ])
         
         chain = relevance_prompt | llm
-        result = chain.invoke({
+        result = await chain.ainvoke({
             "conversation_context": conversation_context[-500:],  # Last 500 chars to avoid token limits
             "current_question": current_question
         })
@@ -1306,7 +828,15 @@ async def chat_test(request: Request):
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+            ("system", """You are CloudFuze's AI assistant specializing in cloud migration and file management services.
+
+CRITICAL GREETING RULE:
+When users greet you (Hi, Hello, Hey, How are you, etc.):
+- Be friendly and conversational BUT immediately introduce CloudFuze services
+- **RIGHT**: "Hi there! 👋 I'm your CloudFuze assistant, here to help with cloud migration and file management. I can answer questions about migrating between platforms like Slack to Teams, Google Drive to OneDrive, Box to SharePoint, and more. What would you like to know about?"
+- **WRONG**: "Hi there! 😊 How are you doing today?" (too generic, doesn't mention CloudFuze)
+
+Always mention CloudFuze and migration services in your greeting response."""),
             ("human", "{question}")
         ])
         
@@ -1335,7 +865,7 @@ async def chat_test(request: Request):
                 print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         chain = conversational_prompt | llm
-        result = chain.invoke({"question": enhanced_query})
+        result = await chain.ainvoke({"question": enhanced_query})
         answer = result.content
     else:
         # Handle informational queries with document retrieval
@@ -1404,18 +934,20 @@ async def chat_test(request: Request):
                 
                 if langfuse_prompt_template:
                     try:
+                        # compile_prompt already returns escaped text for LangChain
                         compiled_prompt_text = compile_prompt(
                             langfuse_prompt_template,
                             context=context,
                             question=enhanced_query
                         )
-                        # Escape curly braces for LangChain template
-                        safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
                         prompt_template = ChatPromptTemplate.from_messages([
-                            ("system", safe_prompt_text)
+                            ("system", compiled_prompt_text)
                         ])
                         chain = prompt_template | llm
-                        result = chain.invoke({})
+                        result = await chain.ainvoke({})
+
+
+                        
                     except Exception as prompt_error:
                         print(f"[WARNING] Langfuse prompt failed: {prompt_error}")
                         print("[FALLBACK] Using local SYSTEM_PROMPT")
@@ -1425,7 +957,7 @@ async def chat_test(request: Request):
                             ("human", "Context: {context}\n\nQuestion: {question}")
                         ])
                         chain = prompt_template | llm
-                        result = chain.invoke({
+                        result = await chain.ainvoke({
                             "context": context,
                             "question": enhanced_query
                         })
@@ -1436,12 +968,12 @@ async def chat_test(request: Request):
                         ("human", "Context: {context}\n\nQuestion: {question}")
                     ])
                     chain = prompt_template | llm
-                    result = chain.invoke({
+                    result = await chain.ainvoke({
                         "context": context,
                         "question": enhanced_query
                     })
                 
-                answer = result.content
+                answer = normalize_chain_output(result)
                 
             except Exception as e:
                 print(f"[ERROR] RAG pipeline failed: {e}")
@@ -1490,7 +1022,15 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+            ("system", """You are CloudFuze's AI assistant specializing in cloud migration and file management services.
+
+CRITICAL GREETING RULE:
+When users greet you (Hi, Hello, Hey, How are you, etc.):
+- Be friendly and conversational BUT immediately introduce CloudFuze services
+- **RIGHT**: "Hi there! 👋 I'm your CloudFuze assistant, here to help with cloud migration and file management. I can answer questions about migrating between platforms like Slack to Teams, Google Drive to OneDrive, Box to SharePoint, and more. What would you like to know about?"
+- **WRONG**: "Hi there! 😊 How are you doing today?" (too generic, doesn't mention CloudFuze)
+
+Always mention CloudFuze and migration services in your greeting response."""),
             ("human", "{question}")
         ])
         
@@ -1519,7 +1059,7 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 print(f"[CONTEXT] Starting fresh conversation (new topic: {relevance_result.get('current_topic', 'general')})")
         
         chain = conversational_prompt | llm
-        result = chain.invoke({"question": enhanced_query})
+        result = await chain.ainvoke({"question": enhanced_query})
         answer = result.content
     else:
         # Handle informational queries with document retrieval
@@ -1550,7 +1090,7 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         if vectorstore is None:
             print("Warning: Vectorstore not initialized. Using default qa_chain.")
             result = qa_chain.invoke({"query": enhanced_query})
-            answer = result["result"]
+            answer = normalize_chain_output(result)
         else:
             try:
                 # ============ UNIFIED RETRIEVAL ============
@@ -1599,18 +1139,17 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 if langfuse_prompt_template:
                     # Use Langfuse prompt (context and question already compiled)
                     try:
+                        # compile_prompt already returns escaped text for LangChain
                         compiled_prompt_text = compile_prompt(
                             langfuse_prompt_template,
                             context=context,
                             question=enhanced_query
                         )
-                        # Escape curly braces for LangChain template
-                        safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
                         prompt_template = ChatPromptTemplate.from_messages([
-                            ("system", safe_prompt_text)
+                            ("system", compiled_prompt_text)
                         ])
                         chain = prompt_template | llm
-                        result = chain.invoke({})  # No variables needed
+                        result = await chain.ainvoke({})  # No variables needed
                     except Exception as prompt_error:
                         print(f"[WARNING] Langfuse prompt failed: {prompt_error}")
                         print("[FALLBACK] Using local SYSTEM_PROMPT")
@@ -1620,7 +1159,7 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                             ("human", "Context: {context}\n\nQuestion: {question}")
                         ])
                         chain = prompt_template | llm
-                        result = chain.invoke({
+                        result = await chain.ainvoke({
                             "context": context,
                             "question": enhanced_query
                         })
@@ -1631,18 +1170,18 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                         ("human", "Context: {context}\n\nQuestion: {question}")
                     ])
                     chain = prompt_template | llm
-                    result = chain.invoke({
+                    result = await chain.ainvoke({
                         "context": context,
                         "question": enhanced_query
                     })
                 
-                answer = result.content
+                answer = normalize_chain_output(result)
                 
             except Exception as e:
                 print(f"[ERROR] Intent-based retrieval failed: {e}")
                 # Fallback to original qa_chain if something goes wrong
                 result = qa_chain.invoke({"query": enhanced_query})
-                answer = result["result"]
+                answer = normalize_chain_output(result)
 
     # Add both user question and bot response to conversation AFTER processing
     await add_to_conversation(conversation_id, "user", question)
@@ -1871,7 +1410,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             query_classification = {
                 "query_type": classify_query_type(question),
                 "query_category": classify_query_category(question),
-                "query_intent": extract_query_intent(question),
+                "query_intent": "unknown",  # CRITICAL: Prevents KeyError at line 1751
                 "is_conversational_query": is_conv,
                 "query_length_words": len(question.split()),
                 "query_length_chars": len(question),
@@ -1933,7 +1472,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     for doc in final_docs
                 )
                 
-                if not has_sharepoint and any(word in enhanced_query.lower() for word in ['sharepoint', 'document', 'file', 'folder', 'download', 'certificate']):
+                if not has_sharepoint and any(word in enhanced_query.lower() for word in ['sharepoint', 'document', 'file', 'folder', 'download', 'certificate']) and vectorstore is not None:
                     print("[DEBUG] No SharePoint docs found - trying SharePoint-specific search...")
                     try:
                         # Try searching for SharePoint content with modified queries
@@ -1955,7 +1494,8 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                                 enhanced_query.replace("?", "").replace("how", "what")
                             ]
                             for sp_query in sharepoint_queries[:2]:
-                                sp_docs = vectorstore.similarity_search(sp_query, k=15)
+                                if vectorstore is not None:
+                                    sp_docs = vectorstore.similarity_search(sp_query, k=15)
                                 # Filter for SharePoint docs
                                 sp_filtered = [d for d in sp_docs if d.metadata.get('source_type') == 'sharepoint']
                                 if sp_filtered:
@@ -2119,6 +1659,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # Use prompt already loaded at the start (linked to trace)
             if langfuse_prompt_template:
                 # Use Langfuse prompt
+                # compile_prompt already returns escaped text for LangChain
                 compiled_prompt_text = compile_prompt(
                     langfuse_prompt_template,
                     context=context_text,
@@ -2126,13 +1667,8 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 )
                 # Create messages from compiled prompt with error handling
                 try:
-                    # CRITICAL: Escape any remaining curly braces in compiled text
-                    # SharePoint docs may contain {workspace}, {adminCloudId}, etc.
-                    # LangChain's ChatPromptTemplate treats {...} as template variables
-                    safe_prompt_text = compiled_prompt_text.replace("{", "{{").replace("}", "}}")
-                    
                     prompt_template = ChatPromptTemplate.from_messages([
-                        ("system", safe_prompt_text)
+                        ("system", compiled_prompt_text)
                     ])
                     messages = prompt_template.format_messages()
                 except Exception as prompt_error:
@@ -2190,11 +1726,10 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             
             # Calculate overall confidence score
             avg_similarity = doc_analysis.get("avg_similarity_score", 0.5)
-            overall_confidence = calculate_confidence(
-                intent_confidence=0.95,  # High confidence with unified retrieval (no intent misclassification)
-                retrieval_docs=len(final_docs),
-                avg_similarity=avg_similarity
-            )
+            # Simple confidence calculation for unified retrieval
+            doc_confidence = min(len(final_docs) / 30.0, 1.0)
+            similarity_confidence = max(0, 1.0 - avg_similarity)
+            overall_confidence = round((0.95 * 0.5) + (doc_confidence * 0.3) + (similarity_confidence * 0.2), 3)
             
             # ===== BUILD COMPREHENSIVE METADATA (NESTED STRUCTURE) =====
             comprehensive_metadata = {
@@ -2621,7 +2156,7 @@ async def generate_improved_response(prompt: str, llm):
         ])
         
         chain = template | llm
-        result = chain.invoke({"prompt": prompt})
+        result = await chain.ainvoke({"prompt": prompt})
         return result.content
         
     except Exception as e:
@@ -2990,7 +2525,7 @@ Improved response:
 """
         
         # Generate improved response with knowledge base context
-        improved_response = llm.invoke(correction_prompt).content
+        improved_response = (await llm.ainvoke(correction_prompt)).content
         
         # Return both the response and context debug info
         return improved_response, context_debug_info

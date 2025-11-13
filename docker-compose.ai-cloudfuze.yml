@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: slack2teams-nginx-ai-cloudfuze
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-ai-cloudfuze.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./:/var/www/html:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slack2teams-backend-ai-cloudfuze
+    environment:
+      # Production environment variables
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      MICROSOFT_CLIENT_ID: "${MICROSOFT_CLIENT_ID}"
+      MICROSOFT_CLIENT_SECRET: "${MICROSOFT_CLIENT_SECRET}"
+      MICROSOFT_TENANT: "${MICROSOFT_TENANT}"
+      LANGFUSE_PUBLIC_KEY: "${LANGFUSE_PUBLIC_KEY}"
+      LANGFUSE_SECRET_KEY: "${LANGFUSE_SECRET_KEY}"
+      LANGFUSE_HOST: "${LANGFUSE_HOST:-https://cloud.langfuse.com}"
+      JSON_MEMORY_FILE: "/app/data/chat_history.json"
+      CHROMA_DB_PATH: "/app/data/chroma_db"
+      MONGODB_URL: "${MONGODB_URL}"
+      MONGODB_DATABASE: "${MONGODB_DATABASE:-slack2teams}"
+      MONGODB_CHAT_COLLECTION: "${MONGODB_CHAT_COLLECTION:-chat_histories}"
+      INITIALIZE_VECTORSTORE: "${INITIALIZE_VECTORSTORE:-false}"
+      ENABLE_WEB_SOURCE: "${ENABLE_WEB_SOURCE:-false}"
+      ENABLE_PDF_SOURCE: "${ENABLE_PDF_SOURCE:-false}"
+      ENABLE_EXCEL_SOURCE: "${ENABLE_EXCEL_SOURCE:-false}"
+      ENABLE_DOC_SOURCE: "${ENABLE_DOC_SOURCE:-false}"
+      ENABLE_SHAREPOINT_SOURCE: "${ENABLE_SHAREPOINT_SOURCE:-false}"
+      # Production settings
+      PYTHONUNBUFFERED: "1"
+      ENVIRONMENT: "production"
+    volumes:
+      - ./data:/app/data
+      - ./images:/app/images
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MongoDB is external - must be provided via MONGODB_URL environment variable
+  # Examples:
+  #   - MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/database
+  #   - Remote MongoDB: mongodb://user:pass@host:27017/database
+

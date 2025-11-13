@@ -10,6 +10,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# FEATURE FLAG: Disable Langfuse prompt fetching (use config.py only)
+# Set to False to always use config.py SYSTEM_PROMPT
+# Langfuse observability (tracing/logging) remains active
+# ============================================================================
+ENABLE_LANGFUSE_PROMPTS = False  # Set to True to fetch prompts from Langfuse
+
 # Initialize Langfuse client for prompt management
 try:
     langfuse_prompt_client = Langfuse(
@@ -18,6 +25,9 @@ try:
         host=LANGFUSE_HOST
     )
     print("[OK] Langfuse prompt manager initialized")
+    if not ENABLE_LANGFUSE_PROMPTS:
+        print("[INFO] Langfuse prompt fetching DISABLED - using config.py SYSTEM_PROMPT only")
+        print("[INFO] Langfuse observability (tracing/logging) remains ACTIVE")
 except Exception as e:
     print(f"[!] Langfuse prompt manager initialization failed: {e}")
     langfuse_prompt_client = None
@@ -36,6 +46,15 @@ def get_system_prompt(prompt_name: str = "cloudfuze-system-prompt", version: str
         prompt_template: Langfuse prompt object or None
         prompt_metadata: Dict with prompt info
     """
+    # Check feature flag first - if disabled, use config.py immediately
+    if not ENABLE_LANGFUSE_PROMPTS:
+        print(f"✅ [PROMPT] Using config.py SYSTEM_PROMPT (Langfuse prompts disabled)")
+        return None, {
+            "source": "config.py",
+            "prompt_name": "local_system_prompt",
+            "version": "config.py"
+        }
+    
     if not langfuse_prompt_client:
         logger.warning("Langfuse prompt client not available, using fallback prompt")
         return None, {
@@ -73,26 +92,39 @@ def get_system_prompt(prompt_name: str = "cloudfuze-system-prompt", version: str
         }
 
 
+def _escape_curly_braces(text: str) -> str:
+    """
+    Escape curly braces in text for LangChain template compatibility.
+    LangChain's ChatPromptTemplate treats {variable} as template variables,
+    so we need to escape literal braces as {{ and }}.
+    """
+    return text.replace("{", "{{").replace("}", "}}")
+
+
 def compile_prompt(prompt_template, context: str, question: str):
     """
     Compile prompt with variables. Handles both Langfuse prompts and plain text.
     
+    CRITICAL: This function returns a prompt with curly braces already escaped
+    for LangChain's ChatPromptTemplate. Do NOT escape the output again.
+    
     Args:
         prompt_template: Langfuse prompt object, plain text string, or None (for fallback)
-        context: Retrieved context from RAG
-        question: User's question
+        context: Retrieved context from RAG (will be escaped internally)
+        question: User's question (will be escaped internally)
         
     Returns:
-        Compiled prompt text or messages (consistent format)
+        Compiled prompt text with all curly braces properly escaped
     """
+    # CRITICAL: Escape curly braces in context and question FIRST
+    # This prevents issues with SharePoint docs containing {workspace}, {adminCloudId}, etc.
+    safe_context = _escape_curly_braces(context)
+    safe_question = _escape_curly_braces(question)
+    
     # Case 1: Langfuse prompt object with .compile() method
     if prompt_template and hasattr(prompt_template, "compile"):
         try:
-            # CRITICAL FIX: Completely bypass Langfuse's template engine
-            # Context may contain ANY curly braces ({workspace}, {adminCloudId}, etc.) that break parsing
-            # Strategy: Strip out {{context}} and {{question}} placeholders, append them manually
-            
-            # Try to get raw prompt text (this might still trigger template parsing in some Langfuse versions)
+            # Get raw prompt text from Langfuse (avoid triggering their template engine)
             try:
                 prompt_text = str(prompt_template.prompt)
             except:
@@ -100,12 +132,16 @@ def compile_prompt(prompt_template, context: str, question: str):
                 prompt_text = str(prompt_template.config.get("prompt", ""))
             
             # Remove {{context}} and {{question}} placeholders completely
+            # (These are Langfuse template variables that we're bypassing)
             prompt_text = prompt_text.replace("{{context}}", "").replace("{{question}}", "")
             
-            # Manually append context and question at the end (no template substitution)
-            final_prompt = f"{prompt_text}\n\nContext from knowledge base:\n{context}\n\nUser's Question:\n{question}"
+            # Escape any curly braces in the system prompt itself
+            safe_prompt_text = _escape_curly_braces(prompt_text)
             
-            print(f"[PROMPT] Compiled Langfuse prompt successfully (bypassed template engine)")
+            # Manually append escaped context and question
+            final_prompt = f"{safe_prompt_text}\n\nContext from knowledge base:\n{safe_context}\n\nUser's Question:\n{safe_question}"
+            
+            print(f"[PROMPT] Compiled Langfuse prompt with proper escaping")
             return final_prompt
         except Exception as e:
             logger.error(f"Failed to compile Langfuse prompt: {e}")
@@ -115,14 +151,11 @@ def compile_prompt(prompt_template, context: str, question: str):
     # Case 2: Plain text template string
     elif prompt_template and isinstance(prompt_template, str):
         try:
-            # Try to format the string with context and question
-            compiled = prompt_template.format(context=context, question=question)
-            print(f"[PROMPT] Compiled text template successfully")
-            return compiled
-        except KeyError:
-            # Template doesn't have the expected placeholders, use as-is with additions
-            compiled = f"{prompt_template}\n\nContext: {context}\n\nQuestion: {question}"
-            print(f"[PROMPT] Using text template with appended context")
+            # Escape the template itself first
+            safe_template = _escape_curly_braces(prompt_template)
+            # Append escaped context and question
+            compiled = f"{safe_template}\n\nContext: {safe_context}\n\nQuestion: {safe_question}"
+            print(f"[PROMPT] Compiled text template with proper escaping")
             return compiled
         except Exception as e:
             logger.error(f"Failed to compile text template: {e}")
@@ -130,7 +163,8 @@ def compile_prompt(prompt_template, context: str, question: str):
             # Fall through to fallback
     
     # Case 3: Fallback to config.py prompt
-    fallback_prompt = f"{SYSTEM_PROMPT}\n\nContext: {context}\n\nQuestion: {question}"
-    print(f"[PROMPT] Using config.py fallback prompt")
+    safe_system_prompt = _escape_curly_braces(SYSTEM_PROMPT)
+    fallback_prompt = f"{safe_system_prompt}\n\nContext: {safe_context}\n\nQuestion: {safe_question}"
+    print(f"[PROMPT] Using config.py fallback prompt with proper escaping")
     return fallback_prompt
 
