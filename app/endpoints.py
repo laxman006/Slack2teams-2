@@ -812,6 +812,30 @@ async def chat_test(request: Request):
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
 
+    # HARD FILTER: Catch unrelated terms, single words, gibberish before processing
+    clean_q = question.strip().lower()
+    
+    UNRELATED_TERMS = {
+        "emoji", "emojis", "movie", "movies", "game", "games", "music",
+        "sports", "weather", "food", "travel", "hello", "hey", "hi"
+    }
+    
+    # If single word OR non alphabetic OR unrelated OR gibberish
+    if (
+        clean_q in UNRELATED_TERMS or
+        len(clean_q.split()) == 1 or
+        re.fullmatch(r"[^\w\s]+", clean_q) or  # punctuation only
+        re.fullmatch(r"[a-zA-Z]{1,3}", clean_q)  # 1–3 random letters
+    ):
+        answer = (
+            "I don't have specific information about that. "
+            "I specialize in CloudFuze's migration services. "
+            "What would you like to know?"
+        )
+        await add_to_conversation(conversation_id, "user", question)
+        await add_to_conversation(conversation_id, "assistant", answer)
+        return {"answer": answer, "session_id": session_id}
+
     # FIRST: Check if we have a corrected response for this question
     corrected_answer = find_similar_corrected_response(question)
     
@@ -828,15 +852,21 @@ async def chat_test(request: Request):
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are CloudFuze's AI assistant specializing in cloud migration and file management services.
+            ("system", """You are CloudFuze's AI assistant.
 
-CRITICAL GREETING RULE:
-When users greet you (Hi, Hello, Hey, How are you, etc.):
-- Be friendly and conversational BUT immediately introduce CloudFuze services
-- **RIGHT**: "Hi there! 👋 I'm your CloudFuze assistant, here to help with cloud migration and file management. I can answer questions about migrating between platforms like Slack to Teams, Google Drive to OneDrive, Box to SharePoint, and more. What would you like to know about?"
-- **WRONG**: "Hi there! 😊 How are you doing today?" (too generic, doesn't mention CloudFuze)
+IMPORTANT:
+- You must NEVER reply with generic greetings like "How are you?" or "How's your day?"
+- You must ALWAYS introduce yourself as a CloudFuze assistant.
+- All greetings MUST follow this exact pattern:
 
-Always mention CloudFuze and migration services in your greeting response."""),
+"Hi! 👋 I'm your CloudFuze assistant, here to help with CloudFuze migration services and products. What would you like to know about?"
+
+REPEAT: NEVER say "How are you?" and NEVER act like a generic chatbot.
+
+UNRELATED TOPICS OR SINGLE WORDS:
+- If the query is a single word (e.g., "emojis", "books", "movies", "weather") or clearly unrelated to CloudFuze migration services, IMMEDIATELY redirect
+- **MANDATORY RESPONSE**: "I don't have specific information about that. I specialize in CloudFuze's migration services. What would you like to know about?"
+- **NEVER** try to answer unrelated queries like "emojis", "books", "movies", "weather", "recipes", "games", "music", "sports", "food", "travel", etc."""),
             ("human", "{question}")
         ])
         
@@ -1006,6 +1036,30 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
     # Use user_id if provided, otherwise fall back to session_id for backward compatibility
     conversation_id = user_id if user_id else session_id
 
+    # HARD FILTER: Catch unrelated terms, single words, gibberish before processing
+    clean_q = question.strip().lower()
+    
+    UNRELATED_TERMS = {
+        "emoji", "emojis", "movie", "movies", "game", "games", "music",
+        "sports", "weather", "food", "travel", "hello", "hey", "hi"
+    }
+    
+    # If single word OR non alphabetic OR unrelated OR gibberish
+    if (
+        clean_q in UNRELATED_TERMS or
+        len(clean_q.split()) == 1 or
+        re.fullmatch(r"[^\w\s]+", clean_q) or  # punctuation only
+        re.fullmatch(r"[a-zA-Z]{1,3}", clean_q)  # 1–3 random letters
+    ):
+        answer = (
+            "I don't have specific information about that. "
+            "I specialize in CloudFuze's migration services. "
+            "What would you like to know?"
+        )
+        await add_to_conversation(conversation_id, "user", question)
+        await add_to_conversation(conversation_id, "assistant", answer)
+        return {"answer": answer, "user_id": user_id, "session_id": session_id}
+
     # FIRST: Check if we have a corrected response for this question
     corrected_answer = find_similar_corrected_response(question)
     
@@ -1022,15 +1076,21 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
         
         # Simple conversational prompt
         conversational_prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are CloudFuze's AI assistant specializing in cloud migration and file management services.
+            ("system", """You are CloudFuze's AI assistant.
 
-CRITICAL GREETING RULE:
-When users greet you (Hi, Hello, Hey, How are you, etc.):
-- Be friendly and conversational BUT immediately introduce CloudFuze services
-- **RIGHT**: "Hi there! 👋 I'm your CloudFuze assistant, here to help with cloud migration and file management. I can answer questions about migrating between platforms like Slack to Teams, Google Drive to OneDrive, Box to SharePoint, and more. What would you like to know about?"
-- **WRONG**: "Hi there! 😊 How are you doing today?" (too generic, doesn't mention CloudFuze)
+IMPORTANT:
+- You must NEVER reply with generic greetings like "How are you?" or "How's your day?"
+- You must ALWAYS introduce yourself as a CloudFuze assistant.
+- All greetings MUST follow this exact pattern:
 
-Always mention CloudFuze and migration services in your greeting response."""),
+"Hi! 👋 I'm your CloudFuze assistant, here to help with CloudFuze migration services and products. What would you like to know about?"
+
+REPEAT: NEVER say "How are you?" and NEVER act like a generic chatbot.
+
+UNRELATED TOPICS OR SINGLE WORDS:
+- If the query is a single word (e.g., "emojis", "books", "movies", "weather") or clearly unrelated to CloudFuze migration services, IMMEDIATELY redirect
+- **MANDATORY RESPONSE**: "I don't have specific information about that. I specialize in CloudFuze's migration services. What would you like to know about?"
+- **NEVER** try to answer unrelated queries like "emojis", "books", "movies", "weather", "recipes", "games", "music", "sports", "food", "travel", etc."""),
             ("human", "{question}")
         ])
         
@@ -1313,19 +1373,50 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 
                 # Simple conversational prompt
                 conversational_prompt = ChatPromptTemplate.from_messages([
-                    ("system", "You are a friendly and helpful AI assistant. Respond naturally to conversational queries like greetings, 'how are you', etc. Be warm and engaging."),
+                    ("system", """You are CloudFuze's AI assistant.
+
+IMPORTANT:
+- You must NEVER reply with generic greetings like "How are you?" or "How's your day?"
+- You must ALWAYS introduce yourself as a CloudFuze assistant.
+- All greetings MUST follow this exact pattern:
+
+"Hi! 👋 I'm your CloudFuze assistant, here to help with CloudFuze migration services and products. What would you like to know about?"
+
+REPEAT: NEVER say "How are you?" and NEVER act like a generic chatbot.
+
+UNRELATED TOPICS OR SINGLE WORDS:
+- If the query is a single word (e.g., "emojis", "books", "movies", "weather") or clearly unrelated to CloudFuze migration services, IMMEDIATELY redirect
+- **MANDATORY RESPONSE**: "I don't have specific information about that. I specialize in CloudFuze's migration services. What would you like to know about?"
+- **NEVER** try to answer unrelated queries like "emojis", "books", "movies", "weather", "recipes", "games", "music", "sports", "food", "travel", etc."""),
                     ("human", "{question}")
                 ])
                 
                 # Stream the response
                 full_response = ""
                 messages = conversational_prompt.format_messages(question=enhanced_query)
-                async for chunk in llm.astream(messages):
-                    if hasattr(chunk, 'content'):
-                        token = chunk.content
-                        full_response += token
-                        yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
-                        await asyncio.sleep(0.01)
+                try:
+                    async for chunk in llm.astream(messages):
+                        if hasattr(chunk, 'content'):
+                            token = chunk.content
+                            full_response += token
+                            yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
+                            await asyncio.sleep(0.01)
+                except (httpx.ReadError, httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout, httpx.TimeoutException, httpx.NetworkError) as stream_error:
+                    # Network error during streaming - send what we have so far
+                    print(f"[WARNING] Streaming interrupted by network error: {stream_error}")
+                    if full_response:
+                        yield f"data: {json.dumps({'type': 'warning', 'message': 'Connection interrupted, but partial response received'})}\n\n"
+                    else:
+                        error_msg = "I apologize, but there was a connection issue while generating the response. Please try again."
+                        full_response = error_msg
+                        yield f"data: {json.dumps({'token': error_msg, 'type': 'token'})}\n\n"
+                except Exception as stream_error:
+                    # Other streaming errors
+                    print(f"[WARNING] Streaming error: {stream_error}")
+                    if not full_response:
+                        error_msg = "I encountered an error while generating the response. Please try again."
+                        full_response = error_msg
+                        yield f"data: {json.dumps({'token': error_msg, 'type': 'token'})}\n\n"
                 
                 # Add to conversation
                 await add_to_conversation(conversation_id, "user", question)
@@ -1706,12 +1797,31 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # Stream the response with real-time streaming
             full_response = ""
             # Messages already created above based on prompt source
-            async for chunk in llm.astream(messages):
-                if hasattr(chunk, 'content'):
-                    token = chunk.content
-                    full_response += token
-                    yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
-                    await asyncio.sleep(0.01)  # Small delay for better streaming effect
+            try:
+                async for chunk in llm.astream(messages):
+                    if hasattr(chunk, 'content'):
+                        token = chunk.content
+                        full_response += token
+                        yield f"data: {json.dumps({'token': token, 'type': 'token'})}\n\n"
+                        await asyncio.sleep(0.01)  # Small delay for better streaming effect
+            except (httpx.ReadError, httpx.ReadTimeout, httpx.ConnectError, httpx.ConnectTimeout, httpx.TimeoutException, httpx.NetworkError) as stream_error:
+                # Network error during streaming - send what we have so far
+                print(f"[WARNING] Streaming interrupted by network error: {stream_error}")
+                if full_response:
+                    # If we got some response, send it and complete gracefully
+                    yield f"data: {json.dumps({'type': 'warning', 'message': 'Connection interrupted, but partial response received'})}\n\n"
+                else:
+                    # No response received, send error
+                    error_msg = "I apologize, but there was a connection issue while generating the response. Please try again."
+                    full_response = error_msg
+                    yield f"data: {json.dumps({'token': error_msg, 'type': 'token'})}\n\n"
+            except Exception as stream_error:
+                # Other streaming errors
+                print(f"[WARNING] Streaming error: {stream_error}")
+                if not full_response:
+                    error_msg = "I encountered an error while generating the response. Please try again."
+                    full_response = error_msg
+                    yield f"data: {json.dumps({'token': error_msg, 'type': 'token'})}\n\n"
             
             # Record LLM generation time
             llm_time_ms = int((time.time() - llm_start_time) * 1000)
