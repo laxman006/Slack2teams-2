@@ -2057,54 +2057,62 @@ async def clear_chat_history(
 # ---------------- Feedback Endpoint ----------------
 
 @router.post("/feedback")
-async def submit_feedback(request: FeedbackRequest):
+async def submit_feedback(
+    request: FeedbackRequest,
+    current_user: dict = Depends(require_auth)
+):
     """Submit user feedback (👍/👎) for a chat interaction."""
     try:
         # Validate rating
         if request.rating not in ["thumbs_up", "thumbs_down"]:
-            return {"error": "Invalid rating. Must be 'thumbs_up' or 'thumbs_down'"}
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid rating. Must be 'thumbs_up' or 'thumbs_down'"
+            )
+        
+        print(f"[FEEDBACK] Received feedback: trace_id={request.trace_id}, rating={request.rating}, user={current_user.get('email', 'unknown')}")
         
         # Log feedback to Langfuse
-        success = langfuse_tracker.add_feedback(
-            trace_id=request.trace_id,
-            rating=request.rating,
-            comment=request.comment
-        )
+        try:
+            success = langfuse_tracker.add_feedback(
+                trace_id=request.trace_id,
+                rating=request.rating,
+                comment=request.comment
+            )
+        except Exception as langfuse_error:
+            print(f"[FEEDBACK] Langfuse error (continuing anyway): {langfuse_error}")
+            # Continue even if Langfuse fails - still record feedback locally
+            success = True
         
-        # COMMENTED OUT: Auto-correction workflow (now using manual correction)
-        # await track_feedback_history(request.trace_id, request.rating, request.comment)
-        # 
-        # # If thumbs down, trigger auto-correction immediately
-        # if request.rating == "thumbs_down":
-        #     try:
-        #         # Get the original question and response from the trace
-        #         original_data = await get_trace_data(request.trace_id)
-        #         if original_data:
-        #             # Trigger auto-correction
-        #             corrected_response = await trigger_auto_correction_workflow(
-        #                 trace_id=request.trace_id,
-        #                 user_query=original_data.get("question", ""),
-        #                 bad_response=original_data.get("response", ""),
-        #                 user_comment=request.comment
-        #             )
-        #     except Exception as e:
-        #         print(f"Auto-correction failed: {e}")
+        # Also save feedback locally for backup
+        try:
+            await track_feedback_history(request.trace_id, request.rating, request.comment)
+        except Exception as local_error:
+            print(f"[FEEDBACK] Local storage error (continuing anyway): {local_error}")
         
         if success:
             return {
                 "status": "success",
                 "message": "Feedback recorded successfully",
                 "trace_id": request.trace_id,
-                "auto_correction_triggered": False  # Manual correction will be used instead
+                "rating": request.rating
             }
         else:
-            return {
-                "status": "error",
-                "message": "Failed to record feedback"
-            }
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to record feedback"
+            )
             
+    except HTTPException:
+        raise
     except Exception as e:
-        return {"error": f"Failed to submit feedback: {str(e)}"}
+        print(f"[FEEDBACK] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to submit feedback: {str(e)}"
+        )
 
 # ---------------- Auto-Correction System ----------------
 

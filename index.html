@@ -860,6 +860,26 @@
         const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
         if (!currentUser || !currentUser.access_token) {
           console.error('[FEEDBACK] User not authenticated');
+          
+          // Show error message
+          const feedbackText = messageDiv.querySelector('.feedback-text');
+          if (feedbackText) {
+            feedbackText.textContent = 'Please log in to submit feedback.';
+            feedbackText.style.color = '#dc3545';
+            
+            setTimeout(() => {
+              feedbackText.textContent = '';
+              feedbackText.style.color = '';
+            }, 3000);
+          }
+          
+          // Re-enable buttons
+          feedbackButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+          });
+          
           return;
         }
         
@@ -879,67 +899,82 @@
         
         if (response.ok) {
           const data = await response.json();
-          console.log("Feedback submitted:", data);
+          console.log("✅ Feedback submitted successfully:", data);
           
           // Mark as submitted to prevent future submissions
           messageDiv.dataset.feedbackSubmitted = 'true';
           
           // Update UI to show which button was clicked
-          feedbackButtons.forEach(btn => btn.classList.remove('selected'));
+          feedbackButtons.forEach(btn => {
+            btn.classList.remove('selected');
+            btn.disabled = true;
+          });
           button.classList.add('selected');
+          button.disabled = false; // Keep selected button enabled for visual feedback
           
           // Show feedback text
           const feedbackText = messageDiv.querySelector('.feedback-text');
-          feedbackText.textContent = rating === 'thumbs_up' ? 'Thanks for your feedback!' : 'Thanks! We\'ll improve.';
-          
-          // Clear feedback text after 3 seconds
-          setTimeout(() => {
-            feedbackText.textContent = '';
-          }, 3000);
+          if (feedbackText) {
+            feedbackText.textContent = rating === 'thumbs_up' ? 'Thanks for your feedback! 👍' : 'Thanks! We\'ll improve. 👎';
+            feedbackText.style.color = rating === 'thumbs_up' ? '#28a745' : '#ffc107';
+            
+            // Clear feedback text after 3 seconds
+            setTimeout(() => {
+              feedbackText.textContent = '';
+              feedbackText.style.color = '';
+            }, 3000);
+          }
           
         } else {
-          console.error("Failed to submit feedback");
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          console.error("❌ Failed to submit feedback:", response.status, errorData);
           
           // Re-enable buttons on error so user can retry
           feedbackButtons.forEach(btn => {
             btn.disabled = false;
             btn.style.cursor = 'pointer';
             btn.style.opacity = '1';
+            btn.classList.remove('selected');
           });
           
           // Show error message
           const feedbackText = messageDiv.querySelector('.feedback-text');
-          feedbackText.textContent = 'Failed to submit. Try again.';
-          feedbackText.style.color = '#dc3545';
-          
-          setTimeout(() => {
-            feedbackText.textContent = '';
-            feedbackText.style.color = '';
-          }, 3000);
+          if (feedbackText) {
+            feedbackText.textContent = 'Failed to submit. Try again.';
+            feedbackText.style.color = '#dc3545';
+            
+            setTimeout(() => {
+              feedbackText.textContent = '';
+              feedbackText.style.color = '';
+            }, 3000);
+          }
         }
         
       } catch (error) {
-        console.error("Error submitting feedback:", error);
+        console.error("❌ Error submitting feedback:", error);
         
         // Re-enable buttons on error so user can retry
         const messageDiv = button.closest('.message.bot');
-        const feedbackButtons = messageDiv.querySelectorAll('.feedback-btn');
-        feedbackButtons.forEach(btn => {
-          btn.disabled = false;
-          btn.style.cursor = 'pointer';
-          btn.style.opacity = '1';
-        });
-        
-        // Show error message
-        const feedbackText = messageDiv.querySelector('.feedback-text');
-        if (feedbackText) {
-          feedbackText.textContent = 'Error occurred. Try again.';
-          feedbackText.style.color = '#dc3545';
+        if (messageDiv) {
+          const feedbackButtons = messageDiv.querySelectorAll('.feedback-btn');
+          feedbackButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+            btn.classList.remove('selected');
+          });
           
-          setTimeout(() => {
-            feedbackText.textContent = '';
-            feedbackText.style.color = '';
-          }, 3000);
+          // Show error message
+          const feedbackText = messageDiv.querySelector('.feedback-text');
+          if (feedbackText) {
+            feedbackText.textContent = 'Error occurred. Try again.';
+            feedbackText.style.color = '#dc3545';
+            
+            setTimeout(() => {
+              feedbackText.textContent = '';
+              feedbackText.style.color = '';
+            }, 3000);
+          }
         }
       }
     }
