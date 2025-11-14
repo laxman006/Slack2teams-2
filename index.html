@@ -884,6 +884,9 @@
         }
         
         // Send feedback to backend
+        console.log(`[FEEDBACK] Sending to: ${apiBase}/feedback`);
+        console.log(`[FEEDBACK] Trace ID: ${finalTraceId}, Rating: ${rating}`);
+        
         const response = await fetch(`${apiBase}/feedback`, {
           method: "POST",
           headers: { 
@@ -896,6 +899,8 @@
             comment: ""
           }),
         });
+        
+        console.log(`[FEEDBACK] Response status: ${response.status}`);
         
         if (response.ok) {
           const data = await response.json();

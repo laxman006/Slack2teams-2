@@ -2070,25 +2070,33 @@ async def submit_feedback(
                 detail="Invalid rating. Must be 'thumbs_up' or 'thumbs_down'"
             )
         
-        print(f"[FEEDBACK] Received feedback: trace_id={request.trace_id}, rating={request.rating}, user={current_user.get('email', 'unknown')}")
+        user_email = current_user.get('email', current_user.get('user_email', 'unknown'))
+        print(f"[FEEDBACK] Received feedback: trace_id={request.trace_id}, rating={request.rating}, user={user_email}")
         
         # Log feedback to Langfuse
+        success = False
         try:
             success = langfuse_tracker.add_feedback(
                 trace_id=request.trace_id,
                 rating=request.rating,
-                comment=request.comment
+                comment=request.comment or ""
             )
+            print(f"[FEEDBACK] Langfuse feedback recorded: {success}")
         except Exception as langfuse_error:
             print(f"[FEEDBACK] Langfuse error (continuing anyway): {langfuse_error}")
+            import traceback
+            traceback.print_exc()
             # Continue even if Langfuse fails - still record feedback locally
             success = True
         
         # Also save feedback locally for backup
         try:
             await track_feedback_history(request.trace_id, request.rating, request.comment)
+            print(f"[FEEDBACK] Local feedback history saved")
         except Exception as local_error:
             print(f"[FEEDBACK] Local storage error (continuing anyway): {local_error}")
+            import traceback
+            traceback.print_exc()
         
         if success:
             return {
@@ -2106,7 +2114,7 @@ async def submit_feedback(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[FEEDBACK] Error: {e}")
+        print(f"[FEEDBACK] Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(
