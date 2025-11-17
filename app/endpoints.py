@@ -1238,10 +1238,41 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                             k=RETRIEVAL_K
                         )
                     else:
-                        # Simple MMR retrieval without intent classification
-                        doc_results = retriever.invoke(enhanced_query)
-                        # Convert to (doc, score) format for compatibility
-                        doc_results = [(doc, 1.0) for doc in doc_results]
+                        # Use similarity search with scores when intent classification is disabled
+                        # This provides actual similarity scores for proper ranking
+                        # Retrieve more documents initially to ensure we get SharePoint/Email docs before prioritization
+                        INITIAL_RETRIEVAL_K = max(RETRIEVAL_K * 2, 100)  # Get 2x more docs initially
+                        doc_results = vectorstore.similarity_search_with_score(enhanced_query, k=INITIAL_RETRIEVAL_K)
+                        
+                        # If no SharePoint/Email docs found, do a separate search for them
+                        sharepoint_email_count = sum(1 for doc, _ in doc_results 
+                                                    if 'sharepoint' in doc.metadata.get('tag', '').lower() 
+                                                    or doc.metadata.get('source_type', '').lower() == 'sharepoint'
+                                                    or 'email' in doc.metadata.get('tag', '').lower()
+                                                    or doc.metadata.get('source_type', '').lower() == 'email')
+                        
+                        if sharepoint_email_count == 0:
+                            print(f"[FALLBACK] No SharePoint/Email docs in top {INITIAL_RETRIEVAL_K}, searching specifically for SharePoint/Email...")
+                            # Search specifically for SharePoint and Email documents
+                            all_docs = vectorstore.similarity_search_with_score(enhanced_query, k=500)
+                            sharepoint_email_docs = [(doc, score) for doc, score in all_docs
+                                                    if 'sharepoint' in doc.metadata.get('tag', '').lower() 
+                                                    or doc.metadata.get('source_type', '').lower() == 'sharepoint'
+                                                    or 'email' in doc.metadata.get('tag', '').lower()
+                                                    or doc.metadata.get('source_type', '').lower() == 'email']
+                            
+                            if sharepoint_email_docs:
+                                # Take top 10 SharePoint/Email docs and merge with existing results
+                                sharepoint_email_docs = sharepoint_email_docs[:10]
+                                # Merge and deduplicate
+                                seen_content = {doc.page_content[:100] for doc, _ in doc_results}
+                                for doc, score in sharepoint_email_docs:
+                                    if doc.page_content[:100] not in seen_content:
+                                        doc_results.append((doc, score))
+                                        seen_content.add(doc.page_content[:100])
+                                print(f"[FALLBACK] Added {len(sharepoint_email_docs)} SharePoint/Email documents")
+                        
+                        # Results are already in (doc, score) format - no conversion needed
                         fallback_strategy = "no_fallback"  # Initialize for non-intent classification path
                     
                     print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
@@ -1301,9 +1332,11 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                         
                         # Re-sort by adjusted scores (lower is better)
                         boosted_docs.sort(key=lambda x: x[1])
-                        doc_results = boosted_docs
+                        # Limit to final retrieval count after prioritization
+                        doc_results = boosted_docs[:RETRIEVAL_K]
                         
                         print(f"[PRIORITIZATION] Boosted sources - SharePoint: {sharepoint_count}, Email: {email_count}, Blog: {blog_count}")
+                        print(f"[PRIORITIZATION] Limited to top {len(doc_results)} documents after prioritization")
                     
                     # ============ HYBRID RANKING ============
                     # Combine semantic similarity with keyword matching
