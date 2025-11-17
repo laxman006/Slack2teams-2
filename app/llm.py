@@ -37,6 +37,35 @@ def format_docs(docs):
             folder_path = metadata.get('folder_path', '')
             if file_name:
                 content = f"{tag_info}\nFile: {file_name}\nFolder: {folder_path}\n\n{content}"
+        elif metadata.get("source_type") == "outlook" or "email" in tag.lower():
+            # Add email-specific context to help LLM understand email threads
+            subject = metadata.get('conversation_topic') or metadata.get('subject', '')
+            participants = metadata.get('participants', '')
+            date_range = metadata.get('date_range', '')
+            email_count = metadata.get('email_count', '')
+            first_date = metadata.get('first_email_date', '')
+            last_date = metadata.get('last_email_date', '')
+            
+            email_header = f"{tag_info}\n"
+            email_header += "EMAIL THREAD:\n"
+            if subject:
+                email_header += f"Thread Subject: {subject}\n"
+            if participants:
+                email_header += f"Participants: {participants}\n"
+            if date_range:
+                email_header += f"Date Range: {date_range}\n"
+            elif first_date or last_date:
+                if first_date and last_date:
+                    email_header += f"Date Range: {first_date} to {last_date}\n"
+                elif first_date:
+                    email_header += f"First Email Date: {first_date}\n"
+                elif last_date:
+                    email_header += f"Last Email Date: {last_date}\n"
+            if email_count:
+                email_header += f"Number of Emails in Thread: {email_count}\n"
+            email_header += "\n--- Email Thread Content ---\n\n"
+            
+            content = email_header + content
         else:
             content = f"{tag_info}\n{content}"
         
