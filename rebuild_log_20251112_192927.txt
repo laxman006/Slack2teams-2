@@ -1,0 +1,46 @@
+[2025-11-12 19:29:27] [INFO] ================================================================================
+[2025-11-12 19:29:27] [INFO] MONITORED REBUILD - STARTING
+[2025-11-12 19:29:27] [INFO] ================================================================================
+[2025-11-12 19:29:27] [INFO] 
+Configuration:
+[2025-11-12 19:29:27] [INFO]   Blogs: ALL from cloudfuze.com
+[2025-11-12 19:29:27] [INFO]   SharePoint: ALL files from DOC360
+[2025-11-12 19:29:27] [INFO]   Emails: FILTERED for presalesteam@cloudfuze.com
+[2025-11-12 19:29:27] [INFO]     - Mailbox: presales@cloudfuze.com
+[2025-11-12 19:29:27] [INFO]     - Folder: Inbox
+[2025-11-12 19:29:27] [INFO]     - Time: Last 12 months
+[2025-11-12 19:29:27] [INFO] 
+Logs: rebuild_log_20251112_192927.txt
+[2025-11-12 19:29:27] [INFO] Report: rebuild_report_20251112_192927.json
+[2025-11-12 19:29:27] [INFO] ================================================================================
+[2025-11-12 19:29:48] [INFO] 
+[PHASE 1] Configuration Check
+[2025-11-12 19:29:48] [INFO]   WEB_SOURCE: True
+[2025-11-12 19:29:48] [INFO]   SHAREPOINT_SOURCE: True
+[2025-11-12 19:29:48] [INFO]   OUTLOOK_SOURCE: True
+[2025-11-12 19:29:48] [INFO] 
+[PHASE 2] Starting Vectorstore Build...
+[2025-11-12 19:29:48] [INFO] This will take 15-30 minutes - DO NOT INTERRUPT
+[2025-11-12 19:29:48] [INFO] 
+[2025-11-12 19:29:49] [ERROR] Vectorstore build failed!
+[2025-11-12 19:29:49] [INFO] 
+================================================================================
+[2025-11-12 19:29:49] [INFO] REBUILD COMPLETED SUCCESSFULLY
+[2025-11-12 19:29:49] [INFO] ================================================================================
+[2025-11-12 19:29:49] [INFO] 
+📊 SUMMARY:
+[2025-11-12 19:29:49] [INFO]   Total chunks: 0
+[2025-11-12 19:29:49] [INFO]   Errors: 1
+[2025-11-12 19:29:49] [INFO]   Warnings: 0
+[2025-11-12 19:29:49] [INFO]   Duration: N/A
+[2025-11-12 19:29:49] [INFO] 
+⚠️  ERRORS FOUND:
+[2025-11-12 19:29:49] [INFO]   - Vectorstore build failed!
+[2025-11-12 19:29:49] [INFO] 
+✅ Vectorstore is ready and NOT corrupted
+[2025-11-12 19:29:49] [INFO]    Path: ./data/chroma_db
+[2025-11-12 19:29:49] [INFO]    Safe to use now!
+[2025-11-12 19:29:49] [INFO] Report saved to: rebuild_report_20251112_192927.json
+[2025-11-12 19:29:49] [INFO] 
+📄 Full logs saved to: rebuild_log_20251112_192927.txt
+[2025-11-12 19:29:49] [INFO] 📊 JSON report saved to: rebuild_report_20251112_192927.json

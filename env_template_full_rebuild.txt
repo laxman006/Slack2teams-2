@@ -1,0 +1,49 @@
+# ============================================================================
+# COMPLETE REBUILD CONFIGURATION
+# Copy these to your .env file
+# ============================================================================
+
+# Rebuild vectorstore
+INITIALIZE_VECTORSTORE=true
+
+# Enable all sources
+ENABLE_WEB_SOURCE=true
+ENABLE_SHAREPOINT_SOURCE=true
+ENABLE_OUTLOOK_SOURCE=true
+ENABLE_PDF_SOURCE=false
+ENABLE_EXCEL_SOURCE=false
+ENABLE_DOC_SOURCE=false
+
+# Blog configuration - ALL posts
+WEB_URL=https://cloudfuze.com/wp-json/wp/v2/posts?per_page=100
+WEB_START_PAGE=1
+WEB_MAX_PAGES=100
+
+# SharePoint configuration - ALL files
+SHAREPOINT_SITE_URL=https://cloudfuzecom.sharepoint.com/sites/DOC360
+SHAREPOINT_EXCLUDE_FILES=true
+
+# Outlook configuration - ALL threads from last 6 months
+OUTLOOK_USER_EMAIL=presales@cloudfuze.com
+OUTLOOK_FOLDER_NAME=Sent Items
+OUTLOOK_MAX_EMAILS=10000
+OUTLOOK_DATE_FILTER=last_6_months
+
+# Enhanced ingestion features
+CHUNK_TARGET_TOKENS=800
+CHUNK_OVERLAP_TOKENS=200
+CHUNK_MIN_TOKENS=150
+ENABLE_DEDUPLICATION=true
+DEDUP_THRESHOLD=0.85
+ENABLE_UNSTRUCTURED=true
+ENABLE_OCR=true
+OCR_LANGUAGE=eng
+GRAPH_DB_PATH=./data/graph_relations.db
+ENABLE_GRAPH_STORAGE=true
+
+# IMPORTANT: Replace with your actual credentials
+OPENAI_API_KEY=your_actual_openai_api_key
+MICROSOFT_CLIENT_ID=your_client_id
+MICROSOFT_CLIENT_SECRET=your_client_secret
+MICROSOFT_TENANT=your_tenant_id
+

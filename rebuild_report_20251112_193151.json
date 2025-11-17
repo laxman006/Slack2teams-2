@@ -1,0 +1,30 @@
+{
+  "start_time": "2025-11-12T19:31:51.676029",
+  "blogs": {
+    "processed": 0,
+    "failed": 0,
+    "files": []
+  },
+  "sharepoint": {
+    "processed": 0,
+    "failed": 0,
+    "files": [],
+    "by_type": {}
+  },
+  "emails": {
+    "processed": 0,
+    "failed": 0,
+    "filtered": 0,
+    "conversations": 0
+  },
+  "vectorstore": {
+    "total_chunks": 536,
+    "status": "success"
+  },
+  "errors": [],
+  "warnings": [],
+  "completion_status": "completed_successfully",
+  "end_time": "2025-11-12T19:34:09.262178",
+  "duration_seconds": 137.58617,
+  "duration_readable": "0:02:17.586170"
+}

@@ -318,12 +318,24 @@ def process_outlook_content() -> List[Document]:
     """
     Main function to process Outlook emails and return LangChain Documents.
     Called by vectorstore.py during knowledge base building.
+    
+    If OUTLOOK_FILTER_EMAIL is set, only emails involving that address will be processed.
     """
     print("=" * 60)
     print("PROCESSING OUTLOOK EMAIL THREADS")
     print("=" * 60)
     
     try:
+        # Check if filtering is enabled (supports comma-separated list)
+        filter_email_str = os.getenv("OUTLOOK_FILTER_EMAIL")
+        filter_emails = []
+        if filter_email_str:
+            # Support multiple emails separated by comma
+            filter_emails = [e.strip() for e in filter_email_str.split(',')]
+            print(f"[*] FILTER ENABLED: Only emails involving:")
+            for fe in filter_emails:
+                print(f"    - {fe}")
+        
         processor = OutlookProcessor()
         
         # Fetch emails from specified folder
@@ -335,6 +347,41 @@ def process_outlook_content() -> List[Document]:
         if not emails:
             print("[WARNING] No emails fetched - check folder name and permissions")
             return []
+        
+        # Filter emails if OUTLOOK_FILTER_EMAIL is set
+        if filter_emails:
+            print(f"[*] Filtering {len(emails)} emails for {len(filter_emails)} address(es)...")
+            original_count = len(emails)
+            
+            filtered_emails = []
+            for email in emails:
+                # Check From
+                from_addr = email.get('from', {}).get('emailAddress', {}).get('address', '').lower()
+                
+                # Check To recipients
+                to_addrs = [r.get('emailAddress', {}).get('address', '').lower() 
+                           for r in email.get('toRecipients', [])]
+                
+                # Check CC recipients
+                cc_addrs = [r.get('emailAddress', {}).get('address', '').lower() 
+                           for r in email.get('ccRecipients', [])]
+                
+                # Check if ANY filter email is involved
+                match_found = False
+                for filter_email in filter_emails:
+                    filter_lower = filter_email.lower()
+                    if (filter_lower in from_addr or 
+                        filter_lower in to_addrs or 
+                        filter_lower in cc_addrs):
+                        match_found = True
+                        break
+                
+                if match_found:
+                    filtered_emails.append(email)
+            
+            emails = filtered_emails
+            print(f"[OK] Filtered to {len(emails)} emails (from {original_count})")
+            print(f"     Filter rate: {len(emails)/original_count*100:.1f}%")
         
         # Group emails into conversation threads
         conversations = processor.group_emails_by_conversation(emails)
@@ -353,6 +400,8 @@ def process_outlook_content() -> List[Document]:
         
         print("=" * 60)
         print(f"[OK] Outlook processing complete: {len(chunked_documents)} final chunks")
+        if filter_email:
+            print(f"    (Filtered for emails involving {filter_email})")
         print("=" * 60)
         
         return chunked_documents

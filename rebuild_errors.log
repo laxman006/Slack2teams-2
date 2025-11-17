@@ -1,0 +1,101 @@
+REBUILD ERROR REPORT
+================================================================================
+Generated: 2025-11-12 18:51:32
+
+ERRORS:
+--------------------------------------------------------------------------------
+
+Outlook (6 errors):
+  - [ERROR] Graph API request failed: 404 Client Error: Not Found for url: https://graph.microsoft.com/v1.0/users/presalesteam@cloudfuze.com/mailFolders
+  - [ERROR] Graph API request failed: 404 Client Error: Not Found for url: https://graph.microsoft.com/v1.0/users/presalesteam@cloudfuze.com/mailFolders
+  - [ERROR] Response: {"error":{"code":"ErrorInvalidUser","message":"The requested user 'presalesteam@cloudfuze.com' is invalid."}}
+  - [ERROR] Failed to get folder ID: 404 Client Error: Not Found for url: https://graph.microsoft.com/v1.0/users/presalesteam@cloudfuze.com/mailFolders
+  - [ERROR] Failed to get folder ID: 404 Client Error: Not Found for url: https://graph.microsoft.com/v1.0/users/presalesteam@cloudfuze.com/mailFolders
+  - [ERROR] Cannot fetch emails - folder not found
+
+
+WARNINGS:
+--------------------------------------------------------------------------------
+
+SharePoint (74 warnings):
+  - [INFO] Skipping binary file content for Cloudfuze Architecture.png (type: png)
+  - [INFO] Skipping binary file content for exchange architecture diagram.png (type: png)
+  - [INFO] Skipping binary file content for s2t architecture.png (type: png)
+  - [INFO] Skipping binary file content for S2T_architecture.png (type: png)
+  - [INFO] Skipping binary file content for case study.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CloudFuze Deck (1).pptx (type: pptx)
+  - [INFO] Skipping binary file content for CloudFuze Deck.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CloudFuze KT - Database Understanding.pptx (type: pptx)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Box- onedrive screenshots (matched: documentation > other > box- onedrive screenshots)
+  - [INFO] Skipping binary file content for Added special Chaacters to the existing folder in box.PNG (type: png)
+  - [INFO] Skipping binary file content for New group created & added in box.PNG (type: png)
+  - [INFO] Skipping binary file content for New group created & added in Onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for ONetime folder box.PNG (type: png)
+  - [INFO] Skipping binary file content for Onetime folder Onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Restored a file after onetime in box.PNG (type: png)
+  - [INFO] Skipping binary file content for Restored a file after onetime in Onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Restored a folder after onetime in box.PNG (type: png)
+  - [INFO] Skipping binary file content for Restored a folder after onetime in Onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for special characters added to existing folder for delta in Onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for special characters folder created for delta in box.PNG (type: png)
+  - [INFO] Skipping binary file content for special characters folder created for delta in Onedrive.PNG (type: png)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Links Screenshots (matched: documentation > other > links screenshots)
+  - [INFO] Skipping binary file content for changed location folder location and added coll for delta box.PNG (type: png)
+  - [INFO] Skipping binary file content for Co-owner folder in onetime box.PNG (type: png)
+  - [INFO] Skipping binary file content for Co-owner folder in onetime onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Co-owner folder renamed and col added by co-owner in box.PNG (type: png)
+  - [INFO] Skipping binary file content for Co-owner folder renamed and col added by co-owner in onedrive delta .PNG (type: png)
+  - [INFO] Skipping binary file content for invited people only in box.PNG (type: png)
+  - [INFO] Skipping binary file content for leading spaces in the box.PNG (type: png)
+  - [INFO] Skipping binary file content for leading spaces in the onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Location folder in onetime box.PNG (type: png)
+  - [INFO] Skipping binary file content for Location folder in onetime onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for location folder location changed and permission added onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for people in your company can view only in box.PNG (type: png)
+  - [INFO] Skipping binary file content for people in your company can view only in onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for people in your company view and download onedrive .PNG (type: png)
+  - [INFO] Skipping binary file content for people in your company view and download.PNG (type: png)
+  - [INFO] Skipping binary file content for people with link can view only in box.PNG (type: png)
+  - [INFO] Skipping binary file content for people with link can view only in onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for people with link view & download in box.PNG (type: png)
+  - [INFO] Skipping binary file content for people with link view & download in onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Shared links csv in inedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Trailing Spaces onedrive.PNG (type: png)
+  - [INFO] Skipping binary file content for Trailing Spaces.PNG (type: png)
+  - [INFO] Skipping binary file content for Product Lifecycle Process_Final Draft (002).pptx (type: pptx)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Product Training Videos (matched: documentation > other > product training videos)
+  - [SKIP] Skipping excluded folder: Documentation > Other > spo screenshots (matched: documentation > other > spo screenshots)
+  - [SKIP] Skipping call recording: All Sales Call Recording - Raju Burnwal
+  - [SKIP] Skipping video file: Session1.mp4
+  - [SKIP] Skipping video file: Session10.mp4
+  - [SKIP] Skipping video file: Session2.mp4
+  - [SKIP] Skipping video file: Session3.mp4
+  - [SKIP] Skipping video file: Session4.mp4
+  - [SKIP] Skipping video file: Session5.mp4
+  - [SKIP] Skipping video file: Session6.mp4
+  - [SKIP] Skipping video file: Session7.mp4
+  - [SKIP] Skipping video file: Session8.mp4
+  - [SKIP] Skipping video file: Session9.mp4
+  - [INFO] Skipping binary file content for CSVBasedProvisioning.ps1 (type: ps1)
+  - [INFO] Skipping binary file content for CSVLogIntoOnedrive.ps1 (type: ps1)
+  - [INFO] Skipping binary file content for Onboarding ppt .pptx (type: pptx)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > Product > CloudFuze Code Training (matched: documentation > other > training documents > product > cloudfuze code training)
+  - [INFO] Skipping binary file content for CF KT - CloudFuze Introduction.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CF KT - Databases Introduction.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CF KT - Functional Flow.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CF KT - Infra and Installation.pptx (type: pptx)
+  - [INFO] Skipping binary file content for CF KT - UI & Migration Introduction.pptx (type: pptx)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > QA > Cloudfuze Automation with Selenium (matched: documentation > other > training documents > qa > cloudfuze automation with selenium)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > QA > Defect Management (matched: documentation > other > training documents > qa > defect management)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > QA > Divya (matched: documentation > other > training documents > qa > divya)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > QA > Product and Training Videos (matched: documentation > other > training documents > qa > product and training videos)
+  - [SKIP] Skipping excluded folder: Documentation > Other > Training Documents > QA > Shalu (matched: documentation > other > training documents > qa > shalu)
+  - [SKIP] Skipping excluded folder: Documentation > Other > workshop recordings (matched: documentation > other > workshop recordings)
+  - [SKIP] Skipping excluded folder: Videos (matched: videos)
+
+Outlook (1 warnings):
+  - [WARNING] No emails fetched - check folder name and permissions
+
+
+FAILED FILES:
+--------------------------------------------------------------------------------

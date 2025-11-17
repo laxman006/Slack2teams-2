@@ -48,3 +48,17 @@ motor==3.3.2
 pymongo==4.5.0
 
 # JSON-based memory storage (no external dependencies needed)
+
+# Enhanced Document Processing
+unstructured[all-docs]==0.11.8
+pytesseract==0.3.10
+python-magic-bin==0.4.14; sys_platform == 'win32'
+python-magic==0.4.27; sys_platform != 'win32'
+
+# Machine Learning and NLP
+scikit-learn==1.4.0
+spacy==3.7.2
+tiktoken==0.5.2
+
+# Additional utilities
+Pillow==10.2.0

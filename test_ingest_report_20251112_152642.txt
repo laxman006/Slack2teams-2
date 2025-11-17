@@ -1,0 +1,120 @@
+================================================================================
+INGESTION REPORT
+================================================================================
+
+Completed: 2025-11-12 15:26:42
+Processing Time: 35.31 seconds
+
+OVERALL STATISTICS
+--------------------------------------------------------------------------------
+Total Documents Processed: 1883
+Total Chunks Created: 2113
+Duplicates Merged: 1814
+
+BY SOURCE
+--------------------------------------------------------------------------------
+  SHAREPOINT:
+    Documents: 1873
+    Chunks: 2101
+  BLOG:
+    Documents: 10
+    Chunks: 12
+
+BY FILE TYPE
+--------------------------------------------------------------------------------
+  UNKNOWN: 1883
+
+GRAPH RELATIONSHIPS
+--------------------------------------------------------------------------------
+  Documents Cloudfuze Blog: 10
+  Documents Cloudfuze Doc360: 1873
+  Total Documents: 1883
+  Total Chunks: 299
+  Total Relationships: 299
+  Relationships Document Contains Chunk: 299
+
+CHUNKING STATISTICS
+--------------------------------------------------------------------------------
+  Average Chunks per Document: 1.12
+  Average Chunk Size (tokens): 290
+  Average Chunk Size (characters): 1482
+
+SAMPLE CHUNKS (First 5)
+================================================================================
+
+CHUNK 1:
+--------------------------------------------------------------------------------
+Metadata:
+  source: cloudfuze_doc360
+  chunk_index: 0
+  total_chunks: 1
+  token_count: 353
+  char_range: 0-1494
+
+Content Preview:
+CENTURYLINK COMMUNICATIONS LLC
+SOC 1 REPORT
+FOR
+COLOCATION SERVICES
+A TYPE 2 INDEPENDENT SERVICE AUDITOR'S REPORT ON A DESCRIPTION OF A SERVICE ORGANIZATION'S
+SYSTEM AND THE SUITABILITY OF THE DESIGN ...
+
+CHUNK 2:
+--------------------------------------------------------------------------------
+Metadata:
+  source: cloudfuze_doc360
+  chunk_index: 0
+  total_chunks: 1
+  token_count: 306
+  char_range: 0-1466
+
+Content Preview:
+Unauthorized use, reproduction or distribution of this report, in whole or in part, is strictly prohibited.
+T
+ABLE OF
+C
+ONTENTS
+SECTION 1 INDEPENDENT SERVICE AUDITOR’S
+REPORT ............................
+
+CHUNK 3:
+--------------------------------------------------------------------------------
+Metadata:
+  source: cloudfuze_doc360
+  chunk_index: 0
+  total_chunks: 1
+  token_count: 250
+  char_range: 0-1481
+
+Content Preview:
+description does not include those aspects of the colocation services system that are not likely to be relevant to
+user entities’ internal control over financial reporting.
+The description indicates w...
+
+CHUNK 4:
+--------------------------------------------------------------------------------
+Metadata:
+  source: cloudfuze_doc360
+  chunk_index: 0
+  total_chunks: 1
+  token_count: 269
+  char_range: 0-1488
+
+Content Preview:
+CenturyLink. Our examination did not extend to controls of the subservice organization, and we have not evaluated
+the suitability of the design or operating effectiveness of such complementary subserv...
+
+CHUNK 5:
+--------------------------------------------------------------------------------
+Metadata:
+  source: cloudfuze_doc360
+  chunk_index: 0
+  total_chunks: 1
+  token_count: 270
+  char_range: 0-1481
+
+Content Preview:
+covered by the description, specifying the control objectives and stating them in the description, identifying the risks
+that threaten the achievement of the control objectives, selecting the criteria...
+
+================================================================================

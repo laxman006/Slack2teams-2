@@ -174,7 +174,7 @@ def preserve_markdown(md_text: str) -> str:
     return clean_text
 
 def build_vectorstore(url: str):
-    """Build and persist embeddings for web documents."""
+    """Build and persist embeddings for web documents with HNSW graph indexing."""
     raw_text = load_webpage(url)
     
     # CRITICAL: Clean HTML tags from web content for better semantic search
@@ -191,7 +191,20 @@ def build_vectorstore(url: str):
     )
     docs = splitter.create_documents([clean_text])
     embeddings = OpenAIEmbeddings()
-    vectorstore = Chroma.from_documents(docs, embeddings, persist_directory=CHROMA_DB_PATH)
+    
+    # Create vectorstore with HNSW graph indexing for better retrieval
+    vectorstore = Chroma.from_documents(
+        docs, 
+        embeddings, 
+        persist_directory=CHROMA_DB_PATH,
+        collection_metadata={
+            "hnsw:space": "cosine",
+            "hnsw:construction_ef": 200,
+            "hnsw:search_ef": 100,
+            "hnsw:M": 48,
+        }
+    )
+    print("[OK] Vectorstore created with HNSW graph indexing")
     return vectorstore
 
 def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel_directory: str = None, doc_directory: str = None, sharepoint_enabled: bool = False, outlook_enabled: bool = False):
@@ -275,7 +288,8 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
     batch_size = 50
     total_batches = (len(all_docs) + batch_size - 1) // batch_size
     
-    print(f"\n[*] Creating vectorstore with {total_batches} batches of up to {batch_size} documents each...")
+    print(f"\n[*] Creating vectorstore with HNSW graph indexing...")
+    print(f"[*] Processing {total_batches} batches of up to {batch_size} documents each...")
     
     vectorstore = None
     for i in range(0, len(all_docs), batch_size):
@@ -284,13 +298,23 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
         print(f"   [*] Processing batch {batch_num}/{total_batches} ({len(batch)} documents)...")
         
         if vectorstore is None:
-            # Create vectorstore with first batch
-            vectorstore = Chroma.from_documents(batch, embeddings, persist_directory=CHROMA_DB_PATH)
+            # Create vectorstore with first batch and HNSW graph indexing
+            vectorstore = Chroma.from_documents(
+                batch, 
+                embeddings, 
+                persist_directory=CHROMA_DB_PATH,
+                collection_metadata={
+                    "hnsw:space": "cosine",  # Cosine similarity for semantic search
+                    "hnsw:construction_ef": 200,  # Better indexing accuracy
+                    "hnsw:search_ef": 100,  # Better search accuracy
+                    "hnsw:M": 48,  # More graph connections for better recall
+                }
+            )
         else:
             # Add subsequent batches
             vectorstore.add_documents(batch)
         
         print(f"   [OK] Batch {batch_num}/{total_batches} complete")
     
-    print("\n[OK] Selective knowledge base created successfully!")
+    print("\n[OK] Selective knowledge base created with HNSW graph indexing!")
     return vectorstore

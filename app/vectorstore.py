@@ -162,18 +162,29 @@ def should_rebuild_vectorstore():
     return len(changed_sources) > 0
 
 def load_existing_vectorstore():
-    """Load existing vectorstore without rebuilding."""
-    print("[*] Loading existing vectorstore...")
+    """Load existing vectorstore without rebuilding with optimized HNSW indexing."""
+    print("[*] Loading existing vectorstore with graph indexing (HNSW)...")
     try:
         embeddings = OpenAIEmbeddings()
+        
+        # Configure ChromaDB with HNSW (graph-based) indexing for better retrieval
+        # HNSW creates a hierarchical graph structure for efficient nearest neighbor search
         vectorstore = Chroma(
             persist_directory=CHROMA_DB_PATH,
-            embedding_function=embeddings
+            embedding_function=embeddings,
+            collection_metadata={
+                "hnsw:space": "cosine",  # Use cosine similarity for semantic search
+                "hnsw:construction_ef": 200,  # Higher = better accuracy during indexing (default: 100)
+                "hnsw:search_ef": 100,  # Higher = better search accuracy (default: 10)
+                "hnsw:M": 48,  # Number of connections per node (default: 16, max: 64)
+                # Higher M = more graph connections = better recall but more memory
+            }
         )
         
         # Test if vectorstore is working
         total_docs = vectorstore._collection.count()
-        print(f"[OK] Loaded existing vectorstore with {total_docs} documents")
+        print(f"[OK] Loaded vectorstore with {total_docs} documents")
+        print(f"[OK] HNSW graph indexing enabled (M=48, search_ef=100)")
         return vectorstore
     except Exception as e:
         print(f"[!] Failed to load existing vectorstore: {e}")
@@ -481,13 +492,30 @@ if INITIALIZE_VECTORSTORE:
         vectorstore = get_vectorstore()
 
 if vectorstore:
+    # Create a hybrid retriever with MMR (Maximal Marginal Relevance) for diverse results
+    # MMR balances relevance with diversity to avoid redundant results
     retriever = vectorstore.as_retriever(
-        search_type="similarity",
+        search_type="mmr",  # Use MMR instead of plain similarity
         search_kwargs={
-            "k": 25  # Fetch more documents for better coverage
+            "k": 25,  # Number of documents to return
+            "fetch_k": 50,  # Fetch more candidates for MMR to choose from
+            "lambda_mult": 0.7,  # Balance relevance (1.0) vs diversity (0.0) - 0.7 is good balance
         }
     )
-    print("[OK] Vectorstore available for chatbot")
+    
+    # Also create a similarity retriever as fallback
+    similarity_retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={
+            "k": 25,
+        }
+    )
+    
+    print("[OK] Vectorstore available with hybrid retrieval:")
+    print("    - Primary: MMR (Maximal Marginal Relevance) for diverse results")
+    print("    - Graph indexing: HNSW for efficient similarity search")
+    print("    - Fallback: Similarity search")
 else:
     retriever = None
+    similarity_retriever = None
     print("[INFO] No vectorstore available - set INITIALIZE_VECTORSTORE=true to create one")

@@ -26,6 +26,9 @@ import time
 # INTENT CLASSIFICATION SYSTEM - Branch-Specific Retrieval
 # ============================================================================
 
+# Configuration: Disable intent classification
+ENABLE_INTENT_CLASSIFICATION = False  # Set to False to disable intent-based retrieval
+
 # Define intent branches with their characteristics
 INTENT_BRANCHES = {
     "general_business": {
@@ -446,19 +449,31 @@ qa_chain = setup_qa_chain(retriever)
 async def require_auth(authorization: Optional[str] = Header(None)) -> dict:
     """
     Verify user is authenticated with a valid Microsoft access token.
-    
-    This function:
-    1. Checks if Authorization header is present
-    2. Verifies the token with Microsoft Graph API
-    3. Validates the user's email domain (@cloudfuze.com)
-    4. Returns verified user information
-    
-    Raises:
-        HTTPException: 401 if token is missing/invalid, 403 if domain not allowed
-    
-    Returns:
-        dict: Verified user info (user_id, email, name)
+    Can be disabled for testing by setting DISABLE_AUTH_FOR_TESTING=true in .env
     """
+    # Check if auth is disabled for testing
+    import os
+    if os.getenv("DISABLE_AUTH_FOR_TESTING", "false").lower() == "true":
+        print("[AUTH] Authentication DISABLED for testing")
+        return {
+            "user_id": "test_user",
+            "name": "Test User",
+            "email": "test@example.com"
+        }
+    
+    # Normal authentication flow
+    # This function:
+    # 1. Checks if Authorization header is present
+    # 2. Verifies the token with Microsoft Graph API
+    # 3. Validates the user's email domain (@cloudfuze.com)
+    # 4. Returns verified user information
+    #
+    # Raises:
+    #     HTTPException: 401 if token is missing/invalid, 403 if domain not allowed
+    #
+    # Returns:
+    #     dict: Verified user info (user_id, email, name)
+    
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
@@ -857,6 +872,17 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 
                 print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
                 
+                # ============ DETAILED VECTORDB LOGGING ============
+                print(f"[VECTORDB] Detailed retrieval info:")
+                for i, (doc, score) in enumerate(doc_results[:10]):  # Log top 10
+                    metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                    tag = metadata.get('tag', 'N/A')
+                    source_type = metadata.get('source_type', 'N/A')
+                    title = metadata.get('post_title', metadata.get('title', 'N/A'))
+                    content_preview = doc.page_content[:100] if hasattr(doc, 'page_content') else 'N/A'
+                    print(f"  [{i+1}] Score: {score:.4f} | Tag: {tag} | Source: {source_type} | Title: {title[:60]}")
+                    print(f"      Content preview: {content_preview}...")
+                
                 # ============ CONFIDENCE-BASED FALLBACK ============
                 # If confidence is low, try alternative retrieval strategies
                 doc_results, fallback_strategy = confidence_based_fallback(
@@ -868,6 +894,42 @@ async def chat(request: Request, auth_user: dict = Depends(require_auth)):
                 
                 if fallback_strategy != "no_fallback":
                     print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
+                
+                # ============ SOURCE PRIORITIZATION ============
+                # Boost SharePoint documents to prioritize internal documentation
+                PRIORITIZE_SHAREPOINT = True  # Set to False to disable prioritization
+                SHAREPOINT_BOOST = 0.6  # Lower score = higher priority (0.6 = 40% boost)
+                EMAIL_BOOST = 0.8  # 20% boost for emails
+                
+                if PRIORITIZE_SHAREPOINT:
+                    boosted_docs = []
+                    sharepoint_count = 0
+                    email_count = 0
+                    blog_count = 0
+                    
+                    for doc, score in doc_results:
+                        metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                        tag = metadata.get('tag', '').lower()
+                        source_type = metadata.get('source_type', '').lower()
+                        
+                        # Apply source-based boosting
+                        adjusted_score = score
+                        if 'sharepoint' in tag or source_type == 'sharepoint':
+                            adjusted_score = score * SHAREPOINT_BOOST
+                            sharepoint_count += 1
+                        elif 'email' in tag or source_type == 'email' or 'outlook' in tag:
+                            adjusted_score = score * EMAIL_BOOST
+                            email_count += 1
+                        else:
+                            blog_count += 1
+                        
+                        boosted_docs.append((doc, adjusted_score))
+                    
+                    # Re-sort by adjusted scores (lower is better)
+                    boosted_docs.sort(key=lambda x: x[1])
+                    doc_results = boosted_docs
+                    
+                    print(f"[PRIORITIZATION] Boosted sources - SharePoint: {sharepoint_count}, Email: {email_count}, Blog: {blog_count}")
                 
                 # ============ HYBRID RANKING ============
                 # Combine semantic similarity with keyword matching
@@ -1144,13 +1206,19 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             
             try:
                 # ============ INTENT CLASSIFICATION ============
-                # Classify user intent to enable branch-specific retrieval
-                intent_result = classify_intent(question)
-                intent = intent_result["intent"]
-                intent_confidence = intent_result["confidence"]
-                intent_method = intent_result.get("method", "unknown")
-                
-                print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
+                if ENABLE_INTENT_CLASSIFICATION:
+                    # Classify user intent to enable branch-specific retrieval
+                    intent_result = classify_intent(question)
+                    intent = intent_result["intent"]
+                    intent_confidence = intent_result["confidence"]
+                    intent_method = intent_result.get("method", "unknown")
+                    print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
+                else:
+                    # Simple retrieval without intent classification
+                    intent = "other"
+                    intent_confidence = 1.0
+                    intent_method = "disabled"
+                    print(f"[INTENT] Intent classification DISABLED - using direct retrieval")
                 
                 # Check if vectorstore is available
                 if vectorstore is None:
@@ -1160,19 +1228,34 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     fallback_strategy = "no_vectorstore"
                     diversity_metrics = {}
                 else:
-                    # ============ QUERY EXPANSION ============
-                    # Expand query with intent-specific terms for better retrieval
-                    expanded_query = expand_query_with_intent(enhanced_query, intent)
-                    
-                    # ============ BRANCH-SPECIFIC RETRIEVAL ============
-                    # Use intent-based filtering to retrieve relevant documents
-                    doc_results = retrieve_with_branch_filter(
-                        query=expanded_query,  # Use expanded query
-                        intent=intent,
-                        k=RETRIEVAL_K
-                    )
+                    # ============ RETRIEVAL ============
+                    if ENABLE_INTENT_CLASSIFICATION:
+                        # Intent-based retrieval with query expansion
+                        expanded_query = expand_query_with_intent(enhanced_query, intent)
+                        doc_results = retrieve_with_branch_filter(
+                            query=expanded_query,
+                            intent=intent,
+                            k=RETRIEVAL_K
+                        )
+                    else:
+                        # Simple MMR retrieval without intent classification
+                        doc_results = retriever.invoke(enhanced_query)
+                        # Convert to (doc, score) format for compatibility
+                        doc_results = [(doc, 1.0) for doc in doc_results]
+                        fallback_strategy = "no_fallback"  # Initialize for non-intent classification path
                     
                     print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
+                    
+                    # ============ DETAILED VECTORDB LOGGING ============
+                    print(f"[VECTORDB] Detailed retrieval info:")
+                    for i, (doc, score) in enumerate(doc_results[:10]):  # Log top 10
+                        metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                        tag = metadata.get('tag', 'N/A')
+                        source_type = metadata.get('source_type', 'N/A')
+                        title = metadata.get('post_title', metadata.get('title', 'N/A'))
+                        content_preview = doc.page_content[:100] if hasattr(doc, 'page_content') else 'N/A'
+                        print(f"  [{i+1}] Score: {score:.4f} | Tag: {tag} | Source: {source_type} | Title: {title[:60]}")
+                        print(f"      Content preview: {content_preview}...")
                     
                     # ============ CONFIDENCE-BASED FALLBACK ============
                     # If confidence is low, try alternative retrieval strategies
@@ -1185,6 +1268,42 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     
                     if fallback_strategy != "no_fallback":
                         print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
+                    
+                    # ============ SOURCE PRIORITIZATION ============
+                    # Boost SharePoint documents to prioritize internal documentation
+                    PRIORITIZE_SHAREPOINT = True  # Set to False to disable prioritization
+                    SHAREPOINT_BOOST = 0.6  # Lower score = higher priority (0.6 = 40% boost)
+                    EMAIL_BOOST = 0.8  # 20% boost for emails
+                    
+                    if PRIORITIZE_SHAREPOINT:
+                        boosted_docs = []
+                        sharepoint_count = 0
+                        email_count = 0
+                        blog_count = 0
+                        
+                        for doc, score in doc_results:
+                            metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                            tag = metadata.get('tag', '').lower()
+                            source_type = metadata.get('source_type', '').lower()
+                            
+                            # Apply source-based boosting
+                            adjusted_score = score
+                            if 'sharepoint' in tag or source_type == 'sharepoint':
+                                adjusted_score = score * SHAREPOINT_BOOST
+                                sharepoint_count += 1
+                            elif 'email' in tag or source_type == 'email' or 'outlook' in tag:
+                                adjusted_score = score * EMAIL_BOOST
+                                email_count += 1
+                            else:
+                                blog_count += 1
+                            
+                            boosted_docs.append((doc, adjusted_score))
+                        
+                        # Re-sort by adjusted scores (lower is better)
+                        boosted_docs.sort(key=lambda x: x[1])
+                        doc_results = boosted_docs
+                        
+                        print(f"[PRIORITIZATION] Boosted sources - SharePoint: {sharepoint_count}, Email: {email_count}, Blog: {blog_count}")
                     
                     # ============ HYBRID RANKING ============
                     # Combine semantic similarity with keyword matching
@@ -1258,7 +1377,20 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                             print(f"[DEBUG] Alternative search failed: {e2}")
             except Exception as e:
                 print(f"Error during document search: {e}")
+                import traceback
+                traceback.print_exc()
                 final_docs = []
+                # Initialize intent variables if not already set
+                if 'intent' not in locals():
+                    intent = "other"
+                    intent_confidence = 1.0
+                    intent_method = "error_fallback"
+                if 'fallback_strategy' not in locals():
+                    fallback_strategy = "no_retrieval"
+            
+            # Filter out documents with None page_content
+            final_docs = [doc for doc in final_docs if doc.page_content is not None and doc.page_content.strip()]
+            print(f"[DEBUG] Final documents for context: {len(final_docs)} (after filtering None content)")
             
             # Deduplicate documents while preserving relevance order (prioritize SharePoint if found)
             seen_ids = set()

@@ -255,3 +255,25 @@ EXCLUDED_FOLDERS = [
 # Convert to lowercase for case-insensitive matching
 SHAREPOINT_EXCLUDE_FOLDERS = [f.lower().strip() for f in EXCLUDED_FOLDERS if f.strip()]
 SHAREPOINT_DOWNLOADABLE_FOLDERS = [f.lower().strip() for f in DOWNLOADABLE_FOLDERS if f.strip()]
+
+# ============================================================================
+# ENHANCED INGESTION CONFIGURATION
+# ============================================================================
+
+# Chunking Configuration
+CHUNK_TARGET_TOKENS = int(os.getenv("CHUNK_TARGET_TOKENS", "800"))  # Target tokens per chunk
+CHUNK_OVERLAP_TOKENS = int(os.getenv("CHUNK_OVERLAP_TOKENS", "200"))  # Overlap between chunks
+CHUNK_MIN_TOKENS = int(os.getenv("CHUNK_MIN_TOKENS", "150"))  # Minimum chunk size (merge smaller chunks)
+
+# Deduplication Configuration
+ENABLE_DEDUPLICATION = os.getenv("ENABLE_DEDUPLICATION", "true").lower() == "true"
+DEDUP_THRESHOLD = float(os.getenv("DEDUP_THRESHOLD", "0.85"))  # Cosine similarity threshold (0.85 = 85% similar)
+
+# Unstructured Library Configuration
+ENABLE_UNSTRUCTURED = os.getenv("ENABLE_UNSTRUCTURED", "true").lower() == "true"  # Use Unstructured for complex files
+ENABLE_OCR = os.getenv("ENABLE_OCR", "true").lower() == "true"  # Enable OCR for scanned PDFs
+OCR_LANGUAGE = os.getenv("OCR_LANGUAGE", "eng")  # OCR language (eng, fra, deu, etc.)
+
+# Graph Storage Configuration
+GRAPH_DB_PATH = os.getenv("GRAPH_DB_PATH", "./data/graph_relations.db")  # SQLite database for graph relationships
+ENABLE_GRAPH_STORAGE = os.getenv("ENABLE_GRAPH_STORAGE", "true").lower() == "true"

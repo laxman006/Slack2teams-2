@@ -1,129 +1,238 @@
-"""Test script to check chatbot document retrieval and responses."""
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+"""
+Test chatbot responses with current vectorstore.
 
-from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from config import OPENAI_API_KEY, CHROMA_DB_PATH, SYSTEM_PROMPT
-from app.llm import format_docs
+Tests various queries to verify the chatbot is returning correct,
+relevant responses from the ingested data.
+"""
 
-# Initialize embeddings
-embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+import requests
+import json
+from datetime import datetime
 
-# Load vectorstore
-print("[*] Loading vectorstore...")
-try:
-    vectorstore = Chroma(
-        persist_directory=CHROMA_DB_PATH,
-        embedding_function=embeddings
-    )
-    print("[OK] Vectorstore loaded")
-except Exception as e:
-    print(f"[ERROR] Failed to load vectorstore: {e}")
-    sys.exit(1)
 
-# Test queries
-test_queries = [
-    "What is CloudFuze?",
-    "How do I migrate from Box to SharePoint?",
-    "What migration guides are available?",
-    "Download SOC 2 certificate",
-    "What policy documents do you have?",
-    "combinations to migrate from object to cloud storage",
-    "gmail to outlook?"
+# Server URL
+BASE_URL = "http://localhost:8002"
+
+# Test queries covering different topics
+TEST_QUERIES = [
+    # SharePoint/Migration related
+    {
+        "question": "How to migrate from Box to OneDrive?",
+        "expected_keywords": ["box", "onedrive", "migration", "cloudfuze"],
+        "category": "Migration"
+    },
+    {
+        "question": "What are CloudFuze's security policies?",
+        "expected_keywords": ["security", "policy", "compliance", "encryption"],
+        "category": "Security"
+    },
+    {
+        "question": "Tell me about SharePoint migration features",
+        "expected_keywords": ["sharepoint", "migration", "features", "permissions"],
+        "category": "Features"
+    },
+    {
+        "question": "What file types does CloudFuze support?",
+        "expected_keywords": ["file", "types", "support", "pdf", "docx"],
+        "category": "Technical"
+    },
+    {
+        "question": "How to handle large data migrations?",
+        "expected_keywords": ["large", "data", "migration", "performance"],
+        "category": "Migration"
+    },
+    # Blog related
+    {
+        "question": "What is zero downtime migration?",
+        "expected_keywords": ["zero", "downtime", "migration", "enterprise"],
+        "category": "Blog"
+    },
+    {
+        "question": "How to migrate from Slack to Teams?",
+        "expected_keywords": ["slack", "teams", "migration", "channels"],
+        "category": "Migration"
+    },
+    # Pricing/Support
+    {
+        "question": "What are CloudFuze pricing plans?",
+        "expected_keywords": ["pricing", "plan", "cost", "subscription"],
+        "category": "Pricing"
+    },
+    {
+        "question": "How do I contact CloudFuze support?",
+        "expected_keywords": ["contact", "support", "email", "help"],
+        "category": "Support"
+    },
+    # Technical
+    {
+        "question": "Does CloudFuze support PPTX files?",
+        "expected_keywords": ["pptx", "powerpoint", "support", "file"],
+        "category": "Technical"
+    }
 ]
 
-# Initialize LLM for generating responses
-llm = ChatOpenAI(
-    model_name="gpt-4o-mini",
-    temperature=0.3,
-    max_tokens=500  # Shorter for testing
-)
 
-def test_query(query):
-    print("\n" + "="*80)
-    print(f"QUERY: {query}")
-    print("="*80)
+def print_section(title):
+    """Print formatted section header."""
+    print("\n" + "=" * 80)
+    print(f"  {title}")
+    print("=" * 80)
+
+
+def test_single_query(query_data):
+    """Test a single query and evaluate the response."""
+    question = query_data["question"]
+    expected_keywords = query_data["expected_keywords"]
+    category = query_data["category"]
     
-    # Retrieve documents
-    print(f"\n[*] Retrieving documents for: '{query}'")
-    doc_results = vectorstore.similarity_search_with_score(query, k=10)
+    print(f"\n[{category}] Testing: \"{question}\"")
+    print("-" * 80)
     
-    if not doc_results:
-        print("[WARNING] No documents retrieved!")
-        return
-    
-    docs = [doc for doc, score in doc_results]
-    
-    # Show retrieved documents
-    print(f"\n[*] Retrieved {len(docs)} documents:")
-    for i, (doc, score) in enumerate(doc_results[:5], 1):
-        print(f"\n{i}. Score: {score:.4f}")
-        print(f"   Source Type: {doc.metadata.get('source_type', 'unknown')}")
-        print(f"   Tag: {doc.metadata.get('tag', 'unknown')}")
-        if doc.metadata.get('source_type') == 'sharepoint':
-            print(f"   File: {doc.metadata.get('file_name', 'N/A')}")
-            print(f"   Folder: {doc.metadata.get('folder_path', 'N/A')}")
-        print(f"   Content preview: {doc.page_content[:150]}...")
-    
-    # Format documents
-    print(f"\n[*] Formatting documents with metadata...")
     try:
-        formatted_docs = format_docs(docs[:5])  # Format top 5
-        context_text = "\n\n".join([f"Document {i+1}:\n{formatted_doc}" for i, formatted_doc in enumerate(formatted_docs)])
-        print(f"[OK] Context length: {len(context_text)} characters")
-        print(f"\n[*] Context preview (first 800 chars):")
-        print("-" * 80)
-        print(context_text[:800])
-        print("-" * 80)
+        # Make request to chatbot
+        response = requests.post(
+            f"{BASE_URL}/chat",
+            json={"question": question},
+            timeout=60
+        )
+        
+        if response.status_code != 200:
+            print(f"❌ FAILED: HTTP {response.status_code}")
+            return False
+        
+        data = response.json()
+        answer = data.get("answer", "")
+        
+        # Check if we got an answer
+        if not answer or len(answer) < 50:
+            print(f"❌ FAILED: Answer too short or empty")
+            print(f"   Answer: {answer}")
+            return False
+        
+        # Check for expected keywords (case-insensitive)
+        answer_lower = answer.lower()
+        found_keywords = [kw for kw in expected_keywords if kw.lower() in answer_lower]
+        missing_keywords = [kw for kw in expected_keywords if kw.lower() not in answer_lower]
+        
+        # Consider it a pass if at least 50% of keywords are found
+        keyword_match_rate = len(found_keywords) / len(expected_keywords)
+        
+        if keyword_match_rate >= 0.5:
+            print(f"✅ PASSED")
+            print(f"   Keywords found: {len(found_keywords)}/{len(expected_keywords)} ({keyword_match_rate*100:.0f}%)")
+            if found_keywords:
+                print(f"   Matched: {', '.join(found_keywords)}")
+            print(f"   Answer preview: {answer[:200]}...")
+            return True
+        else:
+            print(f"⚠️  WEAK: Low keyword match")
+            print(f"   Keywords found: {len(found_keywords)}/{len(expected_keywords)} ({keyword_match_rate*100:.0f}%)")
+            if found_keywords:
+                print(f"   Matched: {', '.join(found_keywords)}")
+            if missing_keywords:
+                print(f"   Missing: {', '.join(missing_keywords)}")
+            print(f"   Answer preview: {answer[:200]}...")
+            return False
+            
+    except requests.exceptions.ConnectionError:
+        print(f"❌ ERROR: Cannot connect to server at {BASE_URL}")
+        print(f"   Make sure the server is running: python server.py")
+        return False
     except Exception as e:
-        print(f"[ERROR] Failed to format documents: {e}")
+        print(f"❌ ERROR: {e}")
         import traceback
         traceback.print_exc()
-        return
+        return False
+
+
+def main():
+    """Run all chatbot response tests."""
+    print("\n" + "🤖" * 40)
+    print("  CHATBOT RESPONSE TESTING")
+    print("🤖" * 40)
+    print(f"\nStarted: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Server: {BASE_URL}")
+    print(f"Total queries: {len(TEST_QUERIES)}")
     
-    # Generate response
-    print(f"\n[*] Generating response...")
+    # Check if server is running
+    print("\n[*] Checking server connectivity...")
     try:
-        from langchain_core.prompts import ChatPromptTemplate
-        
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", SYSTEM_PROMPT),
-            ("human", "Context: {context}\n\nQuestion: {question}")
-        ])
-        
-        messages = prompt_template.format_messages(context=context_text, question=query)
-        response = llm.invoke(messages)
-        
-        print(f"\n[*] RESPONSE:")
-        print("-" * 80)
-        print(response.content)
-        print("-" * 80)
-        
-    except Exception as e:
-        print(f"[ERROR] Failed to generate response: {e}")
-        import traceback
-        traceback.print_exc()
+        response = requests.get(f"{BASE_URL}/docs", timeout=5)
+        print("[OK] Server is running and accessible")
+    except:
+        print(f"[ERROR] Cannot connect to server at {BASE_URL}")
+        print("Please start the server first: python server.py")
+        return 1
+    
+    # Run all tests
+    print_section("RUNNING CHATBOT TESTS")
+    
+    results = []
+    passed = 0
+    failed = 0
+    
+    for query_data in TEST_QUERIES:
+        result = test_single_query(query_data)
+        results.append((query_data["question"], query_data["category"], result))
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    # Summary
+    print_section("TEST SUMMARY")
+    
+    print(f"\nTotal Tests: {len(results)}")
+    print(f"Passed: {passed}")
+    print(f"Failed: {failed}")
+    print(f"Success Rate: {(passed/len(results)*100):.1f}%")
+    
+    print("\nDetailed Results:")
+    for question, category, result in results:
+        status = "✅ PASSED" if result else "❌ FAILED"
+        print(f"   {status} [{category}] {question}")
+    
+    # Category breakdown
+    print("\nResults by Category:")
+    categories = {}
+    for question, category, result in results:
+        if category not in categories:
+            categories[category] = {"passed": 0, "total": 0}
+        categories[category]["total"] += 1
+        if result:
+            categories[category]["passed"] += 1
+    
+    for category, stats in sorted(categories.items()):
+        rate = (stats["passed"] / stats["total"] * 100)
+        print(f"   {category}: {stats['passed']}/{stats['total']} ({rate:.0f}%)")
+    
+    if passed == len(results):
+        print("\n🎉 ALL TESTS PASSED!")
+        print("\n✅ Chatbot is returning relevant responses from vectorstore")
+        return 0
+    elif passed >= len(results) * 0.7:  # 70% pass rate
+        print("\n✅ MOST TESTS PASSED")
+        print(f"\n{passed}/{len(results)} queries returned relevant responses")
+        print("Review failed queries above for improvement opportunities")
+        return 0
+    else:
+        print("\n⚠️  MANY TESTS FAILED")
+        print("Check vectorstore data and retrieval configuration")
+        return 1
 
-# Run tests
-print("\n" + "="*80)
-print("CHATBOT TESTING - DOCUMENT RETRIEVAL AND RESPONSES")
-print("="*80)
 
-for query in test_queries:
-    try:
-        test_query(query)
-        print("\n")
-        input("Press Enter to continue to next query...")
-    except KeyboardInterrupt:
-        print("\n\nTest interrupted by user.")
-        break
-    except Exception as e:
-        print(f"\n[ERROR] Test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        continue
-
-print("\n[OK] Testing complete!")
-
+if __name__ == "__main__":
+    print("\n" + "=" * 80)
+    print("  CHATBOT RESPONSE TESTING")
+    print("  This will test if the chatbot returns correct responses")
+    print("  from the ingested SharePoint, Outlook, and blog data")
+    print("=" * 80)
+    
+    print("\n[PREREQUISITE] Make sure:")
+    print("  1. Server is running (python server.py)")
+    print("  2. Vectorstore has been created (test_enhanced_ingestion.py)")
+    print("  3. Data was ingested successfully\n")
+    
+    input("Press Enter to start testing...")
+    
+    exit(main())
