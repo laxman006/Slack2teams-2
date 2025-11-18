@@ -23,12 +23,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy production requirements first for better caching
+COPY requirements.prod.txt .
 
-# Install Python dependencies
+# Install Python dependencies (production-only packages)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.prod.txt
 
 # Copy application code
 COPY . .

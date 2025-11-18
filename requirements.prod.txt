@@ -1,0 +1,70 @@
+# ============================================
+# PRODUCTION-ONLY REQUIREMENTS
+# ============================================
+# This file contains ONLY packages used in production
+# when INITIALIZE_VECTORSTORE=false (pre-built vectorstore)
+# Build time: ~3-5 minutes (vs 25+ minutes with full requirements.txt)
+# ============================================
+
+# Core FastAPI and Web Framework
+fastapi>=0.119.1
+uvicorn>=0.30.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+
+# AI and Language Processing
+langchain==1.0.1
+langchain-openai==1.0.1
+langchain-community==0.4
+langchain-core==1.0.0
+langchain-chroma==1.0.0
+openai>=1.109.1
+langfuse==2.51.2
+
+# Vector Database (for loading pre-built vectorstore)
+chromadb>=1.0.20
+
+# HTTP and Web Scraping
+requests>=2.32.5
+httpx>=0.27.0
+beautifulsoup4==4.12.2
+
+# Data Processing and Validation
+pydantic>=2.7.4
+pandas==2.3.3
+
+# Document Processing (Basic - for fallback processing)
+PyPDF2==3.0.1
+python-docx==1.1.0
+openpyxl==3.1.2
+
+# Text Processing
+markdown==3.5.1
+
+# Database (MongoDB Atlas)
+motor==3.3.2
+pymongo==4.5.0
+
+# Machine Learning (for embeddings and similarity)
+scikit-learn==1.4.0
+tiktoken>=0.7.0,<1.0.0
+
+# ============================================
+# EXCLUDED FROM PRODUCTION (not needed):
+# ============================================
+# These packages are ONLY needed for vectorstore rebuild (INITIALIZE_VECTORSTORE=true)
+# They are NOT used in production runtime:
+#
+# - unstructured[all-docs]==0.11.8     # Complex document processing (10-15 min build)
+# - pdfplumber==0.10.3                 # Advanced PDF extraction
+# - pymupdf4llm==0.0.5                 # PyMuPDF for PDFs
+# - docx2txt==0.8                      # Alternative DOCX processor
+# - selenium==4.36.0                   # Browser automation (SharePoint fallback)
+# - webdriver-manager==4.0.2           # ChromeDriver management
+# - xlrd==2.0.1                        # Old Excel format support
+# - pytesseract==0.3.10                # OCR (not used)
+# - python-magic-bin==0.4.14           # File detection (not used)
+# - python-magic==0.4.27               # File detection (not used)
+# - spacy==3.7.2                       # NLP (not used)
+# - Pillow==10.2.0                     # Image processing (not used)
+
