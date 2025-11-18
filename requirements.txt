@@ -32,7 +32,7 @@ pymupdf4llm==0.0.5
 python-docx==1.1.0
 docx2txt==0.8
 
-# Browser Automation for SharePoint
+# Browser Automation for SharePoint (Optional - only if Graph API fails)
 selenium==4.36.0
 webdriver-manager==4.0.2
 
@@ -47,18 +47,16 @@ markdown==3.5.1
 motor==3.3.2
 pymongo==4.5.0
 
-# JSON-based memory storage (no external dependencies needed)
-
-# Enhanced Document Processing
+# Enhanced Document Processing (HEAVY - takes 10-15 min to build)
 unstructured[all-docs]==0.11.8
-pytesseract==0.3.10
-python-magic-bin==0.4.14; sys_platform == 'win32'
-python-magic==0.4.27; sys_platform != 'win32'
 
-# Machine Learning and NLP
+# Machine Learning
 scikit-learn==1.4.0
-spacy==3.7.2
 tiktoken==0.5.2
 
-# Additional utilities
-Pillow==10.2.0
+# REMOVED - Not used in codebase (saves ~15 minutes build time):
+# pytesseract==0.3.10              # OCR - not imported anywhere
+# python-magic-bin==0.4.14         # File detection - not used
+# python-magic==0.4.27             # File detection - not used
+# spacy==3.7.2                     # NLP - not imported anywhere
+# Pillow==10.2.0                   # Image processing - not used
