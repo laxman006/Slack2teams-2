@@ -52,7 +52,7 @@ unstructured[all-docs]==0.11.8
 
 # Machine Learning
 scikit-learn==1.4.0
-tiktoken==0.5.2
+tiktoken>=0.7.0,<1.0.0
 
 # REMOVED - Not used in codebase (saves ~15 minutes build time):
 # pytesseract==0.3.10              # OCR - not imported anywhere
