@@ -45,8 +45,8 @@ markdown==3.5.1
 motor==3.3.2
 pymongo==4.5.0
 
-# Machine Learning (for embeddings and similarity)
-scikit-learn==1.4.0
+# Machine Learning (for token counting)
+# scikit-learn==1.4.0  # REMOVED - only needed for vectorstore rebuild (deduplication)
 tiktoken>=0.7.0,<1.0.0
 
 # ============================================
