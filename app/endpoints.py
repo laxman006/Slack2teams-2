@@ -12,22 +12,40 @@ import re
 from datetime import datetime
 
 from app.llm import setup_qa_chain
-from app.vectorstore import retriever, vectorstore
+from app.vectorstore import retriever, vectorstore, bm25_retriever
 from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
 from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
 from app.auth import verify_user_access, require_admin
-from config import SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT
+from config import (
+    SYSTEM_PROMPT, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, MICROSOFT_TENANT,
+    ENABLE_INTENT_CLASSIFICATION, ENABLE_QUERY_EXPANSION, ENABLE_CONTEXT_COMPRESSION,
+    DENSE_RETRIEVAL_K, BM25_RETRIEVAL_K, FINAL_RETRIEVAL_K,
+    DENSE_WEIGHT, BM25_WEIGHT, RERANKER_WEIGHT
+)
 from langchain_core.prompts import ChatPromptTemplate
 import time
+from query_expander import QueryExpander
+from reranker import CrossEncoderReranker
+from context_compressor import ContextCompressor
+from contextlib import suppress
 
+
+# ============================================================================
+# OPTION E: PERPLEXITY-STYLE RETRIEVAL INITIALIZATION
+# ============================================================================
+
+# Initialize Option E components
+query_expander = QueryExpander()
+cross_reranker = CrossEncoderReranker()
+context_compressor = ContextCompressor()
 
 # ============================================================================
 # INTENT CLASSIFICATION SYSTEM - Branch-Specific Retrieval
 # ============================================================================
 
-# Configuration: Disable intent classification
-ENABLE_INTENT_CLASSIFICATION = False  # Set to False to disable intent-based retrieval
+# Configuration: Disable intent classification (overridden by config)
+# ENABLE_INTENT_CLASSIFICATION is now imported from config
 
 # Define intent branches with their characteristics
 INTENT_BRANCHES = {
@@ -780,6 +798,162 @@ def analyze_retrieved_documents(docs_with_scores):
         "doc_docs_count": doc_count,
     }
 
+# ============================================================================
+# OPTION E: PERPLEXITY-STYLE RETRIEVAL FUNCTION
+# ============================================================================
+
+def perplexity_style_retrieve(
+    query: str,
+    k_dense: int = None,
+    k_bm25: int = None,
+    k_final: int = None,
+    use_expansion: bool = None,
+):
+    """
+    Perplexity-style retrieval:
+      1. Optional LLM-based query expansion
+      2. Dense retrieval from Chroma
+      3. Sparse retrieval from BM25
+      4. Merge + normalize scores
+      5. Cross-encoder reranking
+    """
+    # Use config defaults if not provided
+    if k_dense is None:
+        k_dense = DENSE_RETRIEVAL_K
+    if k_bm25 is None:
+        k_bm25 = BM25_RETRIEVAL_K
+    if k_final is None:
+        k_final = FINAL_RETRIEVAL_K
+    if use_expansion is None:
+        use_expansion = ENABLE_QUERY_EXPANSION
+    
+    if not vectorstore:
+        return []
+
+    queries = [query]
+    if use_expansion:
+        try:
+            expansions = query_expander.expand(query, n=3)
+            print(f"[QUERY EXPANSION] {len(expansions)} expansions: {expansions}")
+            queries.extend(expansions)
+        except Exception as e:
+            print(f"[WARN] Query expansion failed: {e}")
+
+    # ---- 1. Dense retrieval (embeddings) ----
+    dense_candidates = []
+    for q in queries:
+        try:
+            # similarity_search_with_score returns (doc, distance) with lower=better
+            results = vectorstore.similarity_search_with_score(q, k=k_dense)
+            for doc, dist in results:
+                dense_candidates.append((doc, float(dist)))
+        except Exception as e:
+            print(f"[WARN] Dense retrieval failed for query '{q}': {e}")
+
+    # Deduplicate dense docs by id+content (keep best distance)
+    dense_map = {}
+    for doc, dist in dense_candidates:
+        key = (doc.page_content[:120], doc.metadata.get("source_type", ""), doc.metadata.get("page_url", ""))
+        if key not in dense_map or dist < dense_map[key][1]:
+            dense_map[key] = (doc, dist)
+    dense_list = list(dense_map.values())
+
+    if dense_list:
+        dists = [d for _, d in dense_list]
+        d_min, d_max = min(dists), max(dists)
+        def norm_dense(dist):
+            # convert distance (0.2–0.8) to similarity (0–1)
+            if d_max == d_min:
+                return 1.0
+            # smaller distance = higher similarity
+            return (d_max - dist) / (d_max - d_min)
+    else:
+        norm_dense = lambda _: 0.0
+
+    # ---- 2. Sparse retrieval (BM25) ----
+    bm25_results = []
+    if bm25_retriever:
+        for q in queries:
+            with suppress(Exception):
+                bm25_results.extend(bm25_retriever.search(q, k=k_bm25))
+
+        bm25_map = {}
+        for doc, score in bm25_results:
+            key = (doc.page_content[:120], doc.metadata.get("source_type", ""), doc.metadata.get("page_url", ""))
+            if key not in bm25_map or score > bm25_map[key][1]:
+                bm25_map[key] = (doc, score)
+        bm25_list = list(bm25_map.values())
+
+        if bm25_list:
+            s = [s for _, s in bm25_list]
+            s_min, s_max = min(s), max(s)
+            def norm_bm25(score):
+                if s_max == s_min:
+                    return 1.0
+                return (score - s_min) / (s_max - s_min)
+        else:
+            norm_bm25 = lambda _: 0.0
+    else:
+        bm25_list = []
+        norm_bm25 = lambda _: 0.0
+
+    # ---- 3. Merge dense + BM25 ----
+    combined = {}
+    for doc, dist in dense_list:
+        key = (doc.page_content[:120], doc.metadata.get("source_type", ""), doc.metadata.get("page_url", ""))
+        combined.setdefault(key, {"doc": doc, "dense": [], "bm25": []})
+        combined[key]["dense"].append(dist)
+
+    for doc, score in bm25_list:
+        key = (doc.page_content[:120], doc.metadata.get("source_type", ""), doc.metadata.get("page_url", ""))
+        combined.setdefault(key, {"doc": doc, "dense": [], "bm25": []})
+        combined[key]["bm25"].append(score)
+
+    candidates = []
+    q_lower = query.lower()  # For metadata matching
+    
+    for key, info in combined.items():
+        doc = info["doc"]
+        meta = doc.metadata or {}
+        
+        if info["dense"]:
+            dense_sim = max(norm_dense(d) for d in info["dense"])
+        else:
+            dense_sim = 0.0
+        if info["bm25"]:
+            bm25_sim = max(norm_bm25(s) for s in info["bm25"])
+        else:
+            bm25_sim = 0.0
+
+        # Base score: DENSE_WEIGHT * dense + BM25_WEIGHT * bm25 (0–1)
+        base_score = DENSE_WEIGHT * dense_sim + BM25_WEIGHT * bm25_sim
+        
+        # ---- Metadata-based boosts (generic, not hardcoded intents) ----
+        # These boosts help surface relevant SharePoint docs that match query signals
+        source_type = (meta.get("source_type") or meta.get("source") or "").lower()
+        tag = (meta.get("tag") or "").lower()
+        title = (meta.get("title") or meta.get("post_title") or "").lower()
+        filename = (meta.get("filename") or "").lower()
+        content_lower = doc.page_content.lower()
+
+        # ---- Metadata-based boosting: SharePoint prioritization ----
+        # Small general boost for SharePoint docs (internal documentation)
+        # This helps prioritize internal docs over blog content
+        if "sharepoint" in source_type or tag.startswith("sharepoint/"):
+            base_score += 0.05
+
+        candidates.append((doc, base_score))
+
+    # Sort by base score descending
+    candidates.sort(key=lambda x: x[1], reverse=True)
+
+    # ---- 4. Cross-encoder reranking ----
+    candidates = candidates[: max(k_final * 3, k_final)]  # pre-filter
+    reranked = cross_reranker.rerank(query, candidates, top_k=k_final)
+
+    return reranked  # list of (doc, final_score)
+
+
 class ChatRequest(BaseModel):
     question: str
     user_id: str = None
@@ -1205,156 +1379,31 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             }
             
             try:
-                # ============ INTENT CLASSIFICATION ============
-                if ENABLE_INTENT_CLASSIFICATION:
-                    # Classify user intent to enable branch-specific retrieval
-                    intent_result = classify_intent(question)
-                    intent = intent_result["intent"]
-                    intent_confidence = intent_result["confidence"]
-                    intent_method = intent_result.get("method", "unknown")
-                    print(f"[INTENT] Classified as '{intent}' (confidence: {intent_confidence:.2f}, method: {intent_method})")
-                else:
-                    # Simple retrieval without intent classification
-                    intent = "other"
-                    intent_confidence = 1.0
-                    intent_method = "disabled"
-                    print(f"[INTENT] Intent classification DISABLED - using direct retrieval")
+                # ====== PERPLEXITY-STYLE RAG (OPTION E) ======
+                # Retrieve docs with dense + BM25 + reranker
+                doc_results = perplexity_style_retrieve(
+                    query=enhanced_query,
+                    k_dense=40,
+                    k_bm25=40,
+                    k_final=8,
+                    use_expansion=True,
+                )
+
+                final_docs = [doc for doc, score in doc_results]
                 
-                # Check if vectorstore is available
-                if vectorstore is None:
-                    print("Warning: Vectorstore not initialized. Please rebuild vectorstore manually.")
-                    final_docs = []
-                    doc_results = []
-                    fallback_strategy = "no_vectorstore"
-                    diversity_metrics = {}
-                else:
-                    # ============ RETRIEVAL ============
-                    if ENABLE_INTENT_CLASSIFICATION:
-                        # Intent-based retrieval with query expansion
-                        expanded_query = expand_query_with_intent(enhanced_query, intent)
-                        doc_results = retrieve_with_branch_filter(
-                            query=expanded_query,
-                            intent=intent,
-                            k=RETRIEVAL_K
-                        )
-                    else:
-                        # Use similarity search with scores when intent classification is disabled
-                        # This provides actual similarity scores for proper ranking
-                        # Retrieve more documents initially to ensure we get SharePoint/Email docs before prioritization
-                        INITIAL_RETRIEVAL_K = max(RETRIEVAL_K * 2, 100)  # Get 2x more docs initially
-                        doc_results = vectorstore.similarity_search_with_score(enhanced_query, k=INITIAL_RETRIEVAL_K)
-                        
-                        # If no SharePoint/Email docs found, do a separate search for them
-                        sharepoint_email_count = sum(1 for doc, _ in doc_results 
-                                                    if 'sharepoint' in doc.metadata.get('tag', '').lower() 
-                                                    or doc.metadata.get('source_type', '').lower() == 'sharepoint'
-                                                    or 'email' in doc.metadata.get('tag', '').lower()
-                                                    or doc.metadata.get('source_type', '').lower() == 'email')
-                        
-                        if sharepoint_email_count == 0:
-                            print(f"[FALLBACK] No SharePoint/Email docs in top {INITIAL_RETRIEVAL_K}, searching specifically for SharePoint/Email...")
-                            # Search specifically for SharePoint and Email documents
-                            all_docs = vectorstore.similarity_search_with_score(enhanced_query, k=500)
-                            sharepoint_email_docs = [(doc, score) for doc, score in all_docs
-                                                    if 'sharepoint' in doc.metadata.get('tag', '').lower() 
-                                                    or doc.metadata.get('source_type', '').lower() == 'sharepoint'
-                                                    or 'email' in doc.metadata.get('tag', '').lower()
-                                                    or doc.metadata.get('source_type', '').lower() == 'email']
-                            
-                            if sharepoint_email_docs:
-                                # Take top 10 SharePoint/Email docs and merge with existing results
-                                sharepoint_email_docs = sharepoint_email_docs[:10]
-                                # Merge and deduplicate
-                                seen_content = {doc.page_content[:100] for doc, _ in doc_results}
-                                for doc, score in sharepoint_email_docs:
-                                    if doc.page_content[:100] not in seen_content:
-                                        doc_results.append((doc, score))
-                                        seen_content.add(doc.page_content[:100])
-                                print(f"[FALLBACK] Added {len(sharepoint_email_docs)} SharePoint/Email documents")
-                        
-                        # Results are already in (doc, score) format - no conversion needed
-                        fallback_strategy = "no_fallback"  # Initialize for non-intent classification path
-                    
-                    print(f"[RETRIEVAL] Retrieved {len(doc_results)} documents from '{intent}' branch")
-                    
-                    # ============ DETAILED VECTORDB LOGGING ============
-                    print(f"[VECTORDB] Detailed retrieval info:")
-                    for i, (doc, score) in enumerate(doc_results[:10]):  # Log top 10
-                        metadata = doc.metadata if hasattr(doc, 'metadata') else {}
-                        tag = metadata.get('tag', 'N/A')
-                        source_type = metadata.get('source_type', 'N/A')
-                        title = metadata.get('post_title', metadata.get('title', 'N/A'))
-                        content_preview = doc.page_content[:100] if hasattr(doc, 'page_content') else 'N/A'
-                        print(f"  [{i+1}] Score: {score:.4f} | Tag: {tag} | Source: {source_type} | Title: {title[:60]}")
-                        print(f"      Content preview: {content_preview}...")
-                    
-                    # ============ CONFIDENCE-BASED FALLBACK ============
-                    # If confidence is low, try alternative retrieval strategies
-                    doc_results, fallback_strategy = confidence_based_fallback(
-                        doc_results=doc_results,
-                        intent=intent,
-                        intent_confidence=intent_confidence,
-                        query=enhanced_query
-                    )
-                    
-                    if fallback_strategy != "no_fallback":
-                        print(f"[FALLBACK] Applied strategy: {fallback_strategy}, now have {len(doc_results)} docs")
-                    
-                    # ============ SOURCE PRIORITIZATION ============
-                    # Boost SharePoint documents to prioritize internal documentation
-                    PRIORITIZE_SHAREPOINT = True  # Set to False to disable prioritization
-                    SHAREPOINT_BOOST = 0.6  # Lower score = higher priority (0.6 = 40% boost)
-                    EMAIL_BOOST = 0.8  # 20% boost for emails
-                    
-                    if PRIORITIZE_SHAREPOINT:
-                        boosted_docs = []
-                        sharepoint_count = 0
-                        email_count = 0
-                        blog_count = 0
-                        
-                        for doc, score in doc_results:
-                            metadata = doc.metadata if hasattr(doc, 'metadata') else {}
-                            tag = metadata.get('tag', '').lower()
-                            source_type = metadata.get('source_type', '').lower()
-                            
-                            # Apply source-based boosting
-                            adjusted_score = score
-                            if 'sharepoint' in tag or source_type == 'sharepoint':
-                                adjusted_score = score * SHAREPOINT_BOOST
-                                sharepoint_count += 1
-                            elif 'email' in tag or source_type == 'email' or 'outlook' in tag:
-                                adjusted_score = score * EMAIL_BOOST
-                                email_count += 1
-                            else:
-                                blog_count += 1
-                            
-                            boosted_docs.append((doc, adjusted_score))
-                        
-                        # Re-sort by adjusted scores (lower is better)
-                        boosted_docs.sort(key=lambda x: x[1])
-                        # Limit to final retrieval count after prioritization
-                        doc_results = boosted_docs[:RETRIEVAL_K]
-                        
-                        print(f"[PRIORITIZATION] Boosted sources - SharePoint: {sharepoint_count}, Email: {email_count}, Blog: {blog_count}")
-                        print(f"[PRIORITIZATION] Limited to top {len(doc_results)} documents after prioritization")
-                    
-                    # ============ HYBRID RANKING ============
-                    # Combine semantic similarity with keyword matching
-                    doc_results = hybrid_ranking(
-                        doc_results=doc_results,
-                        query=question,  # Use original query for keyword matching
-                        intent=intent,
-                        alpha=0.7  # 70% semantic, 30% keyword
-                    )
-                    
-                    print(f"[HYBRID RANKING] Reranked {len(doc_results)} documents with semantic + keyword scores")
-                    
-                    # ============ DOCUMENT DIVERSITY ============
-                    # Calculate diversity metrics for retrieved documents
-                    diversity_metrics = calculate_document_diversity(doc_results)
-                    print(f"[DIVERSITY] Overall: {diversity_metrics['overall']:.2f}, Sources: {diversity_metrics['unique_sources']}, Tags: {diversity_metrics['unique_tags']}")
-                    
-                    final_docs = [doc for doc, score in doc_results]  # Extract just the documents (already sorted by relevance)
+                print(f"[RAG] Retrieved {len(final_docs)} docs using Option E pipeline")
+                
+                # You can still compute diversity metrics if you like
+                diversity_metrics = calculate_document_diversity(
+                    [(doc, 1.0) for doc in final_docs]
+                )
+                
+                # For compatibility with existing code, create fallback variables
+                intent = "option_e"
+                intent_confidence = 1.0
+                intent_method = "perplexity_style"
+                fallback_strategy = "no_fallback"
+                expanded_query = enhanced_query  # No expansion needed, handled by perplexity_style_retrieve
                     
                 # Record retrieval time
                 retrieval_time_ms = int((time.time() - retrieval_start_time) * 1000)
@@ -1495,6 +1544,16 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     context_text = "\n\n".join([f"Document {i+1}:\n{formatted_doc}" for i, formatted_doc in enumerate(formatted_docs)])
                     print(f"[DEBUG] Context length: {len(context_text)} characters")
                     print(f"[DEBUG] First 500 chars of context: {context_text[:500]}...")
+                    
+                    # ============ CONTEXT COMPRESSION (OPTION E) ============
+                    if ENABLE_CONTEXT_COMPRESSION and len(context_text) > 8000:
+                        print(f"[CONTEXT] Context too long ({len(context_text)} chars), compressing...")
+                        try:
+                            context_text = context_compressor.compress(final_docs, max_chars=8000)
+                            print(f"[CONTEXT] Compressed length: {len(context_text)} chars")
+                        except Exception as e:
+                            print(f"[WARN] Context compression failed: {e}")
+                            # Keep original context if compression fails
             except Exception as e:
                 print(f"[ERROR] Failed to format documents: {e}")
                 import traceback
@@ -1641,7 +1700,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     "detected": intent,
                     "confidence": intent_confidence,
                     "method": intent_method,
-                    "branch_description": INTENT_BRANCHES[intent]["description"]
+                    "branch_description": INTENT_BRANCHES.get(intent, {}).get("description", "Option E: Perplexity-style RAG")
                 },
                 
                 # ===== CONFIDENCE SCORING (NEW) =====
@@ -1676,7 +1735,7 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                     "query_expansion": {
                         "original": question,
                         "expanded": expanded_query if 'expanded_query' in locals() else question,
-                        "expansion_terms": INTENT_BRANCHES[intent].get("query_expansion", [])
+                        "expansion_terms": INTENT_BRANCHES.get(intent, {}).get("query_expansion", [])
                     },
                     "documents": {
                         "requested": RETRIEVAL_K,

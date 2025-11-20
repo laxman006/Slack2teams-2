@@ -400,8 +400,8 @@ def process_outlook_content() -> List[Document]:
         
         print("=" * 60)
         print(f"[OK] Outlook processing complete: {len(chunked_documents)} final chunks")
-        if filter_email:
-            print(f"    (Filtered for emails involving {filter_email})")
+        if filter_emails:
+            print("    (Filtered for emails involving: " + ", ".join(filter_emails) + ")")
         print("=" * 60)
         
         return chunked_documents

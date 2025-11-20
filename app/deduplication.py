@@ -30,7 +30,7 @@ class Deduplicator:
             embeddings_model: Embedding model to use (defaults to OpenAI)
         """
         self.threshold = threshold
-        self.embeddings_model = embeddings_model or OpenAIEmbeddings()
+        self.embeddings_model = embeddings_model or OpenAIEmbeddings(model="text-embedding-3-small")
         
         # Statistics tracking
         self.stats = {

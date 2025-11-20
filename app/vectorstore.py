@@ -1,5 +1,8 @@
 from app.helpers import build_vectorstore, build_combined_vectorstore
 from app.pdf_processor import process_pdf_directory, chunk_pdf_documents
+from app.enhanced_helpers import EnhancedVectorstoreBuilder
+from app.ingest_reporter import IngestReporter
+from app.graph_store import get_graph_store
 from config import (
     CHROMA_DB_PATH, INITIALIZE_VECTORSTORE,
     ENABLE_WEB_SOURCE, ENABLE_PDF_SOURCE, ENABLE_EXCEL_SOURCE, ENABLE_DOC_SOURCE, ENABLE_SHAREPOINT_SOURCE, ENABLE_OUTLOOK_SOURCE,
@@ -12,8 +15,11 @@ import shutil
 import json
 import hashlib
 from datetime import datetime
+from typing import List
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from bm25_retriever import BM25Retriever
 
 METADATA_FILE = "./data/vectorstore_metadata.json"
 
@@ -165,7 +171,7 @@ def load_existing_vectorstore():
     """Load existing vectorstore without rebuilding with optimized HNSW indexing."""
     print("[*] Loading existing vectorstore with graph indexing (HNSW)...")
     try:
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
         
         # Configure ChromaDB with HNSW (graph-based) indexing for better retrieval
         # HNSW creates a hierarchical graph structure for efficient nearest neighbor search
@@ -217,14 +223,8 @@ def rebuild_vectorstore_if_needed():
 
 def build_incremental_vectorstore(changed_sources):
     """Build vectorstore incrementally - only process changed sources."""
-    from app.helpers import build_vectorstore, build_combined_vectorstore
-    
-    print(f"[*] Incremental rebuild for changed sources: {', '.join(changed_sources)}")
-    
-    # If no vectorstore exists, do full rebuild
-    if not os.path.exists(CHROMA_DB_PATH):
-        print("[*] No existing vectorstore - doing full rebuild")
-        return build_selective_vectorstore()
+    print(f"[*] Using enhanced full rebuild for incremental build (simple version)")
+    return build_enhanced_vectorstore_full()
     
     # Load existing vectorstore
     print("[*] Loading existing vectorstore for incremental update...")
@@ -309,61 +309,102 @@ def build_incremental_vectorstore(changed_sources):
         print("[*] Falling back to full rebuild...")
         return build_selective_vectorstore()
 
-def build_selective_vectorstore():
-    """Build vectorstore with only enabled sources."""
-    from app.helpers import build_vectorstore, build_combined_vectorstore
-    
-    # Collect enabled sources
-    enabled_dirs = []
-    enabled_sources = []
-    
-    # Check web source
+def build_enhanced_vectorstore_full() -> Chroma:
+    """
+    Build vectorstore using EnhancedVectorstoreBuilder for ALL enabled sources.
+    This is the main ingestion pipeline for Option E.
+    """
+    print("[*] Building enhanced vectorstore with semantic chunking + dedup + graph")
+
+    builder = EnhancedVectorstoreBuilder()
+    reporter = builder.reporter  # already created inside EnhancedVectorstoreBuilder
+
+    all_chunks: List[Document] = []
+
+    # ---- WEB / BLOG (if you use it) ----
     if ENABLE_WEB_SOURCE:
-        enabled_sources.append("web")
-    
-    # Check PDF source
+        try:
+            from app.helpers import fetch_web_content
+            from config import WEB_SOURCE_URL
+            web_docs = fetch_web_content(WEB_SOURCE_URL)
+            print(f"[INGEST] Web docs: {len(web_docs)}")
+            chunks = builder.process_documents(web_docs, source_type="web")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] Web ingestion failed: {e}")
+
+    # ---- PDF ----
     if ENABLE_PDF_SOURCE and os.path.exists(PDF_SOURCE_DIR):
-        enabled_dirs.append(PDF_SOURCE_DIR)
-        enabled_sources.append("pdf")
-    
-    # Check Excel source
+        try:
+            from app.helpers import process_pdf_files
+            pdf_docs = process_pdf_files(PDF_SOURCE_DIR)
+            print(f"[INGEST] PDF docs: {len(pdf_docs)}")
+            chunks = builder.process_documents(pdf_docs, source_type="pdf")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] PDF ingestion failed: {e}")
+
+    # ---- EXCEL ----
     if ENABLE_EXCEL_SOURCE and os.path.exists(EXCEL_SOURCE_DIR):
-        enabled_dirs.append(EXCEL_SOURCE_DIR)
-        enabled_sources.append("excel")
-    
-    # Check Word source
+        try:
+            from app.helpers import process_excel_files
+            excel_docs = process_excel_files(EXCEL_SOURCE_DIR)
+            print(f"[INGEST] Excel docs: {len(excel_docs)}")
+            chunks = builder.process_documents(excel_docs, source_type="excel")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] Excel ingestion failed: {e}")
+
+    # ---- WORD DOCS ----
     if ENABLE_DOC_SOURCE and os.path.exists(DOC_SOURCE_DIR):
-        enabled_dirs.append(DOC_SOURCE_DIR)
-        enabled_sources.append("doc")
-    
-    # Check SharePoint source
+        try:
+            from app.helpers import process_doc_files
+            doc_docs = process_doc_files(DOC_SOURCE_DIR)
+            print(f"[INGEST] Word docs: {len(doc_docs)}")
+            chunks = builder.process_documents(doc_docs, source_type="doc")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] Doc ingestion failed: {e}")
+
+    # ---- SHAREPOINT ----
     if ENABLE_SHAREPOINT_SOURCE:
-        enabled_sources.append("sharepoint")
-    
-    # Check Outlook source
+        try:
+            from app.sharepoint_processor import process_sharepoint_content
+            sp_docs = process_sharepoint_content()
+            print(f"[INGEST] SharePoint docs: {len(sp_docs)}")
+            chunks = builder.process_documents(sp_docs, source_type="sharepoint")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] SharePoint ingestion failed: {e}")
+
+    # ---- OUTLOOK / EMAIL ----
     if ENABLE_OUTLOOK_SOURCE:
-        enabled_sources.append("outlook")
-    
-    print(f"Building vectorstore with sources: {', '.join(enabled_sources)}")
-    
-    # Build based on enabled sources
-    if len(enabled_sources) == 1 and "web" in enabled_sources:
-        # Only web source enabled
-        return build_vectorstore(WEB_SOURCE_URL)
-    elif enabled_dirs or ENABLE_SHAREPOINT_SOURCE or ENABLE_OUTLOOK_SOURCE:
-        # Multiple sources enabled
-        pdf_dir = PDF_SOURCE_DIR if ENABLE_PDF_SOURCE else None
-        excel_dir = EXCEL_SOURCE_DIR if ENABLE_EXCEL_SOURCE else None
-        doc_dir = DOC_SOURCE_DIR if ENABLE_DOC_SOURCE else None
-        
-        return build_combined_vectorstore(
-            WEB_SOURCE_URL if ENABLE_WEB_SOURCE else None,
-            pdf_dir, excel_dir, doc_dir, ENABLE_SHAREPOINT_SOURCE, ENABLE_OUTLOOK_SOURCE
-        )
-    else:
-        # No sources enabled - create empty vectorstore
-        print("Warning: No sources enabled!")
-        return build_vectorstore(WEB_SOURCE_URL)  # Fallback to web
+        try:
+            from app.outlook_processor import process_outlook_content
+            email_docs = process_outlook_content()
+            print(f"[INGEST] Email docs: {len(email_docs)}")
+            chunks = builder.process_documents(email_docs, source_type="email")
+            all_chunks.extend(chunks)
+        except Exception as e:
+            print(f"[WARN] Outlook ingestion failed: {e}")
+
+    print(f"[INGEST] Total enhanced chunks: {len(all_chunks)}")
+
+    vectorstore = builder.build_vectorstore(
+        all_chunks, persist_directory=CHROMA_DB_PATH
+    )
+
+    report = builder.get_report()
+    print("\n===== ENHANCED INGEST REPORT =====")
+    print(report)
+    print("==================================\n")
+
+    return vectorstore
+
+def build_selective_vectorstore():
+    """Build vectorstore with only enabled sources using enhanced pipeline (Option E)."""
+    print("[*] Using enhanced full rebuild for selective build (Option E)")
+    return build_enhanced_vectorstore_full()
 
 def manage_vectorstore_backup_and_rebuild():
     """Manage vectorstore backup and rebuild with proper versioning."""
@@ -515,7 +556,30 @@ if vectorstore:
     print("    - Primary: MMR (Maximal Marginal Relevance) for diverse results")
     print("    - Graph indexing: HNSW for efficient similarity search")
     print("    - Fallback: Similarity search")
+    
+    # ============================================================================
+    # OPTION E: BM25 INITIALIZATION
+    # ============================================================================
+    bm25_retriever = None
+    try:
+        print("[*] Building BM25 index for Option E hybrid retrieval...")
+        # Pull all documents once for BM25
+        # NOTE: Chroma exposes .get() to fetch docs
+        all_docs_data = vectorstore.get(include=["metadatas", "documents"])
+        raw_texts = all_docs_data["documents"]
+        metadatas = all_docs_data["metadatas"]
+
+        docs = []
+        for text, meta in zip(raw_texts, metadatas):
+            docs.append(Document(page_content=text, metadata=meta or {}))
+
+        bm25_retriever = BM25Retriever(docs)
+        print(f"[OK] BM25 index ready over {len(docs)} documents")
+    except Exception as e:
+        print(f"[WARN] Failed to build BM25 index: {e}")
+        bm25_retriever = None
 else:
     retriever = None
     similarity_retriever = None
+    bm25_retriever = None
     print("[INFO] No vectorstore available - set INITIALIZE_VECTORSTORE=true to create one")

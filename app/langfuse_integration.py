@@ -196,7 +196,7 @@ class RAGPipelineTrace:
                 name="vectorstore_embedding",
                 input=query,
                 output=f"Embedded query and searched {doc_count} documents",
-                metadata={"embedding_model": "text-embedding-ada-002", "timestamp": datetime.now().isoformat()}
+                metadata={"embedding_model": "text-embedding-3-small", "timestamp": datetime.now().isoformat()}
             )
             
             return self.retrieve_span

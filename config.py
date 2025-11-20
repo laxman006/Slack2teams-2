@@ -324,3 +324,26 @@ OCR_LANGUAGE = os.getenv("OCR_LANGUAGE", "eng")  # OCR language (eng, fra, deu, 
 # Graph Storage Configuration
 GRAPH_DB_PATH = os.getenv("GRAPH_DB_PATH", "./data/graph_relations.db")  # SQLite database for graph relationships
 ENABLE_GRAPH_STORAGE = os.getenv("ENABLE_GRAPH_STORAGE", "true").lower() == "true"
+
+# ============================================================================
+# OPTION E: PERPLEXITY-STYLE RETRIEVAL CONFIGURATION
+# ============================================================================
+
+# Intent Classification (disable for Option E)
+ENABLE_INTENT_CLASSIFICATION = os.getenv("ENABLE_INTENT_CLASSIFICATION", "false").lower() == "true"
+
+# Query Expansion using LLM
+ENABLE_QUERY_EXPANSION = os.getenv("ENABLE_QUERY_EXPANSION", "true").lower() == "true"
+
+# Context Compression to reduce noise
+ENABLE_CONTEXT_COMPRESSION = os.getenv("ENABLE_CONTEXT_COMPRESSION", "true").lower() == "true"
+
+# Retrieval Configuration
+DENSE_RETRIEVAL_K = int(os.getenv("DENSE_RETRIEVAL_K", "40"))  # Dense retrieval top-k
+BM25_RETRIEVAL_K = int(os.getenv("BM25_RETRIEVAL_K", "40"))  # BM25 sparse retrieval top-k
+FINAL_RETRIEVAL_K = int(os.getenv("FINAL_RETRIEVAL_K", "8"))  # Final reranked results
+
+# Hybrid Scoring Weights
+DENSE_WEIGHT = float(os.getenv("DENSE_WEIGHT", "0.5"))  # Weight for dense retrieval (0-1)
+BM25_WEIGHT = float(os.getenv("BM25_WEIGHT", "0.3"))  # Weight for BM25 retrieval (0-1)
+RERANKER_WEIGHT = float(os.getenv("RERANKER_WEIGHT", "0.8"))  # Weight for cross-encoder reranking (0-1)

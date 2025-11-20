@@ -206,7 +206,7 @@ class EnhancedVectorstoreBuilder:
         """
         print(f"\n[*] Building vectorstore with {len(all_chunks)} chunks...")
         
-        embeddings = OpenAIEmbeddings()
+        embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
         
         # Convert metadata to ChromaDB-compatible format
         for chunk in all_chunks:

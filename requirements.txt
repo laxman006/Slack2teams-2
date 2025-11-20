@@ -13,6 +13,10 @@ langchain-chroma==1.0.0
 openai>=1.109.1
 langfuse==2.51.2
 
+# Transformers and HuggingFace (CRITICAL: Keep these versions compatible)
+transformers>=4.41.0,<5.0.0
+huggingface-hub>=0.34.0,<1.0  # Required by sentence-transformers and transformers
+
 # Vector Database and Search
 chromadb>=1.0.20
 
@@ -51,8 +55,12 @@ pymongo==4.5.0
 unstructured[all-docs]==0.11.8
 
 # Machine Learning
-scikit-learn==1.4.0
+scikit-learn>=1.4.0
 tiktoken>=0.7.0,<1.0.0
+
+# Option E: Perplexity-style Retrieval (VERIFIED COMPATIBLE VERSIONS)
+rank-bm25==0.2.2
+sentence-transformers>=2.7.0  # Compatible with huggingface-hub>=0.34.0 (cached_download removed)
 
 # REMOVED - Not used in codebase (saves ~15 minutes build time):
 # pytesseract==0.3.10              # OCR - not imported anywhere

@@ -190,7 +190,7 @@ def build_vectorstore(url: str):
         separators=["\n\n", "\n", ". ", " ", ""]  # Smart splitting by paragraphs, sentences
     )
     docs = splitter.create_documents([clean_text])
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     
     # Create vectorstore with HNSW graph indexing for better retrieval
     vectorstore = Chroma.from_documents(
@@ -281,7 +281,7 @@ def build_combined_vectorstore(url: str = None, pdf_directory: str = None, excel
     print(f"Total documents to process: {len(all_docs)}")
     
     # Create embeddings and vectorstore with batch processing to avoid token limits
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
     
     # Process in batches to avoid OpenAI token limit (300k tokens per request)
     # Each batch: ~50 docs = ~50k tokens (safe margin)
