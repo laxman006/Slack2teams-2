@@ -49,6 +49,13 @@ pymongo==4.5.0
 # scikit-learn==1.4.0  # REMOVED - only needed for vectorstore rebuild (deduplication)
 tiktoken>=0.7.0,<1.0.0
 
+# Retrieval and Reranking (REQUIRED for runtime)
+# These are used by the reranker and BM25 retriever at runtime
+transformers>=4.41.0,<5.0.0
+huggingface-hub>=0.34.0,<1.0  # Required by sentence-transformers
+sentence-transformers>=2.7.0  # For CrossEncoder reranker (used at runtime)
+rank-bm25==0.2.2  # For BM25 retrieval (used at runtime)
+
 # ============================================
 # EXCLUDED FROM PRODUCTION (not needed):
 # ============================================
