@@ -5,8 +5,8 @@
 # Build time: ~3-5 minutes (vs 10-12 minutes)
 # ============================================
 
-# Use Python 3.12 slim image (3.13 not yet supported by some packages)
-FROM python:3.12-slim
+# Use Python 3.11 slim image (3.13 not yet supported by some packages, 3.11 has better compatibility)
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
