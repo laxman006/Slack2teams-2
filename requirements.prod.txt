@@ -3,7 +3,7 @@
 # ============================================
 # This file contains ONLY packages used in production
 # when INITIALIZE_VECTORSTORE=false (pre-built vectorstore)
-# Build time: ~3-5 minutes (vs 25+ minutes with full requirements.txt)
+# Build time: ~5-8 minutes (vs 25+ minutes with full requirements.txt)
 # ============================================
 
 # Core FastAPI and Web Framework
@@ -46,15 +46,24 @@ motor==3.3.2
 pymongo==4.5.0
 
 # Machine Learning (for token counting)
-# scikit-learn==1.4.0  # REMOVED - only needed for vectorstore rebuild (deduplication)
 tiktoken>=0.7.0,<1.0.0
 
 # ============================================
-# EXCLUDED FROM PRODUCTION (not needed):
+# RETRIEVAL & RERANKING (RUNTIME REQUIRED)
+# ============================================
+# These are used during query processing at runtime
+rank-bm25==0.2.2                    # BM25 sparse retrieval (used in bm25_retriever.py)
+sentence-transformers>=2.7.0        # Cross-encoder reranking (used in reranker.py)
+
+# ============================================
+# EXCLUDED FROM PRODUCTION (not needed at runtime):
 # ============================================
 # These packages are ONLY needed for vectorstore rebuild (INITIALIZE_VECTORSTORE=true)
 # They are NOT used in production runtime:
 #
+# - transformers>=4.41.0,<5.0.0        # Heavy ML package (only for initialization)
+# - huggingface-hub>=0.34.0,<1.0       # Transformers dependency (only for initialization)
+# - scikit-learn>=1.4.0                # Only for deduplication during vectorstore build
 # - unstructured[all-docs]==0.11.8     # Complex document processing (10-15 min build)
 # - pdfplumber==0.10.3                 # Advanced PDF extraction
 # - pymupdf4llm==0.0.5                 # PyMuPDF for PDFs
@@ -62,9 +71,3 @@ tiktoken>=0.7.0,<1.0.0
 # - selenium==4.36.0                   # Browser automation (SharePoint fallback)
 # - webdriver-manager==4.0.2           # ChromeDriver management
 # - xlrd==2.0.1                        # Old Excel format support
-# - pytesseract==0.3.10                # OCR (not used)
-# - python-magic-bin==0.4.14           # File detection (not used)
-# - python-magic==0.4.27               # File detection (not used)
-# - spacy==3.7.2                       # NLP (not used)
-# - Pillow==10.2.0                     # Image processing (not used)
-

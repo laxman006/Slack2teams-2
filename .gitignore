@@ -59,3 +59,13 @@ Thumbs.db
 # Vectorstore data (large binary files)
 data/
 node_modules
+
+# Root package-lock.json (only for promptfoo testing - regenerate when needed)
+# Frontend has its own package-lock.json which is tracked
+/package-lock.json
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
