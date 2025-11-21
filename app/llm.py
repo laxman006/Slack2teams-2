@@ -206,3 +206,187 @@ def setup_qa_chain(retriever):
     
     qa_chain = SemanticRetrievalQA(document_chain, retriever)
     return qa_chain
+
+
+def _generate_simple_keyword_recommendations(user_question: str) -> list:
+    """
+    Simple keyword-based recommendations when no docs are available.
+    Zero cost, instant generation.
+    """
+    question_lower = user_question.lower()
+    questions = []
+    
+    # CloudFuze specific questions based on keywords
+    if any(word in question_lower for word in ['cloudfuze', 'what is', 'about', 'hello', 'hi']):
+        questions = [
+            "What are CloudFuze's main features?",
+            "How does CloudFuze pricing work?",
+            "What platforms does CloudFuze support?",
+            "How do I get started with CloudFuze?"
+        ]
+    elif any(word in question_lower for word in ['migrate', 'migration', 'transfer', 'move']):
+        questions = [
+            "How long does a typical migration take?",
+            "What data can be migrated?",
+            "How do I prepare for migration?",
+            "Can I schedule migrations automatically?"
+        ]
+    elif any(word in question_lower for word in ['price', 'cost', 'pricing', 'plan']):
+        questions = [
+            "What features are included in each plan?",
+            "Is there a free trial available?",
+            "Are there enterprise discounts?",
+            "How is pricing calculated?"
+        ]
+    elif any(word in question_lower for word in ['email', 'outlook', 'gmail']):
+        questions = [
+            "How do I migrate email folders?",
+            "Are email attachments migrated?",
+            "Can I migrate email rules?",
+            "How are contacts handled?"
+        ]
+    elif any(word in question_lower for word in ['sharepoint', 'onedrive', 'drive']):
+        questions = [
+            "How do file permissions work?",
+            "Can I migrate large files?",
+            "Are file versions preserved?",
+            "How do I migrate SharePoint sites?"
+        ]
+    elif any(word in question_lower for word in ['security', 'safe', 'encrypt']):
+        questions = [
+            "What security certifications does CloudFuze have?",
+            "Is data encrypted during migration?",
+            "What compliance standards are met?",
+            "How is my data protected?"
+        ]
+    else:
+        # Generic CloudFuze questions
+        questions = [
+            "What migration services does CloudFuze offer?",
+            "How do I get technical support?",
+            "What are the key features?",
+            "Can I see a demo or trial?"
+        ]
+    
+    return questions[:4]
+
+
+def generate_recommended_questions_from_docs(user_question: str, retrieved_docs: list, bot_response: str = None) -> list:
+    """
+    Generate 4-5 recommended follow-up questions using ALREADY-RETRIEVED documents.
+    
+    This is the MOST COST-EFFECTIVE approach:
+    - NO extra embeddings
+    - NO extra vector searches
+    - Only ONE small LLM call to extract suggestions from docs we already have
+    
+    Similar to Perplexity's Comet feature, but optimized for cost.
+    
+    Args:
+        user_question: The original question the user asked
+        retrieved_docs: The documents already retrieved for answering (langchain Document objects)
+        bot_response: Optional - the bot's answer (can help contextualize)
+    
+    Returns:
+        List of 4-5 recommended follow-up questions as strings
+    """
+    import json
+    
+    # If no docs, use simple keyword-based recommendations
+    if not retrieved_docs:
+        return _generate_simple_keyword_recommendations(user_question)
+    
+    try:
+        from langchain_openai import ChatOpenAI
+        
+        # Extract relevant content and metadata from retrieved docs
+        docs_content = []
+        topics_set = set()
+        
+        for doc in retrieved_docs[:8]:  # Use top 8 docs to keep context manageable
+            # Get the actual content
+            content = doc.page_content[:300]  # First 300 chars per doc
+            docs_content.append(content)
+            
+            # Extract topics/tags for better context
+            tag = doc.metadata.get("tag", "")
+            if tag and tag.lower() not in ['unknown', 'general']:
+                topics_set.add(tag)
+        
+        # Build a concise context from retrieved docs
+        docs_text = "\n\n---\n\n".join(docs_content)
+        topics_hint = f"Available topics: {', '.join(list(topics_set)[:5])}" if topics_set else ""
+        
+        # Create a focused prompt for generating recommendations
+        prompt = f"""You are helping generate follow-up questions for a CloudFuze knowledge base chatbot.
+
+User asked: "{user_question}"
+
+Here are the retrieved documents that were used to answer:
+{docs_text}
+
+{topics_hint}
+
+Based on these documents, generate 4-5 natural follow-up questions that:
+1. Go deeper into topics mentioned in the documents
+2. Are practical and actionable
+3. Are relevant to CloudFuze (cloud migration, data sync, security, pricing, features)
+4. Are concise (max 12 words each)
+5. Avoid generic questions like "tell me more" or "what else"
+
+Return ONLY a valid JSON array of questions, nothing else.
+Example format: ["Question 1?", "Question 2?", "Question 3?", "Question 4?"]
+"""
+
+        # Use a small, fast LLM call
+        llm = ChatOpenAI(
+            model_name="gpt-4o-mini",
+            temperature=0.7,  # Some creativity for diverse questions
+            max_tokens=200    # Keep it minimal
+        )
+        
+        response = llm.invoke(prompt)
+        raw_content = response.content.strip()
+        
+        # Try to parse as JSON
+        try:
+            # Remove markdown code blocks if present
+            if raw_content.startswith("```"):
+                raw_content = raw_content.split("```")[1]
+                if raw_content.startswith("json"):
+                    raw_content = raw_content[4:]
+                raw_content = raw_content.strip()
+            
+            questions = json.loads(raw_content)
+            
+            if isinstance(questions, list):
+                # Clean and validate questions
+                cleaned = []
+                for q in questions[:5]:  # Max 5 questions
+                    if isinstance(q, str) and len(q) > 10 and len(q) < 200:
+                        # Remove numbering if present
+                        q = q.lstrip('0123456789.-•*) ').strip()
+                        if q and not q.startswith('['):
+                            cleaned.append(q)
+                
+                return cleaned[:4]  # Return exactly 4 questions
+        except json.JSONDecodeError:
+            # Fallback: parse line by line
+            lines = raw_content.split('\n')
+            questions = []
+            for line in lines:
+                line = line.strip()
+                # Remove common prefixes
+                line = line.lstrip('0123456789.-•*"[] ').strip().rstrip('",')
+                if line and len(line) > 10 and len(line) < 200:
+                    questions.append(line)
+            
+            return questions[:4]
+        
+        return []
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to generate recommended questions: {e}")
+        import traceback
+        traceback.print_exc()
+        return []  # Non-critical feature, fail gracefully

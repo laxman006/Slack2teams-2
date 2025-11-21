@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -15,6 +15,7 @@ declare global {
     editMessage?: (button: HTMLElement) => void;
     cancelEdit?: (button: HTMLElement) => void;
     saveEdit?: (button: HTMLElement) => void;
+    askRecommendedQuestion?: (button: HTMLElement) => void;
   }
 }
 
@@ -198,9 +199,9 @@ export default function ChatPage() {
         </svg>
       </button>
 
-      <div id="input-container">
-        <div className="input-wrapper">
-          <input type="text" id="user-input" placeholder="Type your question..." />
+        <div id="input-container">
+          <div className="input-wrapper">
+            <input type="text" id="user-input" placeholder="Ask me anything about CloudFuze..." />
           <button id="send-btn">
             <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
               <path fill="none" d="M0 0h24v24H0z"></path>
@@ -220,6 +221,7 @@ function initializeChatApp() {
   window.editMessage = editMessage;
   window.cancelEdit = cancelEdit;
   window.saveEdit = saveEdit;
+  window.askRecommendedQuestion = askRecommendedQuestion;
 
   // API Base URL configuration
   function getApiBase() {
@@ -253,6 +255,68 @@ function initializeChatApp() {
     sessionId = `cf.conversation.${date}.${randomId}`;
     localStorage.setItem('chatbot_session_id', sessionId);
     console.log('[SESSION] Created new session:', sessionId);
+  }
+
+  // Helper functions for persisting recommended questions
+  function saveRecommendedQuestions(messageIndex: number, questions: string[]) {
+    try {
+      const storageKey = `recommended_questions_${sessionId}`;
+      const stored = localStorage.getItem(storageKey);
+      const recommendations = stored ? JSON.parse(stored) : {};
+      recommendations[messageIndex] = questions;
+      localStorage.setItem(storageKey, JSON.stringify(recommendations));
+    } catch (e) {
+      console.error('[STORAGE] Failed to save recommendations:', e);
+    }
+  }
+
+  function loadRecommendedQuestions(messageIndex: number): string[] {
+    try {
+      const storageKey = `recommended_questions_${sessionId}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const recommendations = JSON.parse(stored);
+        return recommendations[messageIndex] || [];
+      }
+    } catch (e) {
+      console.error('[STORAGE] Failed to load recommendations:', e);
+    }
+    return [];
+  }
+
+  function clearRecommendedQuestions() {
+    try {
+      const storageKey = `recommended_questions_${sessionId}`;
+      localStorage.removeItem(storageKey);
+    } catch (e) {
+      console.error('[STORAGE] Failed to clear recommendations:', e);
+    }
+  }
+
+  function buildRecommendedQuestionsHTML(questions: string[]): string {
+    if (!questions || questions.length === 0) {
+      return '';
+    }
+    
+    const questionsHTML = questions
+      .map((q: string) => `
+        <button class="recommended-question-btn" onclick="window.askRecommendedQuestion(this)" data-question="${q.replace(/"/g, '&quot;')}">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 10 L12 10 M10 7 L13 10 L10 13" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>${q}</span>
+        </button>
+      `)
+      .join('');
+    
+    return `
+      <div class="recommended-questions">
+        <div class="recommended-questions-label">Related</div>
+        <div class="recommended-questions-list">
+          ${questionsHTML}
+        </div>
+      </div>
+    `;
   }
 
   // Helper function to remove edit button from previous user messages
@@ -371,6 +435,10 @@ function initializeChatApp() {
     const question = input.value.trim();
     if (!question) return;
 
+    // Remove all previous recommended questions when user types a new query
+    const allRecommendations = messagesDiv!.querySelectorAll('.recommended-questions');
+    allRecommendations.forEach(rec => rec.remove());
+
     addMessage(question, "user");
     input.value = "";
     
@@ -470,10 +538,20 @@ function initializeChatApp() {
               } else if (data.type === 'done') {
                 fullResponse = data.full_response || fullResponse;
                 const traceId = data.trace_id;
+                const recommendedQuestions = data.recommended_questions || [];
                 
                 if (!fullResponse || fullResponse.trim() === '') {
                   fullResponse = "I apologize, but I wasn't able to generate a response. Please try again.";
                 }
+                
+                // Save recommended questions to localStorage for persistence
+                if (recommendedQuestions && recommendedQuestions.length > 0) {
+                  const messageIndex = messagesDiv!.children.length - 1; // Current bot message index
+                  saveRecommendedQuestions(messageIndex, recommendedQuestions);
+                }
+                
+                // Build recommended questions HTML
+                const recommendedQuestionsHTML = buildRecommendedQuestionsHTML(recommendedQuestions);
                 
                 botDiv.innerHTML = `
                   <div class="message-content">${renderMarkdown(fullResponse)}</div>
@@ -489,6 +567,7 @@ function initializeChatApp() {
                     </button>
                     <span class="feedback-text"></span>
                   </div>
+                  ${recommendedQuestionsHTML}
                 `;
                 
                 if (traceId) {
@@ -529,6 +608,21 @@ function initializeChatApp() {
     }).catch(err => {
       console.error('Failed to copy text: ', err);
     });
+  }
+
+  function askRecommendedQuestion(button: HTMLElement) {
+    const question = button.getAttribute('data-question');
+    if (question) {
+      // Remove ALL previous recommended questions from the DOM
+      const allRecommendations = messagesDiv!.querySelectorAll('.recommended-questions');
+      allRecommendations.forEach(rec => rec.remove());
+      
+      // Add user message to chat FIRST (so it displays immediately)
+      addMessage(question, "user");
+      
+      // Then send the question to get bot response
+      sendMessageText(question);
+    }
   }
 
   async function submitFeedback(button: HTMLElement, rating: string) {
@@ -657,10 +751,35 @@ function initializeChatApp() {
         if (history.length > 0) {
           messagesDiv!.innerHTML = '';
           
-          for (const message of history) {
+          for (let i = 0; i < history.length; i++) {
+            const message = history[i];
             const sender = message.role === 'user' ? 'user' : 'bot';
+            
             if (sender === 'bot') {
-              addMessageHTML(renderMarkdown(message.content), sender, null);
+              // For bot messages, check if we have saved recommendations
+              const savedRecommendations = loadRecommendedQuestions(i);
+              const recommendedQuestionsHTML = buildRecommendedQuestionsHTML(savedRecommendations);
+              
+              // Create bot message with recommendations
+              const div = document.createElement("div");
+              div.className = "message bot";
+              div.innerHTML = `
+                <div class="message-content">${renderMarkdown(message.content)}</div>
+                <div class="feedback-buttons">
+                  <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+                    <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+                  </button>
+                  <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+                    <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+                  </button>
+                  <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+                    <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+                  </button>
+                  <span class="feedback-text"></span>
+                </div>
+                ${recommendedQuestionsHTML}
+              `;
+              messagesDiv!.appendChild(div);
             } else {
               addMessage(message.content, sender);
             }
@@ -688,6 +807,9 @@ function initializeChatApp() {
         console.error('Failed to clear chat history:', error);
       }
     }
+    
+    // Clear old recommended questions
+    clearRecommendedQuestions();
     
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const randomId = Math.random().toString(36).substr(2, 9);

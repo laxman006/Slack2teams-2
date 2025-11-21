@@ -1252,7 +1252,20 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 except Exception as e:
                     print(f"Warning: Langfuse logging failed: {e}")
                 
-                yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
+                # Generate recommended questions (no docs available for corrected responses)
+                recommended_questions = []
+                try:
+                    from app.llm import generate_recommended_questions_from_docs
+                    # For corrected responses, pass empty docs list
+                    recommended_questions = generate_recommended_questions_from_docs(
+                        user_question=question,
+                        retrieved_docs=[],
+                        bot_response=full_response
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Failed to generate recommendations: {e}")
+                
+                yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id, 'recommended_questions': recommended_questions})}\n\n"
                 return
             
             # Don't use conversation context - treat each question independently
@@ -1329,8 +1342,20 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 except Exception as e:
                     print(f"Langfuse logging failed: {e}")
                 
-                # Send completion signal with trace_id
-                yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
+                # Generate recommended questions (no docs for conversational queries)
+                recommended_questions = []
+                try:
+                    from app.llm import generate_recommended_questions_from_docs
+                    recommended_questions = generate_recommended_questions_from_docs(
+                        user_question=question,
+                        retrieved_docs=[],
+                        bot_response=full_response
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Failed to generate recommendations: {e}")
+                
+                # Send completion signal with trace_id and recommendations
+                yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id, 'recommended_questions': recommended_questions})}\n\n"
                 return
             
             # ===== START RAG PIPELINE TRACING =====
@@ -1854,8 +1879,22 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             except Exception as e:
                 print(f"[WARNING] Langfuse logging failed: {e}")
             
-            # Send completion signal with trace_id
-            yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id})}\n\n"
+            # Generate recommended questions using RAG-based approach
+            recommended_questions = []
+            try:
+                from app.llm import generate_recommended_questions_from_docs
+                # Use the same documents we retrieved for answering
+                recommended_questions = generate_recommended_questions_from_docs(
+                    user_question=question,
+                    retrieved_docs=final_docs if 'final_docs' in locals() else [],
+                    bot_response=full_response
+                )
+                print(f"[RECOMMENDATIONS] Generated {len(recommended_questions)} follow-up questions")
+            except Exception as e:
+                print(f"[WARNING] Failed to generate recommendations: {e}")
+            
+            # Send completion signal with trace_id and recommendations
+            yield f"data: {json.dumps({'type': 'done', 'full_response': full_response, 'trace_id': trace_id, 'recommended_questions': recommended_questions})}\n\n"
             
         except Exception as e:
             print(f"[ERROR] ERROR in generate_stream: {e}")
