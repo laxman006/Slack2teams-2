@@ -23,6 +23,8 @@ export default function ChatPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasMessages, setHasMessages] = useState<boolean>(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Verify token with Microsoft Graph API
   const verifyToken = useCallback(async (accessToken: string): Promise<boolean> => {
@@ -111,6 +113,29 @@ export default function ChatPage() {
     }
   }, [isAuthenticated]);
 
+  // Update hasMessages when messages div changes
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const messagesDiv = document.getElementById('messages');
+    if (!messagesDiv) return;
+
+    // Check if there are any messages
+    const checkMessages = () => {
+      const messageCount = messagesDiv.children.length;
+      setHasMessages(messageCount > 0);
+    };
+
+    // Initial check
+    checkMessages();
+
+    // Create observer to watch for message changes
+    const observer = new MutationObserver(checkMessages);
+    observer.observe(messagesDiv, { childList: true });
+
+    return () => observer.disconnect();
+  }, [isAuthenticated]);
+
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -189,19 +214,31 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <div className="main-content">
+      {/* Empty State Title - Shows only when no messages */}
+      {!hasMessages && (
+        <div className="empty-state-container">
+          <div className="empty-state-content">
+            <h1 className="ai-title">CloudFuze AI</h1>
+            <p className="ai-subtitle">Your intelligent assistant for cloud migration and data management</p>
+          </div>
+        </div>
+      )}
+
+      {/* Messages Container */}
+      <div className={hasMessages ? "main-content" : "main-content hidden"}>
         <div id="messages"></div>
       </div>
 
-      <button id="scroll-to-bottom-btn" title="Scroll to bottom">
+      <button id="scroll-to-bottom-btn" title="Scroll to bottom" style={{ display: hasMessages ? 'flex' : 'none' }}>
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path d="M9.33468 3.33333C9.33468 2.96617 9.6326 2.66847 9.99972 2.66829C10.367 2.66829 10.6648 2.96606 10.6648 3.33333V15.0609L15.363 10.3626L15.4675 10.2777C15.7255 10.1074 16.0762 10.1357 16.3034 10.3626C16.5631 10.6223 16.5631 11.0443 16.3034 11.304L10.4704 17.137C10.2108 17.3967 9.7897 17.3966 9.52999 17.137L3.69601 11.304L3.61105 11.1995C3.44054 10.9414 3.46874 10.5899 3.69601 10.3626C3.92328 10.1354 4.27479 10.1072 4.53292 10.2777L4.63741 10.3626L9.33468 15.0599V3.33333Z"></path>
         </svg>
       </button>
 
-        <div id="input-container">
-          <div className="input-wrapper">
-            <input type="text" id="user-input" placeholder="Ask me anything about CloudFuze..." />
+      {/* Input Container - Centered when empty, bottom when has messages */}
+      <div id="input-container" className={hasMessages ? "input-container-bottom" : "input-container-centered"}>
+        <div className="input-wrapper">
+          <input type="text" id="user-input" placeholder="Ask me anything about CloudFuze..." />
           <button id="send-btn">
             <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
               <path fill="none" d="M0 0h24v24H0z"></path>
@@ -209,7 +246,7 @@ export default function ChatPage() {
             </svg>
           </button>
         </div>
-    </div>
+      </div>
     </>
   );
 }
