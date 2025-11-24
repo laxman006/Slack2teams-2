@@ -23,7 +23,7 @@ export default function ChatPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hasMessages, setHasMessages] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Verify token with Microsoft Graph API
@@ -101,39 +101,16 @@ export default function ChatPage() {
   // Initialize chat app ONLY after authentication is confirmed
   useEffect(() => {
     if (isAuthenticated) {
-      // Wait for marked.js to load
-      const checkMarked = setInterval(() => {
-        if (typeof window.marked !== 'undefined') {
-          clearInterval(checkMarked);
-          initializeChatApp();
-        }
-      }, 100);
+    // Wait for marked.js to load
+    const checkMarked = setInterval(() => {
+      if (typeof window.marked !== 'undefined') {
+        clearInterval(checkMarked);
+        initializeChatApp();
+      }
+    }, 100);
 
-      return () => clearInterval(checkMarked);
+    return () => clearInterval(checkMarked);
     }
-  }, [isAuthenticated]);
-
-  // Update hasMessages when messages div changes
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const messagesDiv = document.getElementById('messages');
-    if (!messagesDiv) return;
-
-    // Check if there are any messages
-    const checkMessages = () => {
-      const messageCount = messagesDiv.children.length;
-      setHasMessages(messageCount > 0);
-    };
-
-    // Initial check
-    checkMessages();
-
-    // Create observer to watch for message changes
-    const observer = new MutationObserver(checkMessages);
-    observer.observe(messagesDiv, { childList: true });
-
-    return () => observer.disconnect();
   }, [isAuthenticated]);
 
   // Show loading state while checking authentication
@@ -178,88 +155,193 @@ export default function ChatPage() {
     return null;
   }
 
-  // Only render chat interface if user is authenticated
+  // Only render chat interface if user is authenticated  
 
   return (
-    <>
-      <header>
-        <Image src="/images/CloudFuze Horizontal Logo.svg" alt="Logo" width={150} height={40} priority />
-        <div className="header-controls">
-          <button className="new-chat-btn" id="newChatBtn">
-            <span>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="icon" aria-hidden="true">
-                <path d="M2.6687 11.333V8.66699C2.6687 7.74455 2.66841 7.01205 2.71655 6.42285C2.76533 5.82612 2.86699 5.31731 3.10425 4.85156L3.25854 4.57617C3.64272 3.94975 4.19392 3.43995 4.85229 3.10449L5.02905 3.02149C5.44666 2.84233 5.90133 2.75849 6.42358 2.71582C7.01272 2.66769 7.74445 2.66797 8.66675 2.66797H9.16675C9.53393 2.66797 9.83165 2.96586 9.83179 3.33301C9.83179 3.70028 9.53402 3.99805 9.16675 3.99805H8.66675C7.7226 3.99805 7.05438 3.99834 6.53198 4.04102C6.14611 4.07254 5.87277 4.12568 5.65601 4.20313L5.45581 4.28906C5.01645 4.51293 4.64872 4.85345 4.39233 5.27149L4.28979 5.45508C4.16388 5.7022 4.08381 6.01663 4.04175 6.53125C3.99906 7.05373 3.99878 7.7226 3.99878 8.66699V11.333C3.99878 12.2774 3.99906 12.9463 4.04175 13.4688C4.08381 13.9833 4.16389 14.2978 4.28979 14.5449L4.39233 14.7285C4.64871 15.1465 5.01648 15.4871 5.45581 15.7109L5.65601 15.7969C5.87276 15.8743 6.14614 15.9265 6.53198 15.958C7.05439 16.0007 7.72256 16.002 8.66675 16.002H11.3337C12.2779 16.002 12.9461 16.0007 13.4685 15.958C13.9829 15.916 14.2976 15.8367 14.5447 15.7109L14.7292 15.6074C15.147 15.3511 15.4879 14.9841 15.7117 14.5449L15.7976 14.3447C15.8751 14.128 15.9272 13.8546 15.9587 13.4688C16.0014 12.9463 16.0017 12.2774 16.0017 11.333V10.833C16.0018 10.466 16.2997 10.1681 16.6667 10.168C17.0339 10.168 17.3316 10.4659 17.3318 10.833V11.333C17.3318 12.2555 17.3331 12.9879 17.2849 13.5771C17.2422 14.0993 17.1584 14.5541 16.9792 14.9717L16.8962 15.1484C16.5609 15.8066 16.0507 16.3571 15.4246 16.7412L15.1492 16.8955C14.6833 17.1329 14.1739 17.2354 13.5769 17.2842C12.9878 17.3323 12.256 17.332 11.3337 17.332H8.66675C7.74446 17.332 7.01271 17.3323 6.42358 17.2842C5.90135 17.2415 5.44665 17.1577 5.02905 16.9785L4.85229 16.8955C4.19396 16.5601 3.64271 16.0502 3.25854 15.4238L3.10425 15.1484C2.86697 14.6827 2.76534 14.1739 2.71655 13.5771C2.66841 12.9879 2.6687 12.2555 2.6687 11.333ZM13.4646 3.11328C14.4201 2.334 15.8288 2.38969 16.7195 3.28027L16.8865 3.46485C17.6141 4.35685 17.6143 5.64423 16.8865 6.53613L16.7195 6.7207L11.6726 11.7686C11.1373 12.3039 10.4624 12.6746 9.72827 12.8408L9.41089 12.8994L7.59351 13.1582C7.38637 13.1877 7.17701 13.1187 7.02905 12.9707C6.88112 12.8227 6.81199 12.6134 6.84155 12.4063L7.10132 10.5898L7.15991 10.2715C7.3262 9.53749 7.69692 8.86241 8.23218 8.32715L13.2791 3.28027L13.4646 3.11328ZM15.7791 4.2207C15.3753 3.81702 14.7366 3.79124 14.3035 4.14453L14.2195 4.2207L9.17261 9.26856C8.81541 9.62578 8.56774 10.0756 8.45679 10.5654L8.41772 10.7773L8.28296 11.7158L9.22241 11.582L9.43433 11.543C9.92426 11.432 10.3749 11.1844 10.7322 10.8271L15.7791 5.78027L15.8552 5.69629C16.185 5.29194 16.1852 4.708 15.8552 4.30371L15.7791 4.2207Z"></path>
+    <div className="chatgpt-container">
+      {/* ChatGPT-Style Sidebar */}
+      <aside className={`chatgpt-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-top-row">
+            <button 
+              className="sidebar-icon" 
+              onClick={() => window.location.reload()}
+              title="Reload page"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
+              <Image 
+                src="/images/CloudFuze-icon-64x64.png" 
+                alt="CloudFuze" 
+                width={42} 
+                height={42} 
+                priority 
+              />
+            </button>
+            <button 
+              className="sidebar-toggle-btn-new" 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              title={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
               </svg>
-            </span>
-            <span>New Chat</span>
+            </button>
+          </div>
+          
+          <button className="new-chat-btn-sidebar" id="newChatBtn" title="New chat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span className="btn-text">New chat</span>
           </button>
-          <div className="user-menu" id="userMenu">
-            <div className="user-info">
-              <div className="user-avatar" id="userAvatar">U</div>
+        </div>
+        
+        <div id="sidebar-history" className="sidebar-history">
+          {/* Chat history will be populated here */}
+        </div>
+        
+        <div className="sidebar-footer">
+          <div className="sidebar-user" id="userMenu">
+            <div className="user-avatar" id="userAvatar">U</div>
+            <div className="user-details">
               <span className="user-name" id="userName">User</span>
-              <div className="dropdown-arrow"></div>
+              <span className="user-email-small" id="userEmailSidebar"></span>
             </div>
-            <div className="user-dropdown" id="userDropdown">
+            <div className="user-dropdown-sidebar" id="userDropdown">
               <div className="dropdown-item" id="userEmail"></div>
               <div className="dropdown-item logout" id="logoutBtn">
-                <span>
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg" className="icon" aria-hidden="true">
-                    <path d="M3.50171 12.6663V7.33333C3.50171 6.64424 3.50106 6.08728 3.53784 5.63704C3.57525 5.17925 3.65463 4.77342 3.84644 4.39681L3.96851 4.17806C4.2726 3.68235 4.70919 3.2785 5.23023 3.01302L5.3728 2.94661C5.7091 2.80238 6.06981 2.73717 6.47046 2.70443C6.9207 2.66764 7.47766 2.66829 8.16675 2.66829H9.16675L9.30054 2.68197C9.60367 2.7439 9.83179 3.0119 9.83179 3.33333C9.83179 3.65476 9.60367 3.92277 9.30054 3.9847L9.16675 3.99837H8.16675C7.45571 3.99837 6.96238 3.99926 6.57886 4.0306C6.297 4.05363 6.10737 4.09049 5.96362 4.14193L5.83374 4.19857C5.53148 4.35259 5.27861 4.58671 5.1023 4.87435L5.03198 5.00032C4.95147 5.15833 4.89472 5.36974 4.86401 5.74544C4.83268 6.12896 4.83179 6.6223 4.83179 7.33333V12.6663C4.83179 13.3772 4.8327 13.8707 4.86401 14.2542C4.8947 14.6298 4.95153 14.8414 5.03198 14.9993L5.1023 15.1263C5.27861 15.4137 5.53163 15.6482 5.83374 15.8021L5.96362 15.8577C6.1074 15.9092 6.29691 15.947 6.57886 15.9701C6.96238 16.0014 7.45571 16.0013 8.16675 16.0013H9.16675L9.30054 16.015C9.6036 16.0769 9.83163 16.345 9.83179 16.6663C9.83179 16.9877 9.60363 17.2558 9.30054 17.3177L9.16675 17.3314H8.16675C7.47766 17.3314 6.9207 17.332 6.47046 17.2952C6.06978 17.2625 5.70912 17.1973 5.3728 17.0531L5.23023 16.9867C4.70911 16.7211 4.27261 16.3174 3.96851 15.8216L3.84644 15.6038C3.65447 15.2271 3.57526 14.8206 3.53784 14.3626C3.50107 13.9124 3.50171 13.3553 3.50171 12.6663ZM13.8035 13.804C13.5438 14.0634 13.1226 14.0635 12.863 13.804C12.6033 13.5443 12.6033 13.1223 12.863 12.8626L13.8035 13.804ZM12.863 6.19661C13.0903 5.96939 13.4409 5.94126 13.699 6.11165L13.8035 6.19661L17.1375 9.52962C17.3969 9.78923 17.3968 10.2104 17.1375 10.4701L13.8035 13.804L13.3337 13.3333L12.863 12.8626L15.0603 10.6654H9.16675C8.79959 10.6654 8.50189 10.3674 8.50171 10.0003C8.50171 9.63306 8.79948 9.33529 9.16675 9.33529H15.0613L12.863 7.13704L12.7781 7.03255C12.6077 6.77449 12.6359 6.42386 12.863 6.19661Z"></path>
-                  </svg>
-                </span>
-                <span>Logout</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M3 3h8v2H3v12h8v2H3a2 2 0 01-2-2V5a2 2 0 012-2zm10.293 9.293L16.586 15H7v2h9.586l-3.293 3.293 1.414 1.414 5-5a1 1 0 000-1.414l-5-5-1.414 1.414L16.586 13H7v2h9.586l-3.293-3.293z"/>
+                </svg>
+                <span>Log out</span>
               </div>
             </div>
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Empty State Title - Shows only when no messages */}
-      {!hasMessages && (
-        <div className="empty-state-container">
-          <div className="empty-state-content">
-            <h1 className="ai-title">CloudFuze AI</h1>
-            <p className="ai-subtitle">Your intelligent assistant for cloud migration and data management</p>
-          </div>
+      {/* ChatGPT-Style Main Content */}
+      <main className="chatgpt-main">
+        {/* Top Logo */}
+        <div className="main-header">
+          <Image 
+            src="/images/CloudFuze.png" 
+            alt="CloudFuze" 
+            width={160} 
+            height={42} 
+            priority 
+          />
         </div>
-      )}
 
-      {/* Messages Container */}
-      <div className={hasMessages ? "main-content" : "main-content hidden"}>
-        <div id="messages"></div>
+        {/* Messages Container */}
+        <div className="messages-container">
+          {/* Empty State - Shows when no messages */}
+          <div id="empty-state" className="empty-state">
+            <div className="empty-state-content">
+              {/* Welcome Message */}
+              <div className="welcome-section">
+                <h1 className="welcome-title">How can I help you today?</h1>
+              </div>
+
+              {/* Input Section for Empty State */}
+              <div className="empty-state-input">
+                <div className="input-wrapper-chatgpt">
+                  <textarea
+                    id="user-input-empty"
+                    className="chatgpt-textarea"
+                    placeholder="Ask me anything about CloudFuze..."
+                    rows={1}
+                  />
+                  <button id="send-btn-empty" className="chatgpt-send-btn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 1a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L7 12.586V2a1 1 0 011-1z" transform="rotate(180 8 8)"/>
+                    </svg>
+                  </button>
+                </div>
+                {/* Suggested Questions */}
+                <div className="suggested-questions-container">
+                  <button className="suggested-question-btn" data-question="How do I migrate data from Slack to Microsoft Teams?">
+                    How do I migrate data from Slack to Microsoft Teams?
+                  </button>
+                  <button className="suggested-question-btn" data-question="What are the best practices for cloud migration?">
+                    What are the best practices for cloud migration?
+                  </button>
+                  <button className="suggested-question-btn" data-question="How can I track migration progress?">
+                    How can I track migration progress?
+                  </button>
+                  <button className="suggested-question-btn" data-question="What are the key features of CloudFuze?">
+                    What are the key features of CloudFuze?
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Messages List */}
+          <div id="messages" className="messages-list"></div>
       </div>
 
-      <button id="scroll-to-bottom-btn" title="Scroll to bottom" style={{ display: hasMessages ? 'flex' : 'none' }}>
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9.33468 3.33333C9.33468 2.96617 9.6326 2.66847 9.99972 2.66829C10.367 2.66829 10.6648 2.96606 10.6648 3.33333V15.0609L15.363 10.3626L15.4675 10.2777C15.7255 10.1074 16.0762 10.1357 16.3034 10.3626C16.5631 10.6223 16.5631 11.0443 16.3034 11.304L10.4704 17.137C10.2108 17.3967 9.7897 17.3966 9.52999 17.137L3.69601 11.304L3.61105 11.1995C3.44054 10.9414 3.46874 10.5899 3.69601 10.3626C3.92328 10.1354 4.27479 10.1072 4.53292 10.2777L4.63741 10.3626L9.33468 15.0599V3.33333Z"></path>
+        {/* Scroll to Bottom Button */}
+        <button id="scroll-to-bottom-btn" className="scroll-to-bottom" title="Scroll to bottom">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 3a1 1 0 011 1v10.586l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z"/>
         </svg>
       </button>
 
-      {/* Input Container - Centered when empty, bottom when has messages */}
-      <div id="input-container" className={hasMessages ? "input-container-bottom" : "input-container-centered"}>
-        <div className="input-wrapper">
-          <input type="text" id="user-input" placeholder="Ask me anything about CloudFuze..." />
-          <button id="send-btn">
-            <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg">
-              <path fill="none" d="M0 0h24v24H0z"></path>
-              <path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"></path>
-            </svg>
+        {/* ChatGPT-Style Input Section - Shows when there are messages */}
+        <div className="chatgpt-input-section">
+          <div className="input-container-inner">
+            <div className="input-wrapper-chatgpt">
+              <textarea
+                ref={textareaRef}
+                id="user-input"
+                className="chatgpt-textarea"
+                placeholder="Ask me anything about CloudFuze..."
+                rows={1}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = '24px';
+                  target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
+                    if (sendBtn) sendBtn.click();
+                  }
+                }}
+              />
+              <button id="send-btn" className="chatgpt-send-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M8 1a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L7 12.586V2a1 1 0 011-1z" transform="rotate(180 8 8)"/>
+                </svg>
           </button>
+            </div>
+            {/* Suggested Questions */}
+            <div className="suggested-questions-container">
+              <button className="suggested-question-btn" data-question="How do I migrate data from Slack to Microsoft Teams?">
+                How do I migrate data from Slack to Microsoft Teams?
+              </button>
+              <button className="suggested-question-btn" data-question="What are the best practices for cloud migration?">
+                What are the best practices for cloud migration?
+              </button>
+              <button className="suggested-question-btn" data-question="How can I track migration progress?">
+                How can I track migration progress?
+              </button>
+              <button className="suggested-question-btn" data-question="What are the key features of CloudFuze?">
+                What are the key features of CloudFuze?
+              </button>
+            </div>
+            <p className="input-disclaimer">CloudFuze AI can make mistakes. Check important info.</p>
+          </div>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
 
 function initializeChatApp() {
-  // Make functions globally available
-  window.copyMessage = copyMessage;
-  window.submitFeedback = submitFeedback;
-  window.editMessage = editMessage;
-  window.cancelEdit = cancelEdit;
-  window.saveEdit = saveEdit;
-  window.askRecommendedQuestion = askRecommendedQuestion;
-
   // API Base URL configuration
   function getApiBase() {
     const hostname = window.location.hostname;
@@ -279,19 +361,274 @@ function initializeChatApp() {
   }
 
   const messagesDiv = document.getElementById("messages");
-  const input = document.getElementById("user-input") as HTMLInputElement;
+  const input = document.getElementById("user-input") as HTMLTextAreaElement;
   const sendBtn = document.getElementById("send-btn");
+  const emptyState = document.getElementById("empty-state");
+  const inputEmptyState = document.getElementById("user-input-empty") as HTMLTextAreaElement;
+  const sendBtnEmptyState = document.getElementById("send-btn-empty");
+  const inputSection = document.querySelector(".chatgpt-input-section") as HTMLElement;
 
+  // Hide empty state when messages exist
+  function updateEmptyState() {
+    if (messagesDiv && emptyState && inputSection) {
+      const hasMessages = messagesDiv.children.length > 0;
+      emptyState.style.display = hasMessages ? 'none' : 'flex';
+      messagesDiv.style.display = hasMessages ? 'block' : 'none';
+      
+      // Show/hide suggested questions based on message state
+      const emptyStateQuestions = emptyState.querySelector('.suggested-questions-container') as HTMLElement;
+      const inputSectionQuestions = inputSection.querySelector('.suggested-questions-container') as HTMLElement;
+      
+      if (emptyStateQuestions) {
+        emptyStateQuestions.style.display = hasMessages ? 'none' : 'grid';
+      }
+      // Always hide suggested questions in bottom input section - only show in empty state
+      if (inputSectionQuestions) {
+        inputSectionQuestions.style.display = 'none';
+      }
+      
+      // Show bottom input only when there are messages
+      if (hasMessages) {
+        inputSection.classList.add('show');
+      } else {
+        inputSection.classList.remove('show');
+      }
+    }
+  }
   
-  // Generate a session ID for conversation memory and Langfuse tracking
+  // Session management
   let sessionId = localStorage.getItem('chatbot_session_id');
-  if (!sessionId) {
-    // Create readable session format: cf.conversation.YYYYMMDD.randomId
+  let currentSessionTitle = '';
+  
+  interface ChatSession {
+    id: string;
+    title: string;
+    timestamp: number;
+    messages: Array<{role: string, content: string}>;
+  }
+  
+  function createNewSession(): string {
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     const randomId = Math.random().toString(36).substr(2, 9);
-    sessionId = `cf.conversation.${date}.${randomId}`;
+    return `cf.conversation.${date}.${randomId}`;
+  }
+  
+  // Initialize or create session
+  if (!sessionId) {
+    sessionId = createNewSession();
     localStorage.setItem('chatbot_session_id', sessionId);
     console.log('[SESSION] Created new session:', sessionId);
+  }
+  
+  // Load all sessions from localStorage
+  function getAllSessions(): ChatSession[] {
+    try {
+      const sessionsStr = localStorage.getItem('chat_sessions');
+      return sessionsStr ? JSON.parse(sessionsStr) : [];
+    } catch (e) {
+      console.error('[SESSIONS] Failed to load sessions:', e);
+      return [];
+    }
+  }
+  
+  // Save all sessions to localStorage
+  function saveAllSessions(sessions: ChatSession[]) {
+    try {
+      localStorage.setItem('chat_sessions', JSON.stringify(sessions));
+    } catch (e) {
+      console.error('[SESSIONS] Failed to save sessions:', e);
+    }
+  }
+  
+  // Save current session
+  function saveCurrentSession(title?: string) {
+    const sessions = getAllSessions();
+    const messages = Array.from(messagesDiv!.children).map(child => {
+      const isUser = child.classList.contains('user-message-wrapper') || 
+                     child.querySelector('.message.user');
+      const content = isUser 
+        ? (child.querySelector('.message.user') as HTMLElement)?.textContent || ''
+        : (child.querySelector('.message-content') as HTMLElement)?.innerHTML || (child as HTMLElement).innerHTML || '';
+      
+      return {
+        role: isUser ? 'user' : 'assistant',
+        content: content
+      };
+    });
+    
+    if (messages.length === 0) return;
+    
+    // Generate title from first user message if not provided
+    const sessionTitle = title || currentSessionTitle || messages[0]?.content.substring(0, 50) || 'New Chat';
+    currentSessionTitle = sessionTitle;
+    
+    const existingIndex = sessions.findIndex(s => s.id === sessionId);
+    const sessionData: ChatSession = {
+      id: sessionId!,
+      title: sessionTitle,
+      timestamp: Date.now(),
+      messages: messages
+    };
+    
+    if (existingIndex >= 0) {
+      sessions[existingIndex] = sessionData;
+    } else {
+      sessions.unshift(sessionData);
+    }
+    
+    // Keep only last 50 sessions
+    if (sessions.length > 50) {
+      sessions.splice(50);
+    }
+    
+    saveAllSessions(sessions);
+    renderSessionHistory();
+  }
+  
+  // Load a specific session
+  function loadSession(sessionData: ChatSession) {
+    sessionId = sessionData.id;
+    currentSessionTitle = sessionData.title;
+    localStorage.setItem('chatbot_session_id', sessionId);
+    
+    // Clear current messages
+    messagesDiv!.innerHTML = '';
+    
+    // Load session messages
+    sessionData.messages.forEach(msg => {
+      if (msg.role === 'user') {
+        addMessage(msg.content, 'user');
+      } else {
+        const div = document.createElement("div");
+        div.className = "message bot";
+        div.innerHTML = `
+          <div class="message-content">${msg.content}</div>
+          <div class="feedback-buttons">
+            <button class="copy-button" onclick="window.copyMessage(this)" title="Copy message">
+              <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-up" onclick="window.submitFeedback(this, 'thumbs_up')" title="Good response">
+              <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
+            </button>
+            <button class="feedback-btn thumbs-down" onclick="window.submitFeedback(this, 'thumbs_down')" title="Bad response">
+              <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
+            </button>
+            <span class="feedback-text"></span>
+          </div>
+        `;
+        messagesDiv!.appendChild(div);
+      }
+    });
+    
+    updateEmptyState();
+    scrollToBottom();
+  }
+  
+  // Render session history in sidebar
+  function renderSessionHistory() {
+    const sidebarHistory = document.getElementById('sidebar-history');
+    if (!sidebarHistory) return;
+    
+    const sessions = getAllSessions();
+    
+    if (sessions.length === 0) {
+      sidebarHistory.innerHTML = '<div class="no-history">No chat history yet</div>';
+      return;
+    }
+    
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const sevenDays = 7 * oneDay;
+    const thirtyDays = 30 * oneDay;
+    
+    const today: ChatSession[] = [];
+    const yesterday: ChatSession[] = [];
+    const lastWeek: ChatSession[] = [];
+    const lastMonth: ChatSession[] = [];
+    const older: ChatSession[] = [];
+    
+    sessions.forEach(session => {
+      const age = now - session.timestamp;
+      if (age < oneDay) today.push(session);
+      else if (age < 2 * oneDay) yesterday.push(session);
+      else if (age < sevenDays) lastWeek.push(session);
+      else if (age < thirtyDays) lastMonth.push(session);
+      else older.push(session);
+    });
+    
+    let html = '';
+    
+    function renderSection(title: string, sessions: ChatSession[]) {
+      if (sessions.length === 0) return '';
+      let section = `<div class="history-section-title">${title}</div>`;
+      sessions.forEach(session => {
+        const isActive = session.id === sessionId;
+        section += `
+          <div class="history-item ${isActive ? 'active' : ''}" data-session-id="${session.id}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="history-item-title">${session.title}</span>
+            <button class="history-item-delete" data-session-id="${session.id}" title="Delete chat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+      });
+      return section;
+    }
+    
+    html += renderSection('Today', today);
+    html += renderSection('Yesterday', yesterday);
+    html += renderSection('Previous 7 Days', lastWeek);
+    html += renderSection('Previous 30 Days', lastMonth);
+    html += renderSection('Older', older);
+    
+    sidebarHistory.innerHTML = html;
+    
+    // Add click handlers
+    sidebarHistory.querySelectorAll('.history-item').forEach(item => {
+      const sessionEl = item as HTMLElement;
+      const sid = sessionEl.dataset.sessionId;
+      
+      sessionEl.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.history-item-delete')) return;
+        
+        const session = sessions.find(s => s.id === sid);
+        if (session) {
+          loadSession(session);
+        }
+      });
+    });
+    
+    // Add delete handlers
+    sidebarHistory.querySelectorAll('.history-item-delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sid = (btn as HTMLElement).dataset.sessionId;
+        deleteSession(sid!);
+      });
+    });
+  }
+  
+  // Delete a session
+  function deleteSession(sid: string) {
+    if (!confirm('Delete this chat?')) return;
+    
+    let sessions = getAllSessions();
+    sessions = sessions.filter(s => s.id !== sid);
+    saveAllSessions(sessions);
+    
+    // If deleted current session, create new one
+    if (sid === sessionId) {
+      handleNewChat();
+    } else {
+      renderSessionHistory();
+    }
   }
 
   // Helper functions for persisting recommended questions
@@ -378,16 +715,23 @@ function initializeChatApp() {
       wrapper.innerHTML = `
         <div class="message user">${content}</div>
         <div class="edit-button-container">
-          <button class="edit-btn" onclick="editMessage(this)" title="Edit message">
-            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          <button class="copy-button-user" onclick="window.copyUserMessage(this)" title="Copy message">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="edit-btn" onclick="window.editMessage(this)" title="Edit message">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
             </svg>
           </button>
         </div>
       `;
       messagesDiv!.appendChild(wrapper);
       console.log(`[UI] Added ${sender} message. Total messages now: ${messagesDiv!.children.length}`);
-      scrollToBottom();
+      updateEmptyState();
+      autoScrollToBottom();
       return wrapper;
     } else {
       // For bot messages, keep simple structure
@@ -396,7 +740,8 @@ function initializeChatApp() {
       div.innerText = content;
       messagesDiv!.appendChild(div);
       console.log(`[UI] Added ${sender} message. Total messages now: ${messagesDiv!.children.length}`);
-      scrollToBottom();
+      updateEmptyState();
+      autoScrollToBottom();
       return div;
     }
   }
@@ -410,13 +755,13 @@ function initializeChatApp() {
       div.innerHTML = `
         <div class="message-content">${content}</div>
         <div class="feedback-buttons">
-          <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+          <button class="copy-button" onclick="window.copyMessage(this)" title="Copy message">
             <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
           </button>
-          <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+          <button class="feedback-btn thumbs-up" onclick="window.submitFeedback(this, 'thumbs_up')" title="Good response">
             <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
           </button>
-          <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+          <button class="feedback-btn thumbs-down" onclick="window.submitFeedback(this, 'thumbs_down')" title="Bad response">
             <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
           </button>
           <span class="feedback-text"></span>
@@ -434,7 +779,8 @@ function initializeChatApp() {
     
     messagesDiv!.appendChild(div);
     console.log(`[UI] Added ${sender} message HTML. Total messages now: ${messagesDiv!.children.length}`);
-    scrollToBottom();
+    updateEmptyState();
+    autoScrollToBottom();
     return div;
   }
 
@@ -459,13 +805,34 @@ function initializeChatApp() {
   // [REST OF THE JAVASCRIPT CODE WILL CONTINUE IN NEXT MESSAGE DUE TO LENGTH]
   // For now, let me create a simplified version that makes it work
 
+  // Check if user is near bottom of messages
+  function isUserNearBottom(): boolean {
+    const messagesContainer = document.querySelector('.messages-container') as HTMLElement;
+    if (!messagesContainer) return true;
+    
+    const threshold = 150;
+    const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < threshold;
+    return isNearBottom;
+  }
+
+  // Scroll to bottom (forced - used when user clicks button)
   function scrollToBottom() {
     requestAnimationFrame(() => {
-      window.scrollTo({
-        top: document.body.scrollHeight,
+      const messagesContainer = document.querySelector('.messages-container') as HTMLElement;
+      if (messagesContainer) {
+        messagesContainer.scrollTo({
+          top: messagesContainer.scrollHeight,
         behavior: 'smooth'
       });
+      }
     });
+  }
+
+  // Auto-scroll only if user is already near bottom (ChatGPT behavior)
+  function autoScrollToBottom() {
+    if (isUserNearBottom()) {
+      scrollToBottom();
+    }
   }
 
   async function sendMessage() {
@@ -478,6 +845,11 @@ function initializeChatApp() {
 
     addMessage(question, "user");
     input.value = "";
+    // Reset textarea height after sending
+    input.style.height = '24px';
+    
+    // Save session after user message
+    saveCurrentSession();
     
     await sendMessageText(question);
   }
@@ -497,7 +869,7 @@ function initializeChatApp() {
       </div>
     `;
 
-    setTimeout(() => scrollToBottom(), 50);
+    setTimeout(() => autoScrollToBottom(), 50);
 
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -569,7 +941,7 @@ function initializeChatApp() {
                   } else {
                     botDiv.innerHTML = `<div class="message-content">${renderMarkdown(fullResponse)}</div>`;
                   }
-                  scrollToBottom();
+                  autoScrollToBottom();
                   lastRenderTime = now;
                 }
               } else if (data.type === 'done') {
@@ -593,13 +965,13 @@ function initializeChatApp() {
                 botDiv.innerHTML = `
                   <div class="message-content">${renderMarkdown(fullResponse)}</div>
                   <div class="feedback-buttons">
-                    <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+                    <button class="copy-button" onclick="window.copyMessage(this)" title="Copy message">
                       <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
                     </button>
-                    <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+                    <button class="feedback-btn thumbs-up" onclick="window.submitFeedback(this, 'thumbs_up')" title="Good response">
                       <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
                     </button>
-                    <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+                    <button class="feedback-btn thumbs-down" onclick="window.submitFeedback(this, 'thumbs_down')" title="Bad response">
                       <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
                     </button>
                     <span class="feedback-text"></span>
@@ -610,6 +982,9 @@ function initializeChatApp() {
                 if (traceId) {
                   botDiv.dataset.traceId = traceId;
                 }
+                
+                // Save session after bot response
+                saveCurrentSession();
                 
                 return;
               } else if (data.type === 'error') {
@@ -726,20 +1101,164 @@ function initializeChatApp() {
     }
   }
 
-  function editMessage(_button: HTMLElement) {
-    // Simplified edit functionality - will be implemented later
-    console.log('Edit message clicked');
+  function copyUserMessage(button: HTMLElement) {
+    const wrapper = button.closest('.user-message-wrapper');
+    if (!wrapper) return;
+    
+    const messageDiv = wrapper.querySelector('.message.user') as HTMLElement;
+    if (!messageDiv) return;
+    
+    const text = messageDiv.textContent || '';
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('User message copied to clipboard');
+      // Optional: Show a brief "Copied!" tooltip
+      const originalTitle = button.title;
+      button.title = 'Copied!';
+      setTimeout(() => {
+        button.title = originalTitle;
+      }, 1000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
   }
 
-  function cancelEdit(_button: HTMLElement) {
-    // Simplified cancel edit - will be implemented later
-    console.log('Cancel edit clicked');
+  function editMessage(button: HTMLElement) {
+    const wrapper = button.closest('.user-message-wrapper');
+    if (!wrapper) return;
+    
+    const messageDiv = wrapper.querySelector('.message.user') as HTMLElement;
+    const editContainer = wrapper.querySelector('.edit-button-container');
+    
+    if (!messageDiv || !editContainer) return;
+    
+    const originalText = messageDiv.textContent || '';
+    
+    // Replace message with textarea
+    messageDiv.innerHTML = `
+      <textarea class="edit-textarea" rows="3">${originalText}</textarea>
+    `;
+    
+    // Replace buttons with save/cancel
+    editContainer.innerHTML = `
+      <button class="save-edit-btn" onclick="window.saveEdit(this)" title="Save changes">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+      <button class="cancel-edit-btn" onclick="window.cancelEdit(this)" title="Cancel">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    `;
+    
+    // Store original text for cancel
+    wrapper.setAttribute('data-original-text', originalText);
+    
+    // Focus the textarea
+    const textarea = messageDiv.querySelector('.edit-textarea') as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
   }
 
-  function saveEdit(_button: HTMLElement) {
-    // Simplified save edit - will be implemented later
-    console.log('Save edit clicked');
+  function cancelEdit(button: HTMLElement) {
+    const wrapper = button.closest('.user-message-wrapper');
+    if (!wrapper) return;
+    
+    const messageDiv = wrapper.querySelector('.message.user') as HTMLElement;
+    const editContainer = wrapper.querySelector('.edit-button-container');
+    const originalText = wrapper.getAttribute('data-original-text') || '';
+    
+    if (!messageDiv || !editContainer) return;
+    
+    // Restore original message
+    messageDiv.textContent = originalText;
+    
+    // Restore original buttons
+    editContainer.innerHTML = `
+      <button class="copy-button-user" onclick="window.copyUserMessage(this)" title="Copy message">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+      <button class="edit-btn" onclick="window.editMessage(this)" title="Edit message">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+      </button>
+    `;
+    
+    wrapper.removeAttribute('data-original-text');
   }
+
+  function saveEdit(button: HTMLElement) {
+    const wrapper = button.closest('.user-message-wrapper');
+    if (!wrapper) return;
+    
+    const messageDiv = wrapper.querySelector('.message.user') as HTMLElement;
+    const editContainer = wrapper.querySelector('.edit-button-container');
+    const textarea = messageDiv?.querySelector('.edit-textarea') as HTMLTextAreaElement;
+    
+    if (!textarea || !messageDiv || !editContainer) return;
+    
+    const newText = textarea.value.trim();
+    
+    if (!newText) {
+      alert('Message cannot be empty');
+      return;
+    }
+    
+    // Find all messages after this one and remove them
+    let nextElement = wrapper.nextElementSibling;
+    while (nextElement) {
+      const toRemove = nextElement;
+      nextElement = nextElement.nextElementSibling;
+      toRemove.remove();
+    }
+    
+    // Update the message
+    messageDiv.textContent = newText;
+    
+    // Restore original buttons
+    editContainer.innerHTML = `
+      <button class="copy-button-user" onclick="window.copyUserMessage(this)" title="Copy message">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+      <button class="edit-btn" onclick="window.editMessage(this)" title="Edit message">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+        </svg>
+      </button>
+    `;
+    
+    wrapper.removeAttribute('data-original-text');
+    
+    // Send the edited message to get a new response
+    sendMessageText(newText);
+  }
+
+  // Expose ALL functions to window for onclick handlers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).copyMessage = copyMessage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).copyUserMessage = copyUserMessage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).submitFeedback = submitFeedback;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).editMessage = editMessage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).cancelEdit = cancelEdit;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).saveEdit = saveEdit;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).askRecommendedQuestion = askRecommendedQuestion;
 
   // Initialize auth - simplified since auth check is done at component level
   function initAuth() {
@@ -748,8 +1267,17 @@ function initializeChatApp() {
     // User is already authenticated at this point (checked in component)
     // Just load user info and chat history
     if (user && user.access_token) {
-      updateUserInfo(user);
-      loadUserChatHistory(user.id, user.access_token);
+    updateUserInfo(user);
+      
+      // Load session history in sidebar
+      renderSessionHistory();
+      
+      // Load current session if it exists in localStorage
+      const sessions = getAllSessions();
+      const currentSession = sessions.find(s => s.id === sessionId);
+      if (currentSession && messagesDiv!.children.length === 0) {
+        loadSession(currentSession);
+      }
     }
   }
 
@@ -765,14 +1293,20 @@ function initializeChatApp() {
     const userName = document.getElementById('userName');
     const userAvatar = document.getElementById('userAvatar');
     const userEmail = document.getElementById('userEmail');
+    const userEmailSidebar = document.getElementById('userEmailSidebar');
     
     if (user) {
       userName!.textContent = user.name || 'User';
       userAvatar!.textContent = (user.name || 'U').charAt(0).toUpperCase();
       userEmail!.textContent = user.email || '';
+      if (userEmailSidebar) {
+        userEmailSidebar.textContent = user.email || '';
+      }
     }
   }
 
+  // Legacy function - keeping for potential future backend integration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function loadUserChatHistory(userId: string, accessToken: string) {
     try {
       const response = await fetch(`${getApiBase()}/chat/history/${userId}`, {
@@ -803,13 +1337,13 @@ function initializeChatApp() {
               div.innerHTML = `
                 <div class="message-content">${renderMarkdown(message.content)}</div>
                 <div class="feedback-buttons">
-                  <button class="copy-button" onclick="copyMessage(this)" title="Copy message">
+                  <button class="copy-button" onclick="window.copyMessage(this)" title="Copy message">
                     <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
                   </button>
-                  <button class="feedback-btn thumbs-up" onclick="submitFeedback(this, 'thumbs_up')" title="Good response">
+                  <button class="feedback-btn thumbs-up" onclick="window.submitFeedback(this, 'thumbs_up')" title="Good response">
                     <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
                   </button>
-                  <button class="feedback-btn thumbs-down" onclick="submitFeedback(this, 'thumbs_down')" title="Bad response">
+                  <button class="feedback-btn thumbs-down" onclick="window.submitFeedback(this, 'thumbs_down')" title="Bad response">
                     <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
                   </button>
                   <span class="feedback-text"></span>
@@ -831,6 +1365,11 @@ function initializeChatApp() {
   }
 
   async function handleNewChat() {
+    // Save current session before creating new one
+    if (messagesDiv!.children.length > 0) {
+      saveCurrentSession();
+    }
+    
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (user && user.id && user.access_token) {
       try {
@@ -848,11 +1387,17 @@ function initializeChatApp() {
     // Clear old recommended questions
     clearRecommendedQuestions();
     
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randomId = Math.random().toString(36).substr(2, 9);
-    sessionId = `cf.conversation.${date}.${randomId}`;
+    // Create new session
+    sessionId = createNewSession();
+    currentSessionTitle = '';
     localStorage.setItem('chatbot_session_id', sessionId);
+    
+    // Clear messages
     messagesDiv!.innerHTML = '';
+    updateEmptyState();
+    
+    // Update sidebar to show new session is active
+    renderSessionHistory();
   }
 
   function handleLogout() {
@@ -865,19 +1410,145 @@ function initializeChatApp() {
     dropdown!.classList.toggle('show');
   }
 
-  // Event listeners
-  sendBtn!.addEventListener("click", sendMessage);
-  input!.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
-  document.getElementById('newChatBtn')!.addEventListener('click', handleNewChat);
-  document.getElementById('userMenu')!.addEventListener('click', toggleDropdown);
-  document.getElementById('logoutBtn')!.addEventListener('click', handleLogout);
+  // Event listeners for regular input (bottom)
+  if (sendBtn) {
+    sendBtn.addEventListener("click", sendMessage);
+  }
+  
+  if (input) {
+    // Note: Enter key is already handled by React's onKeyDown in the JSX
+    // This is just a fallback
+    input.addEventListener("keydown", (e) => { 
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  // Event listeners for empty state input (center)
+  if (sendBtnEmptyState) {
+    sendBtnEmptyState.addEventListener("click", () => {
+      if (inputEmptyState) {
+        const question = inputEmptyState.value.trim();
+        if (question) {
+          addMessage(question, "user");
+          inputEmptyState.value = "";
+          inputEmptyState.style.height = '24px';
+          sendMessageText(question);
+        }
+      }
+    });
+  }
+  
+  if (inputEmptyState) {
+    // Auto-expand textarea
+    inputEmptyState.addEventListener("input", (e) => {
+      const target = e.target as HTMLTextAreaElement;
+      target.style.height = '24px';
+      target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+    });
+    
+    // Handle Enter key
+    inputEmptyState.addEventListener("keydown", (e) => { 
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (sendBtnEmptyState) {
+          sendBtnEmptyState.click();
+        }
+      }
+    });
+  }
+  
+  // Event listeners for suggested question buttons
+  const suggestedQuestionBtns = document.querySelectorAll('.suggested-question-btn');
+  suggestedQuestionBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const button = e.target as HTMLButtonElement;
+      const question = button.getAttribute('data-question');
+      if (question) {
+        // Remove all previous recommended questions when user clicks a suggested question
+        const allRecommendations = messagesDiv!.querySelectorAll('.recommended-questions');
+        allRecommendations.forEach(rec => rec.remove());
+        
+        // Add user message to chat
+        addMessage(question, "user");
+        
+        // Clear input fields
+        if (input) {
+          input.value = "";
+          input.style.height = '24px';
+        }
+        if (inputEmptyState) {
+          inputEmptyState.value = "";
+          inputEmptyState.style.height = '24px';
+        }
+        
+        // Send the question
+        sendMessageText(question);
+      }
+    });
+  });
+  
+  const newChatBtn = document.getElementById('newChatBtn');
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', handleNewChat);
+  }
+  
+  const userMenu = document.getElementById('userMenu');
+  if (userMenu) {
+    userMenu.addEventListener('click', toggleDropdown);
+  }
+  
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', handleLogout);
+  }
+  
+  // Scroll to bottom button functionality
+  const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+  const messagesContainer = document.querySelector('.messages-container') as HTMLElement;
+  
+  // Helper function to check if user is near bottom
+  function checkScrollPosition() {
+    if (!scrollToBottomBtn || !messagesContainer) return;
+    
+    const threshold = 150; // Show button when more than 150px from bottom
+    const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < threshold;
+    
+    if (isNearBottom) {
+      scrollToBottomBtn.classList.remove('show');
+    } else {
+      scrollToBottomBtn.classList.add('show');
+    }
+  }
+  
+  if (scrollToBottomBtn && messagesContainer) {
+    scrollToBottomBtn.addEventListener('click', () => {
+      scrollToBottom();
+      // Hide button immediately after clicking
+      scrollToBottomBtn.classList.remove('show');
+    });
+    
+    // Show/hide scroll to bottom button based on scroll position
+    messagesContainer.addEventListener('scroll', checkScrollPosition);
+    
+    // Also check when content changes (new messages added)
+    const observer = new MutationObserver(checkScrollPosition);
+    observer.observe(messagesDiv!, { childList: true, subtree: true });
+    
+    // Initially hide the button
+    scrollToBottomBtn.classList.remove('show');
+  }
   
   document.addEventListener('click', (event) => {
     const userMenu = document.getElementById('userMenu');
     const dropdown = document.getElementById('userDropdown');
     
-    if (!userMenu!.contains(event.target as Node)) {
-      dropdown!.classList.remove('show');
+    if (userMenu && !userMenu.contains(event.target as Node)) {
+      if (dropdown) {
+        dropdown.classList.remove('show');
+      }
     }
   });
 
