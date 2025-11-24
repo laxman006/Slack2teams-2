@@ -9,9 +9,10 @@ services:
       - "443:443"
     volumes:
       - ./nginx-prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./:/var/www/html:ro
+      - ./images:/var/www/html/images:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
+      - frontend
       - backend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
@@ -19,6 +20,27 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: slack2teams-frontend-prod
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://newcf3.cloudfuze.com
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:

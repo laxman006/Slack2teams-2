@@ -4,6 +4,8 @@ const nextConfig = {
   images: {
     unoptimized: true, // For static export if needed
   },
+  // Enable standalone output for Docker
+  output: 'standalone',
   // Fix workspace root warning
   experimental: {
     // Add any experimental features here if needed
