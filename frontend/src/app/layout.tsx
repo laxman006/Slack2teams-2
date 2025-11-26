@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   keywords: 'AI Chat Agent, AI assistant, cloud migration chatbot, CloudFuze AI, migrate data with AI',
   authors: [{ name: 'CloudFuze, Inc' }],
   robots: 'noindex, follow',
+  icons: {
+    icon: '/images/CloudFuze-icon-64x64.png',
+  },
   verification: {
     google: 'PhjlsaI1LwJ0elVNYMvimmGx_a_PXGb6XQZZSRWsm10',
   },
@@ -97,8 +100,6 @@ export default function RootLayout({
           src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"
           strategy="beforeInteractive"
         />
-        
-        <link rel="icon" type="image/png" href="/images/CloudFuze-icon-64x64.png" />
       </head>
       <body>
         {/* Google Tag Manager (noscript) */}
