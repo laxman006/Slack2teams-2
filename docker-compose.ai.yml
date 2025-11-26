@@ -45,7 +45,9 @@ services:
         max-file: "3"
 
   backend:
-    image: laxman006/slack2teams-backend:ai
+    build:
+      context: .
+      dockerfile: Dockerfile.prod.light
     container_name: slack2teams-backend-ai
     environment:
       # Production environment variables
