@@ -90,6 +90,13 @@ function initializeLoginPage() {
 
   // Check if user is already logged in
   function checkAuthStatus() {
+    // Don't check auth status if we're currently processing an OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('code')) {
+      console.log('OAuth callback in progress, skipping auth check');
+      return;
+    }
+    
     const user = JSON.parse(localStorage.getItem('user') || 'null');
     if (user && user.access_token) {
       console.log('User found in localStorage, verifying token...');
@@ -124,7 +131,7 @@ function initializeLoginPage() {
         }
       });
       return response.ok;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -160,11 +167,11 @@ function initializeLoginPage() {
     
     try {
       window.location.href = authUrl;
-    } catch (error: any) {
+    } catch (error) {
       button.innerHTML = originalText;
       button.disabled = false;
       sessionStorage.removeItem('login_in_progress');
-      showError('Failed to initiate login: ' + error.message);
+      showError('Failed to initiate login: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -260,6 +267,12 @@ function initializeLoginPage() {
 
     if (code) {
       console.log('OAuth code received, processing...');
+      // Show loading indicator immediately and hide login form
+      showLoadingIndicator('Completing sign-in...');
+      const loginContainer = document.querySelector('.login-container') as HTMLElement;
+      if (loginContainer) {
+        loginContainer.style.display = 'none';
+      }
       exchangeCodeForToken(code);
     }
   }
@@ -270,6 +283,11 @@ function initializeLoginPage() {
     
     if (!codeVerifier) {
       console.log('Code verifier not found, starting fresh login flow...');
+      hideLoadingIndicator();
+      const loginContainer = document.querySelector('.login-container') as HTMLElement;
+      if (loginContainer) {
+        loginContainer.style.display = 'block';
+      }
       localStorage.removeItem('user');
       window.history.replaceState({}, document.title, window.location.pathname);
       showSuccess('Starting fresh login...');
@@ -314,10 +332,18 @@ function initializeLoginPage() {
         };
         
         localStorage.setItem('user', JSON.stringify(user));
+        // Clear URL parameters before redirecting
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Redirect to main page
         window.location.href = "/";
       } else {
         const errorText = await response.text();
         console.log('Server error response:', errorText);
+        hideLoadingIndicator();
+        const loginContainer = document.querySelector('.login-container') as HTMLElement;
+        if (loginContainer) {
+          loginContainer.style.display = 'block';
+        }
         
         if (errorText.includes('code_verifier') || errorText.includes('Code verifier')) {
           console.log('Code verifier error detected, starting fresh login...');
@@ -333,12 +359,19 @@ function initializeLoginPage() {
           return;
         }
         
+        window.history.replaceState({}, document.title, window.location.pathname);
         showError('Login failed: ' + (errorText || 'Unknown error'));
       }
-    } catch (error: any) {
-      console.log('Network or other error:', error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log('Network or other error:', errorMessage);
+      hideLoadingIndicator();
+      const loginContainer = document.querySelector('.login-container') as HTMLElement;
+      if (loginContainer) {
+        loginContainer.style.display = 'block';
+      }
       
-      if (error.message.includes('code_verifier') || error.message.includes('Code verifier')) {
+      if (errorMessage.includes('code_verifier') || errorMessage.includes('Code verifier')) {
         console.log('Code verifier error detected in catch, starting fresh login...');
         localStorage.removeItem('user');
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -352,7 +385,8 @@ function initializeLoginPage() {
         return;
       }
       
-      showError('Login failed: ' + error.message);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      showError('Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 

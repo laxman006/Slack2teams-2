@@ -226,10 +226,10 @@ export default function ChatPage() {
         {/* Top Logo */}
         <div className="main-header">
           <Image 
-            src="/images/CloudFuze.png" 
+            src="/images/CloudFuze Horizontal Logo.svg" 
             alt="CloudFuze" 
-            width={160} 
-            height={42} 
+            width={200} 
+            height={52} 
             priority 
           />
         </div>
@@ -785,11 +785,12 @@ function initializeChatApp() {
   }
 
   function renderMarkdown(text: string) {
+    let html = '';
     if (typeof window.marked !== 'undefined') {
-      return window.marked.parse(text);
+      html = window.marked.parse(text);
     } else {
       // Fallback: basic markdown-like formatting
-      return text
+      html = text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -800,6 +801,11 @@ function initializeChatApp() {
         .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
         .replace(/\n/g, '<br>');
     }
+    
+    // Add target="_blank" and rel="noopener noreferrer" to all links
+    html = html.replace(/<a href=/g, '<a target="_blank" rel="noopener noreferrer" href=');
+    
+    return html;
   }
 
   // [REST OF THE JAVASCRIPT CODE WILL CONTINUE IN NEXT MESSAGE DUE TO LENGTH]
