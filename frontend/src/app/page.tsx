@@ -16,6 +16,9 @@ declare global {
     cancelEdit?: (button: HTMLElement) => void;
     saveEdit?: (button: HTMLElement) => void;
     askRecommendedQuestion?: (button: HTMLElement) => void;
+    showFeedbackModal?: (messageDiv: HTMLElement, traceId: string) => void;
+    submitDetailedFeedback?: () => void;
+    copyUserMessage?: (button: HTMLElement) => void;
   }
 }
 
@@ -211,8 +214,10 @@ export default function ChatPage() {
             <div className="user-dropdown-sidebar" id="userDropdown">
               <div className="dropdown-item" id="userEmail"></div>
               <div className="dropdown-item logout" id="logoutBtn">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M3 3h8v2H3v12h8v2H3a2 2 0 01-2-2V5a2 2 0 012-2zm10.293 9.293L16.586 15H7v2h9.586l-3.293 3.293 1.414 1.414 5-5a1 1 0 000-1.414l-5-5-1.414 1.414L16.586 13H7v2h9.586l-3.293-3.293z"/>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 19H3a2 2 0 01-2-2V3a2 2 0 012-2h4"/>
+                  <path d="M14 15l5-5-5-5"/>
+                  <line x1="19" y1="10" x2="7" y2="10"/>
                 </svg>
                 <span>Log out</span>
               </div>
@@ -288,6 +293,59 @@ export default function ChatPage() {
             <path d="M10 3a1 1 0 011 1v10.586l3.293-3.293a1 1 0 111.414 1.414l-5 5a1 1 0 01-1.414 0l-5-5a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z"/>
         </svg>
       </button>
+
+      {/* Feedback Modal */}
+      <div id="feedback-modal" className="feedback-modal-overlay">
+        <div className="feedback-modal">
+          <div className="feedback-modal-header">
+            <h3>Provide additional feedback</h3>
+            <button className="feedback-modal-close" id="feedback-modal-close">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+              </svg>
+            </button>
+          </div>
+          <div className="feedback-modal-body">
+            <div className="feedback-categories">
+              <button className="feedback-category-btn" data-category="Incorrect">
+                Incorrect
+              </button>
+              <button className="feedback-category-btn" data-category="Irrelevant/Out of context">
+                Irrelevant/Out of context
+              </button>
+              <button className="feedback-category-btn" data-category="Partially correct">
+                Partially correct
+              </button>
+              <button className="feedback-category-btn" data-category="Too generic/not Specific">
+                Too generic/not Specific
+              </button>
+              <button className="feedback-category-btn" data-category="Restricted response">
+                Restricted response
+              </button>
+              <button className="feedback-category-btn" data-category="Too verbose">
+                Too verbose
+              </button>
+              <button className="feedback-category-btn" data-category="Other">
+                Other
+              </button>
+            </div>
+            <textarea 
+              id="feedback-comment" 
+              className="feedback-comment-textarea" 
+              placeholder="(Optional) Feel free to add specific details"
+              rows={3}
+            ></textarea>
+            <div className="feedback-modal-note">
+              Submitting feedback will include this full conversation to help improve CloudFuze AI.
+            </div>
+          </div>
+          <div className="feedback-modal-footer">
+            <button className="feedback-submit-btn" id="feedback-submit-btn">
+              Submit
+            </button>
+          </div>
+        </div>
+      </div>
 
         {/* ChatGPT-Style Input Section - Shows when there are messages */}
         <div className="chatgpt-input-section">
@@ -404,7 +462,7 @@ function initializeChatApp() {
     id: string;
     title: string;
     timestamp: number;
-    messages: Array<{role: string, content: string}>;
+    messages: Array<{role: string, content: string, recommendedQuestions?: string[]}>;
   }
   
   function createNewSession(): string {
@@ -443,17 +501,49 @@ function initializeChatApp() {
   // Save current session
   function saveCurrentSession(title?: string) {
     const sessions = getAllSessions();
-    const messages = Array.from(messagesDiv!.children).map(child => {
+    const messages = Array.from(messagesDiv!.children).map((child, index) => {
       const isUser = child.classList.contains('user-message-wrapper') || 
                      child.querySelector('.message.user');
-      const content = isUser 
-        ? (child.querySelector('.message.user') as HTMLElement)?.textContent || ''
-        : (child.querySelector('.message-content') as HTMLElement)?.innerHTML || (child as HTMLElement).innerHTML || '';
       
-      return {
-        role: isUser ? 'user' : 'assistant',
-        content: content
-      };
+      if (isUser) {
+        const content = (child.querySelector('.message.user') as HTMLElement)?.textContent || '';
+        return {
+          role: 'user',
+          content: content
+        };
+      } else {
+        // Bot message - capture content and recommended questions
+        const messageContentDiv = child.querySelector('.message-content') as HTMLElement;
+        const content = messageContentDiv?.innerHTML || '';
+        const recommendedQuestionsDiv = child.querySelector('.recommended-questions');
+        const recommendedQuestions: string[] = [];
+        
+        console.log(`[SESSION SAVE] Processing bot message ${index}, has .recommended-questions:`, !!recommendedQuestionsDiv);
+        
+        if (recommendedQuestionsDiv) {
+          const questionBtns = recommendedQuestionsDiv.querySelectorAll('.recommended-question-btn');
+          console.log(`[SESSION SAVE] Found ${questionBtns.length} question buttons`);
+          questionBtns.forEach(btn => {
+            const question = btn.getAttribute('data-question');
+            if (question) {
+              recommendedQuestions.push(question);
+              console.log(`[SESSION SAVE] Captured question: "${question}"`);
+            }
+          });
+        }
+        
+        const result = {
+          role: 'assistant',
+          content: content,
+          recommendedQuestions: recommendedQuestions.length > 0 ? recommendedQuestions : undefined
+        };
+        
+        if (result.recommendedQuestions) {
+          console.log('[SESSION SAVE] Saving', result.recommendedQuestions.length, 'recommended questions with message');
+        }
+        
+        return result;
+      }
     });
     
     if (messages.length === 0) return;
@@ -469,6 +559,10 @@ function initializeChatApp() {
       timestamp: Date.now(),
       messages: messages
     };
+    
+    // Log what we're about to save
+    const questionsCount = messages.filter(m => m.role === 'assistant' && 'recommendedQuestions' in m && m.recommendedQuestions).length;
+    console.log(`[SESSION SAVE] Saving session with ${messages.length} messages, ${questionsCount} have recommended questions`);
     
     if (existingIndex >= 0) {
       sessions[existingIndex] = sessionData;
@@ -487,6 +581,7 @@ function initializeChatApp() {
   
   // Load a specific session
   function loadSession(sessionData: ChatSession) {
+    console.log('[SESSION] Loading session:', sessionData.id, 'with', sessionData.messages.length, 'messages');
     sessionId = sessionData.id;
     currentSessionTitle = sessionData.title;
     localStorage.setItem('chatbot_session_id', sessionId);
@@ -495,10 +590,23 @@ function initializeChatApp() {
     messagesDiv!.innerHTML = '';
     
     // Load session messages
-    sessionData.messages.forEach(msg => {
+    sessionData.messages.forEach((msg, index) => {
       if (msg.role === 'user') {
         addMessage(msg.content, 'user');
       } else {
+        // Bot message with optional recommended questions
+        const isLastMessage = index === sessionData.messages.length - 1;
+        const hasRecommendations = msg.recommendedQuestions && msg.recommendedQuestions.length > 0;
+        const showRecommendations = isLastMessage && hasRecommendations;
+        
+        if (showRecommendations) {
+          console.log('[SESSION] Restoring', msg.recommendedQuestions!.length, 'recommended questions for last message');
+        }
+        
+        const recommendedQuestionsHTML = showRecommendations 
+          ? buildRecommendedQuestionsHTML(msg.recommendedQuestions!) 
+          : '';
+        
         const div = document.createElement("div");
         div.className = "message bot";
         div.innerHTML = `
@@ -515,6 +623,7 @@ function initializeChatApp() {
             </button>
             <span class="feedback-text"></span>
           </div>
+          ${recommendedQuestionsHTML}
         `;
         messagesDiv!.appendChild(div);
       }
@@ -704,6 +813,34 @@ function initializeChatApp() {
     });
   }
 
+  // Toast notification function
+  function showToast(message: string) {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+      existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Trigger animation
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 10);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        toast.remove();
+      }, 300);
+    }, 2000);
+  }
+
   function addMessage(content: string, sender: string) {
     if (sender === "user") {
       // Remove edit button from any previous user messages
@@ -864,6 +1001,50 @@ function initializeChatApp() {
     if (!question) return;
 
     const botDiv = addMessageHTML("", "bot", null);
+    
+    // Create status streaming matching the existing "Thinking..." style
+    let currentStatusText = '';
+    let isStreamingStatus = false;
+    
+    const streamStatusText = async (text: string) => {
+      isStreamingStatus = true;
+      currentStatusText = '';
+      
+      // Stream word by word
+      const words = text.split(' ');
+      for (let i = 0; i < words.length; i++) {
+        currentStatusText += (i > 0 ? ' ' : '') + words[i];
+        botDiv.innerHTML = `
+          <div class="thinking">
+            ${currentStatusText}
+            <span class="thinking-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+        `;
+        
+        // Small delay for streaming effect
+        await new Promise(resolve => setTimeout(resolve, 30));
+        autoScrollToBottom();
+      }
+      
+      // Hold the completed message briefly before next one
+      await new Promise(resolve => setTimeout(resolve, 300));
+      isStreamingStatus = false;
+    };
+    
+    const updateThinkingStatus = async (status: string, message: string) => {
+      // Wait if currently streaming
+      while (isStreamingStatus) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      await streamStatusText(message);
+    };
+    
+    // Initial "Thinking" state - wait for first status from backend
     botDiv.innerHTML = `
       <div class="thinking">
         Thinking
@@ -874,7 +1055,7 @@ function initializeChatApp() {
         </span>
       </div>
     `;
-
+    
     setTimeout(() => autoScrollToBottom(), 50);
 
     try {
@@ -931,7 +1112,10 @@ function initializeChatApp() {
             try {
               const data = JSON.parse(line.slice(6));
               
-              if (data.type === 'thinking_complete') {
+              if (data.type === 'status') {
+                // Update thinking status with backend progress (don't await, let it stream async)
+                updateThinkingStatus(data.status, data.message).catch(e => console.error('Status update error:', e));
+              } else if (data.type === 'thinking_complete') {
                 botDiv.innerHTML = `<div class="message-content"></div>`;
               } else if (data.type === 'sources') {
                 console.log("[CONSOLE]", data.sources);
@@ -1015,16 +1199,32 @@ function initializeChatApp() {
     const textContent = contentDiv!.textContent || contentDiv!.innerHTML || '';
     
     navigator.clipboard.writeText(textContent).then(() => {
+      console.log('[COPY] Message copied successfully');
       const originalHTML = button.innerHTML;
-      button.innerHTML = '<span style="color: #10a37f;">✓</span>';
+      
+      // Change to checkmark icon
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10a37f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
       button.classList.add('copied');
+      button.title = 'Copied!';
+      
+      // Show toast notification
+      try {
+        showToast('Copied to clipboard');
+      } catch (e) {
+        console.error('[TOAST] Error showing toast:', e);
+      }
       
       setTimeout(() => {
         button.innerHTML = originalHTML;
         button.classList.remove('copied');
+        button.title = 'Copy message';
       }, 2000);
     }).catch(err => {
-      console.error('Failed to copy text: ', err);
+      console.error('[COPY] Failed to copy text:', err);
     });
   }
 
@@ -1054,6 +1254,13 @@ function initializeChatApp() {
         return;
       }
       
+      // If thumbs down, show detailed feedback modal
+      if (rating === 'thumbs_down') {
+        showFeedbackModal(messageDiv, traceId || '');
+        return;
+      }
+      
+      // For thumbs up, submit immediately
       const feedbackButtons = messageDiv.querySelectorAll('.feedback-btn');
       feedbackButtons.forEach((btn) => {
         const buttonEl = btn as HTMLButtonElement;
@@ -1086,7 +1293,8 @@ function initializeChatApp() {
         body: JSON.stringify({
           trace_id: finalTraceId,
           rating: rating,
-          comment: ""
+          comment: "",
+          categories: []
         }),
       });
       
@@ -1096,7 +1304,7 @@ function initializeChatApp() {
         button.classList.add('selected');
         
         const feedbackText = messageDiv.querySelector('.feedback-text')!;
-        feedbackText.textContent = rating === 'thumbs_up' ? 'Thanks for your feedback!' : 'Thanks! We\'ll improve.';
+        feedbackText.textContent = 'Thanks for your feedback!';
         
         setTimeout(() => {
           feedbackText.textContent = '';
@@ -1104,6 +1312,114 @@ function initializeChatApp() {
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
+    }
+  }
+
+  function showFeedbackModal(messageDiv: HTMLElement, traceId: string) {
+    const modal = document.getElementById('feedback-modal');
+    if (!modal) return;
+    
+    // Store reference to message for later submission
+    modal.dataset.messageId = messageDiv.dataset.traceId || traceId;
+    modal.dataset.traceId = traceId;
+    
+    // Reset modal state - clear all category selections
+    const categoryBtns = modal.querySelectorAll('.feedback-category-btn');
+    categoryBtns.forEach(btn => btn.classList.remove('active'));
+    
+    // Clear comment textarea
+    const commentTextarea = document.getElementById('feedback-comment') as HTMLTextAreaElement;
+    if (commentTextarea) {
+      commentTextarea.value = '';
+    }
+    
+    // Show modal
+    modal.style.display = 'flex';
+  }
+
+  async function submitDetailedFeedback() {
+    const modal = document.getElementById('feedback-modal');
+    if (!modal) return;
+    
+    const traceId = modal.dataset.traceId || '';
+    const messageDiv = document.querySelector(`[data-trace-id="${traceId}"]`) as HTMLElement;
+    
+    // Get selected categories
+    const selectedCategories: string[] = [];
+    const categoryBtns = modal.querySelectorAll('.feedback-category-btn.active');
+    categoryBtns.forEach(btn => {
+      const category = btn.getAttribute('data-category');
+      if (category) {
+        selectedCategories.push(category);
+      }
+    });
+    
+    // Get comment
+    const commentTextarea = document.getElementById('feedback-comment') as HTMLTextAreaElement;
+    const comment = commentTextarea ? commentTextarea.value.trim() : '';
+    
+    // Close modal
+    modal.style.display = 'none';
+    
+    // Submit feedback
+    try {
+      let finalTraceId = traceId;
+      if (!traceId) {
+        const fallbackTraceId = 'feedback_fallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        if (messageDiv) {
+          messageDiv.dataset.traceId = fallbackTraceId;
+        }
+        finalTraceId = fallbackTraceId;
+      }
+      
+      const apiBase = getApiBase();
+      const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+      
+      if (!currentUser || !currentUser.access_token) {
+        console.error('[FEEDBACK] User not authenticated');
+        return;
+      }
+      
+      const response = await fetch(`${apiBase}/feedback`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentUser.access_token}`
+        },
+        body: JSON.stringify({
+          trace_id: finalTraceId,
+          rating: 'thumbs_down',
+          comment: comment,
+          categories: selectedCategories
+        }),
+      });
+      
+      if (response.ok && messageDiv) {
+        const feedbackButtons = messageDiv.querySelectorAll('.feedback-btn');
+        feedbackButtons.forEach((btn) => {
+          const buttonEl = btn as HTMLButtonElement;
+          buttonEl.disabled = true;
+          buttonEl.style.cursor = 'not-allowed';
+          buttonEl.style.opacity = '0.5';
+          btn.classList.remove('selected');
+        });
+        
+        const thumbsDownBtn = messageDiv.querySelector('.feedback-btn.thumbs-down');
+        if (thumbsDownBtn) {
+          thumbsDownBtn.classList.add('selected');
+        }
+        
+        messageDiv.dataset.feedbackSubmitted = 'true';
+        
+        const feedbackText = messageDiv.querySelector('.feedback-text')!;
+        feedbackText.textContent = 'Thanks! We\'ll improve.';
+        
+        setTimeout(() => {
+          feedbackText.textContent = '';
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Error submitting detailed feedback:", error);
     }
   }
 
@@ -1116,15 +1432,30 @@ function initializeChatApp() {
     
     const text = messageDiv.textContent || '';
     navigator.clipboard.writeText(text).then(() => {
-      console.log('User message copied to clipboard');
-      // Optional: Show a brief "Copied!" tooltip
-      const originalTitle = button.title;
+      console.log('[COPY USER] User message copied successfully');
+      const originalHTML = button.innerHTML;
+      
+      // Change to checkmark icon
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10a37f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
       button.title = 'Copied!';
+      
+      // Show toast notification
+      try {
+        showToast('Copied to clipboard');
+      } catch (e) {
+        console.error('[TOAST] Error showing toast:', e);
+      }
+      
       setTimeout(() => {
-        button.title = originalTitle;
-      }, 1000);
+        button.innerHTML = originalHTML;
+        button.title = 'Copy message';
+      }, 2000);
     }).catch(err => {
-      console.error('Failed to copy text: ', err);
+      console.error('[COPY USER] Failed to copy text:', err);
     });
   }
 
@@ -1139,32 +1470,50 @@ function initializeChatApp() {
     
     const originalText = messageDiv.textContent || '';
     
+    // Add editing class to wrapper
+    wrapper.classList.add('editing');
+    
     // Replace message with textarea
     messageDiv.innerHTML = `
-      <textarea class="edit-textarea" rows="3">${originalText}</textarea>
+      <textarea class="edit-textarea" rows="1">${originalText}</textarea>
+      <div class="edit-actions">
+        <button class="edit-action-btn edit-cancel-btn" onclick="window.cancelEdit(this)">Cancel</button>
+        <button class="edit-action-btn edit-save-btn" onclick="window.saveEdit(this)" title="Send">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L7 12.586V2a1 1 0 011-1z" transform="rotate(180 8 8)"/>
+          </svg>
+        </button>
+      </div>
     `;
     
-    // Replace buttons with save/cancel
-    editContainer.innerHTML = `
-      <button class="save-edit-btn" onclick="window.saveEdit(this)" title="Save changes">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-      </button>
-      <button class="cancel-edit-btn" onclick="window.cancelEdit(this)" title="Cancel">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    `;
+    // Clear the edit container since we moved buttons inside messageDiv
+    editContainer.innerHTML = ``;
     
     // Store original text for cancel
     wrapper.setAttribute('data-original-text', originalText);
     
-    // Focus the textarea
+    // Focus the textarea and set up auto-resize
     const textarea = messageDiv.querySelector('.edit-textarea') as HTMLTextAreaElement;
     if (textarea) {
+      // Auto-resize functionality
+      const autoResize = () => {
+        textarea.style.height = '24px';
+        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+      };
+      
+      textarea.addEventListener('input', autoResize);
+      
+      // Enter key to save (without Shift)
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const saveBtn = messageDiv.querySelector('.edit-save-btn') as HTMLButtonElement;
+          if (saveBtn) saveBtn.click();
+        }
+      });
+      
+      autoResize(); // Initial resize
+      
       textarea.focus();
       textarea.setSelectionRange(textarea.value.length, textarea.value.length);
     }
@@ -1180,8 +1529,11 @@ function initializeChatApp() {
     
     if (!messageDiv || !editContainer) return;
     
+    // Remove editing class from wrapper
+    wrapper.classList.remove('editing');
+    
     // Restore original message
-    messageDiv.textContent = originalText;
+    messageDiv.innerHTML = originalText;
     
     // Restore original buttons
     editContainer.innerHTML = `
@@ -1218,6 +1570,9 @@ function initializeChatApp() {
       return;
     }
     
+    // Remove editing class from wrapper
+    wrapper.classList.remove('editing');
+    
     // Find all messages after this one and remove them
     let nextElement = wrapper.nextElementSibling;
     while (nextElement) {
@@ -1227,7 +1582,7 @@ function initializeChatApp() {
     }
     
     // Update the message
-    messageDiv.textContent = newText;
+    messageDiv.innerHTML = newText;
     
     // Restore original buttons
     editContainer.innerHTML = `
@@ -1265,6 +1620,10 @@ function initializeChatApp() {
   (window as any).saveEdit = saveEdit;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).askRecommendedQuestion = askRecommendedQuestion;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).showFeedbackModal = showFeedbackModal;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).submitDetailedFeedback = submitDetailedFeedback;
 
   // Initialize auth - simplified since auth check is done at component level
   function initAuth() {
@@ -1371,6 +1730,22 @@ function initializeChatApp() {
   }
 
   async function handleNewChat() {
+    console.log('[NEW CHAT] Starting new chat...');
+    const newChatBtn = document.getElementById('newChatBtn') as HTMLElement;
+    
+    // Show loading state
+    if (newChatBtn) {
+      console.log('[NEW CHAT] Showing loading state');
+      newChatBtn.innerHTML = `
+        <svg class="loading-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" opacity="0.25"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
+        </svg>
+        <span class="btn-text">Loading...</span>
+      `;
+      newChatBtn.style.pointerEvents = 'none';
+    }
+    
     // Save current session before creating new one
     if (messagesDiv!.children.length > 0) {
       saveCurrentSession();
@@ -1404,6 +1779,35 @@ function initializeChatApp() {
     
     // Update sidebar to show new session is active
     renderSessionHistory();
+    
+    // Show success state briefly
+    if (newChatBtn) {
+      console.log('[NEW CHAT] Showing success state');
+      newChatBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10a37f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span class="btn-text">New chat</span>
+      `;
+      
+      // Show toast notification
+      try {
+        showToast('Started new chat');
+      } catch (e) {
+        console.error('[TOAST] Error showing toast:', e);
+      }
+      
+      setTimeout(() => {
+        console.log('[NEW CHAT] Resetting to normal state');
+        newChatBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span class="btn-text">New chat</span>
+        `;
+        newChatBtn.style.pointerEvents = 'auto';
+      }, 800);
+    }
   }
 
   function handleLogout() {
@@ -1557,6 +1961,42 @@ function initializeChatApp() {
       }
     }
   });
+
+  // Feedback modal event listeners
+  const feedbackModal = document.getElementById('feedback-modal');
+  const feedbackModalClose = document.getElementById('feedback-modal-close');
+  const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
+  
+  // Close modal when clicking X button
+  if (feedbackModalClose) {
+    feedbackModalClose.addEventListener('click', () => {
+      if (feedbackModal) {
+        feedbackModal.style.display = 'none';
+      }
+    });
+  }
+  
+  // Close modal when clicking outside
+  if (feedbackModal) {
+    feedbackModal.addEventListener('click', (e) => {
+      if (e.target === feedbackModal) {
+        feedbackModal.style.display = 'none';
+      }
+    });
+  }
+  
+  // Toggle category selection
+  const categoryBtns = document.querySelectorAll('.feedback-category-btn');
+  categoryBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.classList.toggle('active');
+    });
+  });
+  
+  // Submit detailed feedback
+  if (feedbackSubmitBtn) {
+    feedbackSubmitBtn.addEventListener('click', submitDetailedFeedback);
+  }
 
   initAuth();
 }

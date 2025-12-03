@@ -6,6 +6,19 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Loading spinner for buttons */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+.loading-spinner circle {
+  opacity: 0.25;
+}
+
+.loading-spinner path {
+  opacity: 1;
+}
+
 /* Slide in animation for messages */
 @keyframes slideIn {
   from {
@@ -20,6 +33,8 @@
 
 html {
   scrollbar-gutter: stable;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body { 
@@ -29,6 +44,30 @@ body {
   padding: 0;
   min-height: 100vh;
   overflow: hidden;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Touch-friendly tap targets for mobile */
+@media (max-width: 768px) {
+  button, a, .history-item, .suggested-question-btn, .recommended-question-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .chatgpt-send-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+  
+  .feedback-btn, .copy-button, .edit-btn, .copy-button-user {
+    min-height: 40px;
+    min-width: 40px;
+  }
 }
 
 /* Custom scrollbar styling for all elements by default (hidden) */
@@ -389,11 +428,13 @@ header img {
 }
 
 #messages {
-  width: 60%;
-  padding: 20px 10px 20px 10px;
-  margin-bottom: 50px;
+  width: 100%;
+  max-width: 48rem;
+  padding: 20px;
+  margin: 0 auto 50px auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .message { 
@@ -448,7 +489,7 @@ header img {
   margin-right: auto; 
   text-align: left; 
   position: relative;
-  padding-bottom: 35px;
+  padding-bottom: 8px;
   border-radius: 20px;
   max-width: 100%;
   width: 100%;
@@ -460,7 +501,9 @@ header img {
   align-items: center;
   gap: 8px;
   font-style: italic;
-  color: #666;
+  color: #8e8ea0;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .thinking-dots {
@@ -472,7 +515,7 @@ header img {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #666;
+  background-color: #8e8ea0;
   animation: thinking-bounce 1.4s infinite ease-in-out both;
 }
 
@@ -498,6 +541,7 @@ header img {
     opacity: 1;
   }
 }
+
 
 /* Markdown styling for bot messages */
 .bot h1, .bot h2, .bot h3, .bot h4, .bot h5, .bot h6 {
@@ -595,15 +639,16 @@ header img {
 }
 
 .message.bot .message-content {
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
 
 /* Feedback buttons - ChatGPT style */
 .feedback-buttons {
   display: flex;
   gap: 4px;
-  margin-top: -6px;
+  margin-top: 8px;
   align-items: center;
+  padding-top: 4px;
 }
 
 .feedback-btn {
@@ -676,6 +721,10 @@ header img {
   opacity: 1;
 }
 
+.user-message-wrapper.editing .edit-button-container {
+  display: none !important;
+}
+
 /* Copy button for user messages */
 .copy-button-user {
   background: transparent;
@@ -741,67 +790,130 @@ header img {
   opacity: 1;
 }
 
-/* Edit mode styles - inline editing */
+/* Edit mode styles - matching message input style */
+.user-message-wrapper.editing {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
 .user-message-wrapper.editing .message.user {
-  padding: 0;
-  border: 2px solid #0129ac;
-  box-shadow: 0 0 0 1px rgba(1, 41, 172, 0.1);
+  padding: 18px 20px 16px 20px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  max-width: 100%;
+  width: 100%;
+  background: #f9fafb;
+  border-radius: 24px;
+  position: relative;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.user-message-wrapper.editing .message.user:focus-within {
+  background: white;
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .edit-textarea {
   width: 100%;
-  min-height: 40px;
-  padding: 10px 15px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px 4px;
   border: none;
-  border-radius: 20px;
+  border-radius: 0;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 15px;
   resize: none;
   box-sizing: border-box;
   line-height: 1.5;
-  background: #f7f7f8;
-  color: black;
-  overflow: hidden;
+  background: transparent;
+  color: #1f2937;
+  overflow-y: auto;
+  max-height: 200px;
+  margin-bottom: 0;
 }
 
 .edit-textarea:focus {
   outline: none;
-  background: #f7f7f8;
+  background: transparent;
+}
+
+.edit-resize-handle {
+  display: none;
 }
 
 .edit-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 8px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 0;
 }
 
 .edit-action-btn {
-  padding: 6px 16px;
   border: none;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .edit-save-btn {
   background: #0129ac;
   color: white;
+  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(1, 41, 172, 0.3);
+  flex-shrink: 0;
 }
 
 .edit-save-btn:hover {
   background: #0056b3;
+  box-shadow: 0 6px 16px rgba(1, 41, 172, 0.4), 0 3px 8px rgba(1, 41, 172, 0.3);
+  transform: scale(1.05);
+}
+
+.edit-save-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(1, 41, 172, 0.3);
+}
+
+.edit-save-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: currentColor;
 }
 
 .edit-cancel-btn {
-  background: #e9ecef;
-  color: #495057;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  box-shadow: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  min-width: 75px;
 }
 
 .edit-cancel-btn:hover {
-  background: #dee2e6;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.edit-cancel-btn:active {
+  background: #e5e7eb;
 }
 
 /* Scroll to bottom button */
@@ -1063,8 +1175,10 @@ header img {
   display: flex;
   height: 100vh;
   width: 100%;
+  max-width: 100vw;
   overflow: hidden;
   background: #fff;
+  position: relative;
 }
 
 /* ============================================================================
@@ -1545,6 +1659,7 @@ header img {
   height: 100vh;
   overflow: hidden;
   position: relative;
+  min-width: 0;
 }
 
 /* Old sidebar toggle removed - now using toggle button inside sidebar */
@@ -1580,9 +1695,10 @@ header img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 60px 24px;
   z-index: 1;
   margin-top: 0;
+  box-sizing: border-box;
 }
 
 .empty-state-content {
@@ -1592,7 +1708,8 @@ header img {
   gap: 32px;
   max-width: 48rem;
   width: 100%;
-  padding: 0;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 /* Welcome Section Styles */
@@ -1705,7 +1822,7 @@ header img {
   max-height: 200px !important;
   overflow-y: auto !important;
   background: transparent !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
   margin: 0 !important;
   color: #1f2937 !important;
   align-self: center !important;
@@ -1724,7 +1841,7 @@ header img {
   height: 36px !important;
   min-width: 36px !important;
   min-height: 36px !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -1767,7 +1884,7 @@ header img {
   margin-top: 16px !important;
   width: 100% !important;
   max-width: 48rem !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
   justify-items: stretch !important;
 }
 
@@ -1828,6 +1945,9 @@ header img {
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* ChatGPT-style scrollbar for Webkit browsers (Chrome, Safari, Edge) */
@@ -1861,6 +1981,8 @@ header img {
   margin: 0 auto;
   display: none;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .messages-list.show {
@@ -1953,6 +2075,7 @@ header img {
   margin: 0 auto;
   position: relative;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .input-wrapper-chatgpt {
@@ -1985,7 +2108,7 @@ header img {
   max-height: 200px !important;
   overflow-y: auto !important;
   background: transparent !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
   margin: 0 !important;
   color: #1f2937 !important;
   align-self: center !important;
@@ -2004,7 +2127,7 @@ header img {
   height: 36px !important;
   min-width: 36px !important;
   min-height: 36px !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
   margin: 0 !important;
   display: flex !important;
   align-items: center !important;
@@ -2052,7 +2175,7 @@ header img {
   display: none !important;
   max-width: 48rem !important;
   margin: 16px auto 0 auto !important;
-  padding: 0 !important;
+  padding: 2px 4px !important;
 }
 
 /* Never show suggested questions in bottom input section - only in empty state */
@@ -2068,6 +2191,7 @@ header img {
   .chatgpt-sidebar {
     position: fixed;
     z-index: 1000;
+    width: 260px;
   }
   
   .chatgpt-sidebar.closed {
@@ -2080,11 +2204,46 @@ header img {
   }
   
   .messages-list {
-    padding: 20px 12px 120px 12px;
+    padding: 20px 16px 120px 16px;
+    max-width: 100%;
+  }
+  
+  #messages {
+    padding: 20px 16px;
+    max-width: 100%;
   }
   
   .chatgpt-input-section {
-    padding: 12px;
+    padding: 12px !important;
+  }
+  
+  .input-container-inner {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  .input-wrapper-chatgpt {
+    padding: 12px 16px !important;
+    border-radius: 20px !important;
+  }
+  
+  .chatgpt-textarea {
+    font-size: 14px !important;
+    padding: 2px 4px !important;
+  }
+  
+  .empty-state-input {
+    max-width: 100% !important;
+    padding: 0 12px !important;
+  }
+  
+  .empty-state-input .input-wrapper-chatgpt {
+    padding: 12px 16px !important;
+    border-radius: 20px !important;
+  }
+  
+  .empty-state-input .chatgpt-textarea {
+    font-size: 14px !important;
   }
   
   .ai-title {
@@ -2102,7 +2261,7 @@ header img {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
     margin-top: 16px !important;
-    padding: 0 12px !important;
+    padding: 0 !important;
   }
   
   .suggested-question-btn {
@@ -2116,11 +2275,25 @@ header img {
   }
   
   .chatgpt-send-btn {
-    width: 32px !important;
-    height: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
   }
   
   .chatgpt-send-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+  
+  .empty-state-input .chatgpt-send-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  .empty-state-input .chatgpt-send-btn svg {
     width: 16px !important;
     height: 16px !important;
   }
@@ -2133,6 +2306,42 @@ header img {
   .history-item {
     padding: 8px 10px;
     font-size: 12px;
+  }
+  
+  .main-header {
+    padding: 12px 16px;
+  }
+  
+  .main-header img {
+    height: 32px;
+  }
+  
+  .messages-container {
+    padding-bottom: 20px;
+  }
+  
+  .message.user {
+    font-size: 15px;
+    max-width: 80%;
+    padding: 10px 14px;
+  }
+  
+  .message.bot {
+    font-size: 15px;
+  }
+  
+  .user-message-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .user-message-wrapper .message.user {
+    max-width: 80%;
+  }
+  
+  .input-disclaimer {
+    font-size: 10px;
+    margin-top: 6px;
   }
 }
 
@@ -2162,4 +2371,377 @@ header img {
 
 /* Note: Old header, main-content, input-container styles are preserved 
    for the login page. The chat page uses the new chatgpt-container layout. */
+
+/* ============================================================================
+   FEEDBACK MODAL (ChatGPT-Style)
+   ============================================================================ */
+
+.feedback-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.feedback-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feedback-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.feedback-modal-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #202123;
+  margin: 0;
+}
+
+.feedback-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.feedback-modal-close:hover {
+  background-color: #f0f5ff;
+  color: #0129ac;
+}
+
+.feedback-modal-body {
+  padding: 24px;
+}
+
+.feedback-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.feedback-category-btn {
+  padding: 8px 14px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 18px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.feedback-category-btn:hover {
+  background: #f0f5ff;
+  border-color: #0129ac;
+  color: #0129ac;
+}
+
+.feedback-category-btn.active {
+  background: #0129ac;
+  color: white;
+  border-color: #0129ac;
+}
+
+.feedback-comment-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 200px;
+  transition: border-color 0.2s;
+}
+
+.feedback-comment-textarea:focus {
+  outline: none;
+  border-color: #0129ac;
+  box-shadow: 0 0 0 2px rgba(1, 41, 172, 0.1);
+}
+
+.feedback-comment-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.feedback-modal-note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.feedback-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.feedback-submit-btn {
+  background: #0129ac;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(1, 41, 172, 0.2);
+}
+
+.feedback-submit-btn:hover {
+  background: #0056b3;
+  box-shadow: 0 4px 8px rgba(1, 41, 172, 0.3);
+  transform: translateY(-1px);
+}
+
+.feedback-submit-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(1, 41, 172, 0.2);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .feedback-modal {
+    width: 95%;
+    max-height: 90vh;
+  }
+  
+  .feedback-modal-header {
+    padding: 16px 20px;
+  }
+  
+  .feedback-modal-body {
+    padding: 20px;
+  }
+  
+  .feedback-categories {
+    gap: 6px;
+  }
+  
+  .feedback-category-btn {
+    font-size: 13px;
+    padding: 7px 12px;
+  }
+}
+
+/* ============================================================================
+   TOAST NOTIFICATION (ChatGPT-Style)
+   ============================================================================ */
+
+.toast-notification {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1f2937;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10001;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.toast-notification.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (max-width: 768px) {
+  .toast-notification {
+    bottom: 100px;
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVENESS (Small Phones)
+   ============================================================================ */
+
+@media (max-width: 480px) {
+  .chatgpt-sidebar {
+    width: 240px;
+  }
+  
+  .input-wrapper-chatgpt {
+    padding: 10px 14px !important;
+    border-radius: 18px !important;
+  }
+  
+  .chatgpt-textarea {
+    font-size: 14px !important;
+  }
+  
+  .empty-state-input .input-wrapper-chatgpt {
+    padding: 10px 14px !important;
+  }
+  
+  .empty-state-input .chatgpt-textarea {
+    font-size: 14px !important;
+  }
+  
+  .messages-list {
+    padding: 20px 12px 120px 12px;
+  }
+  
+  #messages {
+    padding: 20px 12px;
+  }
+  
+  .chatgpt-send-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  .chatgpt-send-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .empty-state-input .chatgpt-send-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  
+  .empty-state-input .chatgpt-send-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .chatgpt-input-section {
+    padding: 10px !important;
+  }
+  
+  .main-header {
+    padding: 10px 12px;
+  }
+  
+  .main-header img {
+    height: 28px;
+  }
+  
+  .message.user {
+    font-size: 14px;
+    max-width: 85%;
+    padding: 10px 14px;
+  }
+  
+  .message.bot {
+    font-size: 14px;
+  }
+  
+  .user-message-wrapper .message.user {
+    max-width: 85%;
+  }
+  
+  .welcome-title {
+    font-size: 20px;
+  }
+  
+  .suggested-question-btn {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* ============================================================================
+   TABLET RESPONSIVENESS
+   ============================================================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .input-container-inner {
+    max-width: 42rem;
+    padding: 0 20px;
+  }
+  
+  .empty-state-input {
+    max-width: 42rem;
+    padding: 0 20px;
+  }
+  
+  .messages-list {
+    max-width: 42rem;
+    padding: 20px;
+  }
+  
+  #messages {
+    max-width: 42rem;
+    padding: 20px;
+  }
+  
+  .message.user {
+    max-width: 75%;
+  }
+}
+
+/* Large desktop screens */
+@media (min-width: 1400px) {
+  .input-container-inner {
+    max-width: 50rem;
+  }
+  
+  .empty-state-input {
+    max-width: 50rem;
+  }
+  
+  .messages-list {
+    max-width: 50rem;
+  }
+  
+  #messages {
+    max-width: 50rem;
+  }
+}
 

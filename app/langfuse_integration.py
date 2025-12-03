@@ -78,19 +78,24 @@ class LangfuseTracker:
     def add_feedback(self, trace_id: str, rating: str, comment: Optional[str] = None) -> bool:
         """Add user feedback (thumbs up/down) to a trace."""
         if not self.client:
+            print("[WARNING] Langfuse client not initialized - feedback not logged")
             return False
         
         try:
+            print(f"[LANGFUSE] Submitting feedback - trace_id: {trace_id}, rating: {rating}, comment: {comment or '(none)'}")
             self.client.score(
                 trace_id=trace_id,
                 name="user_rating",
                 value=1 if rating == "thumbs_up" else 0,
                 comment=comment or ""
             )
+            print(f"[LANGFUSE] ✓ Feedback submitted successfully to trace {trace_id}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] Langfuse feedback failed: {e}")
+            print(f"[ERROR] Langfuse feedback failed for trace {trace_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def log_observation_to_trace(

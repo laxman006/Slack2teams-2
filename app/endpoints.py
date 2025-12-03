@@ -965,6 +965,7 @@ class FeedbackRequest(BaseModel):
     trace_id: str
     rating: str  # "thumbs_up" or "thumbs_down"
     comment: str = None
+    categories: list = []  # List of feedback categories (e.g., ["Not factually correct", "Being lazy"])
 
 @router.post("/chat")
 async def chat(request: Request, auth_user: dict = Depends(require_auth)):
@@ -1385,6 +1386,10 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             # PHASE 1: THINKING - Document retrieval and processing
             # This happens while the frontend shows "Thinking..." animation
             
+            # Send initial thinking status
+            yield f"data: {json.dumps({'type': 'status', 'status': 'analyzing_query', 'message': 'Analyzing query'})}\n\n"
+            await asyncio.sleep(0.05)
+            
             # Start timing for metadata
             retrieval_start_time = time.time()
             thinking_start_time = time.time()
@@ -1404,6 +1409,15 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             }
             
             try:
+                # Send status: Query expansion
+                if ENABLE_QUERY_EXPANSION:
+                    yield f"data: {json.dumps({'type': 'status', 'status': 'expanding_query', 'message': 'Expanding query for better results'})}\n\n"
+                    await asyncio.sleep(0.05)
+                
+                # Send status: Document retrieval
+                yield f"data: {json.dumps({'type': 'status', 'status': 'retrieving_docs', 'message': 'Searching knowledge base'})}\n\n"
+                await asyncio.sleep(0.05)
+                
                 # ====== PERPLEXITY-STYLE RAG (OPTION E) ======
                 # Retrieve docs with dense + BM25 + reranker
                 doc_results = perplexity_style_retrieve(
@@ -1417,6 +1431,10 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 final_docs = [doc for doc, score in doc_results]
                 
                 print(f"[RAG] Retrieved {len(final_docs)} docs using Option E pipeline")
+                
+                # Send status: Documents found and reranking
+                yield f"data: {json.dumps({'type': 'status', 'status': 'reranking_docs', 'message': f'Found {len(doc_results)} documents, reranking for relevance'})}\n\n"
+                await asyncio.sleep(0.05)
                 
                 # You can still compute diversity metrics if you like
                 diversity_metrics = calculate_document_diversity(
@@ -1444,6 +1462,17 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 
                 print(f"[DEBUG] Retrieved {len(final_docs)} documents from search")
                 print(f"[DEBUG] Documents by tag: {retrieved_sources}")
+                
+                # Send status: Reading from sources
+                source_list = []
+                if retrieved_sources.get('blog', 0) > 0:
+                    source_list.append(f"{retrieved_sources['blog']} from blog")
+                if retrieved_sources.get('sharepoint', 0) > 0:
+                    source_list.append(f"{retrieved_sources['sharepoint']} from SharePoint")
+                if source_list:
+                    source_message = "Reading " + " and ".join(source_list)
+                    yield f"data: {json.dumps({'type': 'status', 'status': 'reading_sources', 'message': source_message})}\n\n"
+                    await asyncio.sleep(0.05)
                 
                 # If no SharePoint documents found, try a more aggressive search for SharePoint content
                 has_sharepoint = any(
@@ -1523,6 +1552,10 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
             final_docs = unique_docs[:30]
             
             print(f"[DEBUG] Final documents for context: {len(final_docs)} (after deduplication)")
+            
+            # Send status: Selected top documents
+            yield f"data: {json.dumps({'type': 'status', 'status': 'selecting_docs', 'message': f'Selected top {len(final_docs)} most relevant documents'})}\n\n"
+            await asyncio.sleep(0.05)
             
             # Analyze final documents after deduplication for accurate metadata
             # We need to pair final_docs with their scores from doc_results
@@ -1627,6 +1660,10 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 source_info = f"Response generated from: {', '.join(sources_used)}"
             else:
                 source_info = "Response generated (sources unknown)"
+            
+            # Send final status before generation
+            yield f"data: {json.dumps({'type': 'status', 'status': 'generating', 'message': 'Generating response'})}\n\n"
+            await asyncio.sleep(0.1)
             
             # Send signal that thinking is complete and streaming will start
             thinking_time_ms = int((time.time() - thinking_start_time) * 1000)
@@ -1973,15 +2010,33 @@ async def rebuild_chat_history(
 async def submit_feedback(request: FeedbackRequest):
     """Submit user feedback (👍/👎) for a chat interaction."""
     try:
+        print(f"\n[FEEDBACK] Received feedback request:")
+        print(f"  - trace_id: {request.trace_id}")
+        print(f"  - rating: {request.rating}")
+        print(f"  - categories: {request.categories}")
+        print(f"  - comment: {request.comment or '(none)'}")
+        
         # Validate rating
         if request.rating not in ["thumbs_up", "thumbs_down"]:
+            print(f"[FEEDBACK] ✗ Invalid rating: {request.rating}")
             return {"error": "Invalid rating. Must be 'thumbs_up' or 'thumbs_down'"}
         
-        # Log feedback to Langfuse
+        # Build comprehensive feedback comment
+        feedback_comment = request.comment or ""
+        if request.categories and len(request.categories) > 0:
+            categories_str = ", ".join(request.categories)
+            if feedback_comment:
+                feedback_comment = f"Categories: {categories_str}\nComment: {feedback_comment}"
+            else:
+                feedback_comment = f"Categories: {categories_str}"
+        
+        print(f"[FEEDBACK] Final comment to log: {feedback_comment or '(empty)'}")
+        
+        # Log feedback to Langfuse with categories
         success = langfuse_tracker.add_feedback(
             trace_id=request.trace_id,
             rating=request.rating,
-            comment=request.comment
+            comment=feedback_comment
         )
         
         # COMMENTED OUT: Auto-correction workflow (now using manual correction)
@@ -2004,6 +2059,7 @@ async def submit_feedback(request: FeedbackRequest):
         #         print(f"Auto-correction failed: {e}")
         
         if success:
+            print(f"[FEEDBACK] ✓ Feedback successfully logged to Langfuse for trace {request.trace_id}")
             return {
                 "status": "success",
                 "message": "Feedback recorded successfully",
@@ -2011,12 +2067,16 @@ async def submit_feedback(request: FeedbackRequest):
                 "auto_correction_triggered": False  # Manual correction will be used instead
             }
         else:
+            print(f"[FEEDBACK] ✗ Failed to log feedback to Langfuse for trace {request.trace_id}")
             return {
                 "status": "error",
                 "message": "Failed to record feedback"
             }
             
     except Exception as e:
+        print(f"[FEEDBACK] ✗ Exception submitting feedback: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"error": f"Failed to submit feedback: {str(e)}"}
 
 # ---------------- Auto-Correction System ----------------
