@@ -604,6 +604,27 @@ function initializeChatApp() {
     }
   }
   
+  // Remove test sessions from localStorage (cleanup for production)
+  function removeTestSessions() {
+    try {
+      const sessions = getAllSessions();
+      const cleanedSessions = sessions.filter(session => 
+        !session.id.startsWith('test-') && 
+        !session.title.toLowerCase().includes('test chat')
+      );
+      
+      if (sessions.length !== cleanedSessions.length) {
+        console.log('[CLEANUP] Removed', sessions.length - cleanedSessions.length, 'test sessions');
+        saveAllSessions(cleanedSessions);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('[CLEANUP] Failed to remove test sessions:', e);
+      return false;
+    }
+  }
+  
   // Add test data for all time periods (for UI testing)
   function addTestSessions() {
     const now = Date.now();
@@ -2375,8 +2396,11 @@ function initializeChatApp() {
     if (user && user.access_token) {
     updateUserInfo(user);
       
-      // Add test data for UI testing (comment out in production)
-      addTestSessions();
+      // Add test data for UI testing (DISABLED IN PRODUCTION)
+      // addTestSessions();
+      
+      // Remove any existing test sessions (production cleanup)
+      removeTestSessions();
       
       // Load dynamic suggested questions
       loadSuggestedQuestions();
