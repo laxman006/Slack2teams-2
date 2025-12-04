@@ -345,30 +345,30 @@ def _get_default_questions(limit: int = 4) -> List[QuestionResponse]:
     default_questions = [
         QuestionResponse(
             id="default-1",
-            question_text="How do I migrate data from Slack to Microsoft Teams?",
+            question_text="Can I migrate Slack channels to Microsoft Teams?",
             category="migration",
-            priority=80,
+            priority=92,
             click_rate=0.0
         ),
         QuestionResponse(
             id="default-2",
-            question_text="What are the best practices for cloud migration?",
-            category="migration",
-            priority=75,
+            question_text="How do I preserve permissions during migration?",
+            category="features",
+            priority=83,
             click_rate=0.0
         ),
         QuestionResponse(
             id="default-3",
-            question_text="How can I track migration progress?",
+            question_text="How do I track my migration progress?",
             category="features",
-            priority=70,
+            priority=80,
             click_rate=0.0
         ),
         QuestionResponse(
             id="default-4",
-            question_text="What are the key features of CloudFuze?",
+            question_text="Can I do a trial migration before the full migration?",
             category="features",
-            priority=65,
+            priority=70,
             click_rate=0.0
         ),
         QuestionResponse(

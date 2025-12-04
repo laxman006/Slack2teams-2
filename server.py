@@ -19,6 +19,9 @@ async def lifespan(app: FastAPI):
     try:
         await mongodb_memory.connect()
         print("[OK] MongoDB memory storage initialized successfully")
+        
+        # Auto-seed suggested questions if database is empty
+        await auto_seed_questions()
     except Exception as e:
         print(f"[ERROR] Failed to initialize MongoDB memory storage: {e}")
     
@@ -30,6 +33,53 @@ async def lifespan(app: FastAPI):
         print("[OK] MongoDB memory storage closed")
     except Exception as e:
         print(f"[WARNING] Error closing MongoDB memory storage: {e}")
+
+
+async def auto_seed_questions():
+    """Automatically seed suggested questions if database is empty"""
+    try:
+        from app.mongodb_memory import mongodb_memory
+        from datetime import datetime
+        
+        if mongodb_memory.database is None:
+            print("[SEED] Skipping auto-seed: database not connected")
+            return
+        
+        db = mongodb_memory.database
+        collection = db.suggested_questions
+        
+        # Check if questions already exist
+        existing_count = await collection.count_documents({})
+        
+        if existing_count > 0:
+            print(f"[SEED] Suggested questions already seeded ({existing_count} questions found)")
+            return
+        
+        print("[SEED] No suggested questions found. Auto-seeding...")
+        
+        # Import seed data from the seed script
+        from scripts.seed_suggested_questions import INITIAL_QUESTIONS
+        
+        seeded_count = 0
+        for q_data in INITIAL_QUESTIONS:
+            question_doc = {
+                **q_data,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "display_count": 0,
+                "click_count": 0,
+                "click_rate": 0.0,
+                "target_user_roles": [],
+                "created_by": "system_auto_seed"
+            }
+            await collection.insert_one(question_doc)
+            seeded_count += 1
+        
+        print(f"[SEED] ✅ Successfully seeded {seeded_count} suggested questions")
+        
+    except Exception as e:
+        print(f"[SEED] ⚠️  Warning: Failed to auto-seed questions: {e}")
+        print("[SEED] Application will continue with default fallback questions")
 
 app = FastAPI(lifespan=lifespan)
 
