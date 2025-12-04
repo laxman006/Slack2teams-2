@@ -442,13 +442,17 @@ function initializeChatApp() {
       return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8002';
     }
     
-    // Production environments
+    // Production environments - always use HTTPS
     if (hostname === 'ai.cloudfuze.com') {
       return 'https://ai.cloudfuze.com';
     }
     
-    // Default fallback - use current origin
-    return window.location.origin;
+    // Default fallback - use current origin, force HTTPS in production
+    const origin = window.location.origin;
+    if (origin.startsWith('http://') && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return origin.replace('http://', 'https://');
+    }
+    return origin;
   }
 
   const messagesDiv = document.getElementById("messages");
@@ -2280,7 +2284,15 @@ function initializeChatApp() {
   async function loadSuggestedQuestions() {
     try {
       console.log('[QUESTIONS] Loading dynamic suggested questions...');
-      const response = await fetch(`${getApiBase()}/api/suggested-questions?limit=4`);
+      // Use relative URL in production (automatically uses correct protocol)
+      // Use full URL in development
+      const apiBase = getApiBase();
+      const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const apiUrl = isLocalDev 
+        ? `${apiBase}/api/suggested-questions?limit=4`
+        : '/api/suggested-questions?limit=4';
+      
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         console.error('[QUESTIONS] Failed to load questions:', response.status);
