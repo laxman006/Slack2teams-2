@@ -532,6 +532,14 @@ function initializeChatApp() {
     messages: Array<{role: string, content: string, recommendedQuestions?: string[]}>;
     deletedAt?: number; // Timestamp when session was deleted (for soft delete)
   }
+
+  // Type for API response from /chat/sessions/all endpoint
+  interface OtherUserChat {
+    session_id: string;
+    title: string;
+    user_email?: string;
+    created_at?: string;
+  }
   
   function createNewSession(): string {
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -882,7 +890,7 @@ function initializeChatApp() {
   }
   
   // Fetch all users' chats (one recent chat per user)
-  async function fetchAllUsersChats() {
+  async function fetchAllUsersChats(): Promise<OtherUserChat[]> {
     try {
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       if (!user || !user.access_token) return [];
@@ -1173,7 +1181,7 @@ function initializeChatApp() {
     const othersChats = await fetchAllUsersChats();
     if (othersChats.length > 0) {
       // Render all others' chats without date grouping
-      othersChats.forEach(chat => {
+      othersChats.forEach((chat: OtherUserChat) => {
         const displayTitle = chat.title.length > 40 ? chat.title.substring(0, 40) + '...' : chat.title;
         const isActive = chat.session_id === activeSessionId;
         othersHtml += `
