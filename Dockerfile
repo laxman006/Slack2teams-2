@@ -1,5 +1,16 @@
-# Use Python 3.13.5 slim image
-FROM python:3.13.5-slim
+# ============================================
+# FULL-FEATURED DOCKERFILE (Development/Initialization)
+# ============================================
+# Use this Dockerfile when:
+# - INITIALIZE_VECTORSTORE=true (vectorstore rebuild needed)
+# - Running SharePoint Selenium extraction
+# - Development/testing with all features
+#
+# For production-only (pre-built vectorstore), use Dockerfile.prod
+# ============================================
+
+# Use Python 3.11 slim image (best compatibility with ML packages like unstructured)
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -23,12 +34,12 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy production requirements first for better caching
-COPY requirements.prod.txt .
+# Copy full requirements for initialization support
+COPY requirements.txt .
 
-# Install Python dependencies (production-only packages)
+# Install ALL Python dependencies (includes initialization packages)
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.prod.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
