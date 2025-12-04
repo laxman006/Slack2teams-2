@@ -730,15 +730,6 @@ function initializeChatApp() {
     }
   }
   
-  // Remove test sessions (for cleanup)
-  function removeTestSessions() {
-    const sessions = getAllSessions();
-    const filteredSessions = sessions.filter(s => !s.id.startsWith('test-'));
-    saveAllSessions(filteredSessions);
-    console.log('[TEST DATA] Removed all test sessions');
-    renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
-  }
-  
   // View deleted sessions (for debugging)
   function viewDeletedSessions() {
     const deleted = getDeletedSessions();
