@@ -22,6 +22,10 @@ declare global {
   }
 }
 
+// Character limit constants
+const MAX_PROMPT_LENGTH = 20000; // ~5K tokens (safe for RAG)
+const WARN_PROMPT_LENGTH = 10000; // ~2.5K tokens - warning threshold
+
 export default function ChatPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -172,13 +176,23 @@ export default function ChatPage() {
               title="Reload page"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
             >
-              <Image 
-                src="/images/CloudFuze-icon-64x64.png" 
-                alt="CloudFuze" 
-                width={42} 
-                height={42} 
-                priority 
-              />
+              {isSidebarOpen ? (
+                <Image 
+                  src="/images/CloudFuze Horizontal Logo.svg" 
+                  alt="CloudFuze" 
+                  width={200} 
+                  height={52} 
+                  priority 
+                />
+              ) : (
+                <Image 
+                  src="/images/CloudFuze-icon-64x64.png" 
+                  alt="CloudFuze" 
+                  width={42} 
+                  height={42} 
+                  priority 
+                />
+              )}
             </button>
             <button 
               className="sidebar-toggle-btn-new" 
@@ -200,8 +214,20 @@ export default function ChatPage() {
           </button>
         </div>
         
-        <div id="sidebar-history" className="sidebar-history">
-          {/* Chat history will be populated here */}
+        <div className="sidebar-content-wrapper">
+          <div className="my-chats-section">
+            <div className="section-label">My Chats</div>
+            <div id="sidebar-history" className="sidebar-history">
+              {/* Chat history will be populated here */}
+            </div>
+          </div>
+          
+          <div className="others-chats-section">
+            <div className="section-label">Others Chats</div>
+            <div id="others-history" className="sidebar-history">
+              {/* Others' chats will be populated here */}
+            </div>
+          </div>
         </div>
         
         <div className="sidebar-footer">
@@ -214,10 +240,8 @@ export default function ChatPage() {
             <div className="user-dropdown-sidebar" id="userDropdown">
               <div className="dropdown-item" id="userEmail"></div>
               <div className="dropdown-item logout" id="logoutBtn">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M7 19H3a2 2 0 01-2-2V3a2 2 0 012-2h4"/>
-                  <path d="M14 15l5-5-5-5"/>
-                  <line x1="19" y1="10" x2="7" y2="10"/>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M3.50171 12.6663V7.33333C3.50171 6.64424 3.50106 6.08728 3.53784 5.63704C3.57525 5.17925 3.65463 4.77342 3.84644 4.39681L3.96851 4.17806C4.2726 3.68235 4.70919 3.2785 5.23023 3.01302L5.3728 2.94661C5.7091 2.80238 6.06981 2.73717 6.47046 2.70443C6.9207 2.66764 7.47766 2.66829 8.16675 2.66829H9.16675L9.30054 2.68197C9.60367 2.7439 9.83179 3.0119 9.83179 3.33333C9.83179 3.65476 9.60367 3.92277 9.30054 3.9847L9.16675 3.99837H8.16675C7.45571 3.99837 6.96238 3.99926 6.57886 4.0306C6.297 4.05363 6.10737 4.09049 5.96362 4.14193L5.83374 4.19857C5.53148 4.35259 5.27861 4.58671 5.1023 4.87435L5.03198 5.00032C4.95147 5.15833 4.89472 5.36974 4.86401 5.74544C4.83268 6.12896 4.83179 6.6223 4.83179 7.33333V12.6663C4.83179 13.3772 4.8327 13.8707 4.86401 14.2542C4.8947 14.6298 4.95153 14.8414 5.03198 14.9993L5.1023 15.1263C5.27861 15.4137 5.53163 15.6482 5.83374 15.8021L5.96362 15.8577C6.1074 15.9092 6.29691 15.947 6.57886 15.9701C6.96238 16.0014 7.45571 16.0013 8.16675 16.0013H9.16675L9.30054 16.015C9.6036 16.0769 9.83163 16.345 9.83179 16.6663C9.83179 16.9877 9.60363 17.2558 9.30054 17.3177L9.16675 17.3314H8.16675C7.47766 17.3314 6.9207 17.332 6.47046 17.2952C6.06978 17.2625 5.70912 17.1973 5.3728 17.0531L5.23023 16.9867C4.70911 16.7211 4.27261 16.3174 3.96851 15.8216L3.84644 15.6038C3.65447 15.2271 3.57526 14.8206 3.53784 14.3626C3.50107 13.9124 3.50171 13.3553 3.50171 12.6663ZM13.8035 13.804C13.5438 14.0634 13.1226 14.0635 12.863 13.804C12.6033 13.5443 12.6033 13.1223 12.863 12.8626L13.8035 13.804ZM12.863 6.19661C13.0903 5.96939 13.4409 5.94126 13.699 6.11165L13.8035 6.19661L17.1375 9.52962C17.3969 9.78923 17.3968 10.2104 17.1375 10.4701L13.8035 13.804L13.3337 13.3333L12.863 12.8626L15.0603 10.6654H9.16675C8.79959 10.6654 8.50189 10.3674 8.50171 10.0003C8.50171 9.63306 8.79948 9.33529 9.16675 9.33529H15.0613L12.863 7.13704L12.7781 7.03255C12.6077 6.77449 12.6359 6.42386 12.863 6.19661Z"/>
                 </svg>
                 <span>Log out</span>
               </div>
@@ -228,17 +252,6 @@ export default function ChatPage() {
 
       {/* ChatGPT-Style Main Content */}
       <main className="chatgpt-main">
-        {/* Top Logo */}
-        <div className="main-header">
-          <Image 
-            src="/images/CloudFuze Horizontal Logo.svg" 
-            alt="CloudFuze" 
-            width={200} 
-            height={52} 
-            priority 
-          />
-        </div>
-
         {/* Messages Container */}
         <div className="messages-container">
           {/* Empty State - Shows when no messages */}
@@ -251,33 +264,49 @@ export default function ChatPage() {
 
               {/* Input Section for Empty State */}
               <div className="empty-state-input">
-                <div className="input-wrapper-chatgpt">
+                <div className="input-wrapper-chatgpt" style={{ position: 'relative' }}>
                   <textarea
                     id="user-input-empty"
                     className="chatgpt-textarea"
                     placeholder="Ask me anything about CloudFuze..."
                     rows={1}
+                    maxLength={MAX_PROMPT_LENGTH}
+                    style={{ paddingBottom: '28px' }}
                   />
+                  <span id="char-counter-empty" style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    position: 'absolute',
+                    right: '55px',
+                    bottom: '8px',
+                    display: 'none',
+                    fontWeight: '400',
+                    pointerEvents: 'none'
+                  }}></span>
                   <button id="send-btn-empty" className="chatgpt-send-btn">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                       <path d="M8 1a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L7 12.586V2a1 1 0 011-1z" transform="rotate(180 8 8)"/>
                     </svg>
                   </button>
+                  <div id="tooltip-empty" style={{
+                    display: 'none',
+                    position: 'absolute',
+                    bottom: 'calc(100% + 8px)',
+                    right: '0',
+                    padding: '8px 12px',
+                    backgroundColor: '#1f2937',
+                    color: 'white',
+                    fontSize: '13px',
+                    borderRadius: '8px',
+                    whiteSpace: 'nowrap',
+                    zIndex: 1000,
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                    pointerEvents: 'none'
+                  }}>Message is too long</div>
                 </div>
-                {/* Suggested Questions */}
-                <div className="suggested-questions-container">
-                  <button className="suggested-question-btn" data-question="How do I migrate data from Slack to Microsoft Teams?">
-                    How do I migrate data from Slack to Microsoft Teams?
-                  </button>
-                  <button className="suggested-question-btn" data-question="What are the best practices for cloud migration?">
-                    What are the best practices for cloud migration?
-                  </button>
-                  <button className="suggested-question-btn" data-question="How can I track migration progress?">
-                    How can I track migration progress?
-                  </button>
-                  <button className="suggested-question-btn" data-question="What are the key features of CloudFuze?">
-                    What are the key features of CloudFuze?
-                  </button>
+                {/* Suggested Questions - Loaded Dynamically */}
+                <div className="suggested-questions-container" id="suggested-questions-empty">
+                  {/* Questions loaded from API */}
                 </div>
               </div>
             </div>
@@ -350,46 +379,50 @@ export default function ChatPage() {
         {/* ChatGPT-Style Input Section - Shows when there are messages */}
         <div className="chatgpt-input-section">
           <div className="input-container-inner">
-            <div className="input-wrapper-chatgpt">
+            <div className="input-wrapper-chatgpt" style={{ position: 'relative' }}>
               <textarea
                 ref={textareaRef}
                 id="user-input"
                 className="chatgpt-textarea"
                 placeholder="Ask me anything about CloudFuze..."
                 rows={1}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = '24px';
-                  target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
-                    if (sendBtn) sendBtn.click();
-                  }
-                }}
+                maxLength={MAX_PROMPT_LENGTH}
+                style={{ paddingBottom: '28px' }}
               />
+              <span id="char-counter" style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                position: 'absolute',
+                right: '55px',
+                bottom: '8px',
+                display: 'none',
+                fontWeight: '400',
+                pointerEvents: 'none'
+              }}></span>
               <button id="send-btn" className="chatgpt-send-btn">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M8 1a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L7 12.586V2a1 1 0 011-1z" transform="rotate(180 8 8)"/>
                 </svg>
-          </button>
+              </button>
+              <div id="tooltip-main" style={{
+                display: 'none',
+                position: 'absolute',
+                bottom: 'calc(100% + 8px)',
+                right: '0',
+                padding: '8px 12px',
+                backgroundColor: '#1f2937',
+                color: 'white',
+                fontSize: '13px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+                zIndex: 1000,
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                pointerEvents: 'none'
+              }}>Message is too long</div>
             </div>
-            {/* Suggested Questions */}
-            <div className="suggested-questions-container">
-              <button className="suggested-question-btn" data-question="How do I migrate data from Slack to Microsoft Teams?">
-                How do I migrate data from Slack to Microsoft Teams?
-              </button>
-              <button className="suggested-question-btn" data-question="What are the best practices for cloud migration?">
-                What are the best practices for cloud migration?
-              </button>
-              <button className="suggested-question-btn" data-question="How can I track migration progress?">
-                How can I track migration progress?
-              </button>
-              <button className="suggested-question-btn" data-question="What are the key features of CloudFuze?">
-                What are the key features of CloudFuze?
-              </button>
+            {/* Suggested Questions - Loaded Dynamically */}
+            <div className="suggested-questions-container" id="suggested-questions-main">
+              {/* Questions loaded from API */}
             </div>
             <p className="input-disclaimer">CloudFuze AI can make mistakes. Check important info.</p>
           </div>
@@ -420,11 +453,37 @@ function initializeChatApp() {
 
   const messagesDiv = document.getElementById("messages");
   const input = document.getElementById("user-input") as HTMLTextAreaElement;
-  const sendBtn = document.getElementById("send-btn");
+  const sendBtn = document.getElementById("send-btn") as HTMLButtonElement;
   const emptyState = document.getElementById("empty-state");
   const inputEmptyState = document.getElementById("user-input-empty") as HTMLTextAreaElement;
-  const sendBtnEmptyState = document.getElementById("send-btn-empty");
+  const sendBtnEmptyState = document.getElementById("send-btn-empty") as HTMLButtonElement;
   const inputSection = document.querySelector(".chatgpt-input-section") as HTMLElement;
+
+  // Flag to prevent multiple simultaneous requests
+  let isGenerating = false;
+
+  // Helper function to disable/enable send buttons during generation
+  function setGeneratingState(generating: boolean) {
+    isGenerating = generating;
+    const buttons = [sendBtn, sendBtnEmptyState];
+    const inputs = [input, inputEmptyState];
+    
+    buttons.forEach(btn => {
+      if (btn) {
+        btn.disabled = generating;
+        btn.style.opacity = generating ? '0.5' : '1';
+        btn.style.cursor = generating ? 'not-allowed' : 'pointer';
+        btn.title = generating ? 'Response is generating...' : 'Send message';
+      }
+    });
+    
+    inputs.forEach(inp => {
+      if (inp) {
+        inp.disabled = generating;
+        inp.style.opacity = generating ? '0.7' : '1';
+      }
+    });
+  }
 
   // Hide empty state when messages exist
   function updateEmptyState() {
@@ -454,15 +513,24 @@ function initializeChatApp() {
     }
   }
   
+  // Get user-specific localStorage key
+  function getUserStorageKey(key: string): string {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const userId = user?.id || 'anonymous';
+    return `${key}_${userId}`;
+  }
+  
   // Session management
-  let sessionId = localStorage.getItem('chatbot_session_id');
+  let sessionId = localStorage.getItem(getUserStorageKey('chatbot_session_id'));
   let currentSessionTitle = '';
   
   interface ChatSession {
     id: string;
     title: string;
     timestamp: number;
+    createdAt: number;
     messages: Array<{role: string, content: string, recommendedQuestions?: string[]}>;
+    deletedAt?: number; // Timestamp when session was deleted (for soft delete)
   }
   
   function createNewSession(): string {
@@ -474,15 +542,21 @@ function initializeChatApp() {
   // Initialize or create session
   if (!sessionId) {
     sessionId = createNewSession();
-    localStorage.setItem('chatbot_session_id', sessionId);
+    localStorage.setItem(getUserStorageKey('chatbot_session_id'), sessionId);
     console.log('[SESSION] Created new session:', sessionId);
   }
   
-  // Load all sessions from localStorage
+  // Track the currently active session (for UI highlighting)
+  let activeSessionId = sessionId;
+  
+  // Load all sessions from localStorage (filter out empty sessions)
   function getAllSessions(): ChatSession[] {
     try {
-      const sessionsStr = localStorage.getItem('chat_sessions');
-      return sessionsStr ? JSON.parse(sessionsStr) : [];
+      const storageKey = getUserStorageKey('chat_sessions');
+      const sessionsStr = localStorage.getItem(storageKey);
+      const sessions = sessionsStr ? JSON.parse(sessionsStr) : [];
+      // Filter out sessions with no messages (empty chats)
+      return sessions.filter((s: ChatSession) => s.messages && s.messages.length > 0);
     } catch (e) {
       console.error('[SESSIONS] Failed to load sessions:', e);
       return [];
@@ -492,11 +566,207 @@ function initializeChatApp() {
   // Save all sessions to localStorage
   function saveAllSessions(sessions: ChatSession[]) {
     try {
-      localStorage.setItem('chat_sessions', JSON.stringify(sessions));
+      const storageKey = getUserStorageKey('chat_sessions');
+      localStorage.setItem(storageKey, JSON.stringify(sessions));
     } catch (e) {
       console.error('[SESSIONS] Failed to save sessions:', e);
     }
   }
+  
+  // Get all deleted sessions from localStorage
+  function getDeletedSessions(): ChatSession[] {
+    try {
+      const storageKey = getUserStorageKey('deleted_chat_sessions');
+      const deletedStr = localStorage.getItem(storageKey);
+      return deletedStr ? JSON.parse(deletedStr) : [];
+    } catch (e) {
+      console.error('[DELETED_SESSIONS] Failed to load deleted sessions:', e);
+      return [];
+    }
+  }
+  
+  // Save deleted sessions to localStorage
+  function saveDeletedSessions(sessions: ChatSession[]) {
+    try {
+      const storageKey = getUserStorageKey('deleted_chat_sessions');
+      localStorage.setItem(storageKey, JSON.stringify(sessions));
+      console.log('[DELETED_SESSIONS] Saved', sessions.length, 'deleted sessions');
+    } catch (e) {
+      console.error('[DELETED_SESSIONS] Failed to save deleted sessions:', e);
+    }
+  }
+  
+  // Add test data for all time periods (for UI testing)
+  function addTestSessions() {
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    const testSessions: ChatSession[] = [
+      // Today
+      {
+        id: 'test-today-1',
+        title: 'Test chat from Today - Morning',
+        timestamp: now - (2 * 60 * 60 * 1000), // 2 hours ago
+        createdAt: now - (2 * 60 * 60 * 1000),
+        messages: [
+          { role: 'user', content: 'Test message from today' },
+          { role: 'assistant', content: 'Test response from today' }
+        ]
+      },
+      {
+        id: 'test-today-2',
+        title: 'Another test chat from Today',
+        timestamp: now - (5 * 60 * 60 * 1000), // 5 hours ago
+        createdAt: now - (5 * 60 * 60 * 1000),
+        messages: [
+          { role: 'user', content: 'Another test from today' },
+          { role: 'assistant', content: 'Another response from today' }
+        ]
+      },
+      // Yesterday
+      {
+        id: 'test-yesterday-1',
+        title: 'Test chat from Yesterday - Morning',
+        timestamp: now - (1.2 * oneDay), // 1.2 days ago
+        createdAt: now - (1.2 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from yesterday morning' },
+          { role: 'assistant', content: 'Test response from yesterday morning' }
+        ]
+      },
+      {
+        id: 'test-yesterday-2',
+        title: 'Test chat from Yesterday - Evening',
+        timestamp: now - (1.8 * oneDay), // 1.8 days ago
+        createdAt: now - (1.8 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from yesterday evening' },
+          { role: 'assistant', content: 'Test response from yesterday evening' }
+        ]
+      },
+      // Older
+      {
+        id: 'test-older-1',
+        title: 'Test chat from 3 days ago',
+        timestamp: now - (3 * oneDay),
+        createdAt: now - (3 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from 3 days ago' },
+          { role: 'assistant', content: 'Test response from 3 days ago' }
+        ]
+      },
+      {
+        id: 'test-older-2',
+        title: 'Test chat from 1 week ago',
+        timestamp: now - (7 * oneDay),
+        createdAt: now - (7 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from 1 week ago' },
+          { role: 'assistant', content: 'Test response from 1 week ago' }
+        ]
+      },
+      {
+        id: 'test-older-3',
+        title: 'Test chat from 2 weeks ago',
+        timestamp: now - (14 * oneDay),
+        createdAt: now - (14 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from 2 weeks ago' },
+          { role: 'assistant', content: 'Test response from 2 weeks ago' }
+        ]
+      },
+      {
+        id: 'test-older-4',
+        title: 'Test chat from 1 month ago',
+        timestamp: now - (30 * oneDay),
+        createdAt: now - (30 * oneDay),
+        messages: [
+          { role: 'user', content: 'Test message from 1 month ago' },
+          { role: 'assistant', content: 'Test response from 1 month ago' }
+        ]
+      }
+    ];
+    
+    const existingSessions = getAllSessions();
+    
+    // Filter out test sessions that already exist
+    const newTestSessions = testSessions.filter(test => 
+      !existingSessions.some(existing => existing.id === test.id)
+    );
+    
+    if (newTestSessions.length > 0) {
+      const updatedSessions = [...existingSessions, ...newTestSessions];
+      saveAllSessions(updatedSessions);
+      console.log('[TEST DATA] Added', newTestSessions.length, 'test sessions');
+    }
+  }
+  
+  // Remove test sessions (for cleanup)
+  function removeTestSessions() {
+    const sessions = getAllSessions();
+    const filteredSessions = sessions.filter(s => !s.id.startsWith('test-'));
+    saveAllSessions(filteredSessions);
+    console.log('[TEST DATA] Removed all test sessions');
+    renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
+  }
+  
+  // View deleted sessions (for debugging)
+  function viewDeletedSessions() {
+    const deleted = getDeletedSessions();
+    console.log('[DELETED_SESSIONS] Total deleted sessions:', deleted.length);
+    console.table(deleted.map(s => ({
+      id: s.id,
+      title: s.title,
+      deletedAt: s.deletedAt ? new Date(s.deletedAt).toLocaleString() : 'N/A',
+      messageCount: s.messages?.length || 0
+    })));
+    return deleted;
+  }
+  
+  // Clear all deleted sessions (permanent delete)
+  function clearDeletedSessions() {
+    if (!confirm('Permanently delete all sessions in trash? This cannot be undone.')) return;
+    const storageKey = getUserStorageKey('deleted_chat_sessions');
+    localStorage.removeItem(storageKey);
+    console.log('[DELETED_SESSIONS] Cleared all deleted sessions');
+  }
+  
+  // View current user's storage data (for debugging)
+  function viewUserData() {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    console.log('=== Current User Data ===');
+    console.log('User:', user ? `${user.name} (${user.email})` : 'Not logged in');
+    console.log('User ID:', user?.id || 'N/A');
+    console.log('\n=== Storage Keys ===');
+    console.log('Active Sessions Key:', getUserStorageKey('chat_sessions'));
+    console.log('Deleted Sessions Key:', getUserStorageKey('deleted_chat_sessions'));
+    console.log('Session ID Key:', getUserStorageKey('chatbot_session_id'));
+    console.log('\n=== Data Counts ===');
+    const sessions = getAllSessions();
+    const deleted = getDeletedSessions();
+    console.log('Active Chats:', sessions.length);
+    console.log('Deleted Chats:', deleted.length);
+    console.log('Current Session ID:', sessionId);
+    
+    // Show all localStorage keys for this user
+    console.log('\n=== All LocalStorage Keys ===');
+    const userId = user?.id || 'anonymous';
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes(userId)) {
+        console.log(`- ${key}`);
+      }
+    });
+  }
+  
+  // Expose to window for easy access in console
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).removeTestSessions = removeTestSessions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).viewDeletedSessions = viewDeletedSessions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).clearDeletedSessions = clearDeletedSessions;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).viewUserData = viewUserData;
   
   // Save current session
   function saveCurrentSession(title?: string) {
@@ -553,10 +823,12 @@ function initializeChatApp() {
     currentSessionTitle = sessionTitle;
     
     const existingIndex = sessions.findIndex(s => s.id === sessionId);
+    const now = Date.now();
     const sessionData: ChatSession = {
       id: sessionId!,
       title: sessionTitle,
-      timestamp: Date.now(),
+      timestamp: now,
+      createdAt: existingIndex >= 0 ? sessions[existingIndex].createdAt : now,
       messages: messages
     };
     
@@ -576,18 +848,174 @@ function initializeChatApp() {
     }
     
     saveAllSessions(sessions);
-    renderSessionHistory();
+    
+    // Render session history (async)
+    renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
+    
+    // Sync session metadata to backend
+    syncSessionToBackend(sessionData);
+  }
+  
+  // Sync session metadata to backend
+  async function syncSessionToBackend(sessionData: ChatSession) {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!user || !user.access_token) return;
+      
+      await fetch(`${getApiBase()}/chat/sessions/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.access_token}`
+        },
+        body: JSON.stringify({
+          session_id: sessionData.id,
+          title: sessionData.title,
+          created_at: sessionData.createdAt,
+          updated_at: sessionData.timestamp,
+          message_count: sessionData.messages.length
+        })
+      });
+    } catch (error) {
+      console.error('[SESSION] Failed to sync session to backend:', error);
+    }
+  }
+  
+  // Fetch all users' chats (one recent chat per user)
+  async function fetchAllUsersChats() {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!user || !user.access_token) return [];
+      
+      const response = await fetch(`${getApiBase()}/chat/sessions/all?limit=15`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.access_token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Already filtered on backend, return all sessions
+        return data.sessions || [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('[SESSION] Failed to fetch all users chats:', error);
+      return [];
+    }
+  }
+  
+  // Load another user's chat session (read-only)
+  async function loadOthersSession(otherSessionId: string) {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!user || !user.access_token) return;
+      
+      // Extract user_id from session_id (format: "user_chat_{user_id}")
+      const userId = otherSessionId.replace('user_chat_', '');
+      
+      // Fetch actual messages from backend
+      const response = await fetch(`${getApiBase()}/chat/sessions/messages/${userId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.access_token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Create a temporary session object that won't be saved
+      const sessionData: ChatSession = {
+        id: otherSessionId,
+        title: data.title,
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        messages: data.messages
+      };
+      
+      // Don't update sessionId to prevent this from being saved to user's history
+      // Just display the messages
+      loadSession(sessionData, true);
+    } catch (error) {
+      console.error('[SESSION] Failed to load others session:', error);
+      alert('Failed to load this chat session.');
+    }
+  }
+  
+  
+  // Convert plain text URLs and markdown links to clickable links, preserving HTML
+  function linkifyText(text: string): string {
+    // Check if the text already contains HTML tags (from formatted responses)
+    const hasHtmlTags = /<[^>]+>/.test(text);
+    
+    if (hasHtmlTags) {
+      // Text already has HTML formatting, just ensure links open in new tab
+      let processed = text.replace(/<a\s+href="([^"]+)"(?![^>]*target=)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer"');
+      return processed;
+    }
+    
+    // Plain text - convert markdown and URLs to links
+    // First handle markdown links [text](url)
+    let processed = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0033CC; text-decoration: underline;">${linkText}</a>`;
+    });
+    
+    // Then handle plain URLs (that aren't already in anchor tags)
+    const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+    processed = processed.replace(urlPattern, (url) => {
+      // Avoid double-linking by checking if URL is already in a href attribute
+      const beforeUrl = processed.substring(Math.max(0, processed.indexOf(url) - 10), processed.indexOf(url));
+      if (beforeUrl.includes('href=')) {
+        return url; // Already linked, don't modify
+      }
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0033CC; text-decoration: underline;">${url}</a>`;
+    });
+    
+    return processed;
   }
   
   // Load a specific session
-  function loadSession(sessionData: ChatSession) {
-    console.log('[SESSION] Loading session:', sessionData.id, 'with', sessionData.messages.length, 'messages');
-    sessionId = sessionData.id;
-    currentSessionTitle = sessionData.title;
-    localStorage.setItem('chatbot_session_id', sessionId);
+  function loadSession(sessionData: ChatSession, isReadOnly = false) {
+    console.log('[SESSION] Loading session:', sessionData.id, 'with', sessionData.messages.length, 'messages', isReadOnly ? '(read-only)' : '');
+    
+    // Always update activeSessionId for UI highlighting
+    activeSessionId = sessionData.id;
+    
+    // Only update sessionId if not read-only (to prevent others' chats from being saved)
+    if (!isReadOnly) {
+      sessionId = sessionData.id;
+      currentSessionTitle = sessionData.title;
+      localStorage.setItem(getUserStorageKey('chatbot_session_id'), sessionId);
+    }
     
     // Clear current messages
     messagesDiv!.innerHTML = '';
+    
+    // Show read-only banner if viewing others' chat
+    if (isReadOnly) {
+      const banner = document.createElement("div");
+      banner.className = "read-only-banner";
+      banner.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Viewing read-only chat</span>
+      `;
+      messagesDiv!.appendChild(banner);
+    }
     
     // Load session messages
     sessionData.messages.forEach((msg, index) => {
@@ -609,18 +1037,34 @@ function initializeChatApp() {
         
         const div = document.createElement("div");
         div.className = "message bot";
+        
+        // Render markdown to HTML first, then make links clickable
+        let formattedContent = msg.content;
+        
+        // Check if content needs markdown rendering (doesn't already have HTML tags)
+        const hasHtmlTags = /<[^>]+>/.test(msg.content);
+        if (!hasHtmlTags) {
+          // Content is markdown or plain text, render it
+          formattedContent = renderMarkdown(msg.content);
+        }
+        
+        // Make sure links are clickable
+        const contentWithLinks = linkifyText(formattedContent);
+        
         div.innerHTML = `
-          <div class="message-content">${msg.content}</div>
+          <div class="message-content">${contentWithLinks}</div>
           <div class="feedback-buttons">
             <button class="copy-button" onclick="window.copyMessage(this)" title="Copy message">
               <img src="/images/copy-icon.svg?v=2" alt="Copy" width="16" height="16">
             </button>
+            ${!isReadOnly ? `
             <button class="feedback-btn thumbs-up" onclick="window.submitFeedback(this, 'thumbs_up')" title="Good response">
               <img src="/images/thumbs-up-icon.svg?v=2" alt="Thumbs up" width="16" height="16">
             </button>
             <button class="feedback-btn thumbs-down" onclick="window.submitFeedback(this, 'thumbs_down')" title="Bad response">
               <img src="/images/thumbs-down-icon.svg?v=2" alt="Thumbs down" width="16" height="16">
             </button>
+            ` : ''}
             <span class="feedback-text"></span>
           </div>
           ${recommendedQuestionsHTML}
@@ -629,87 +1073,153 @@ function initializeChatApp() {
       }
     });
     
+    // Disable input for read-only mode
+    if (isReadOnly) {
+      const inputEl = document.getElementById('user-input') as HTMLTextAreaElement;
+      const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
+      if (inputEl) {
+        inputEl.disabled = true;
+        inputEl.placeholder = "Read-only mode - You cannot send messages";
+      }
+      if (sendBtn) sendBtn.disabled = true;
+    } else {
+      const inputEl = document.getElementById('user-input') as HTMLTextAreaElement;
+      const sendBtn = document.getElementById('send-btn') as HTMLButtonElement;
+      if (inputEl) {
+        inputEl.disabled = false;
+        inputEl.placeholder = "Type your message here...";
+      }
+      if (sendBtn) sendBtn.disabled = false;
+    }
+    
     updateEmptyState();
     scrollToBottom();
   }
   
   // Render session history in sidebar
-  function renderSessionHistory() {
+  async function renderSessionHistory() {
     const sidebarHistory = document.getElementById('sidebar-history');
     if (!sidebarHistory) return;
     
     const sessions = getAllSessions();
     
-    if (sessions.length === 0) {
-      sidebarHistory.innerHTML = '<div class="no-history">No chat history yet</div>';
-      return;
-    }
-    
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
-    const sevenDays = 7 * oneDay;
-    const thirtyDays = 30 * oneDay;
     
     const today: ChatSession[] = [];
     const yesterday: ChatSession[] = [];
-    const lastWeek: ChatSession[] = [];
-    const lastMonth: ChatSession[] = [];
     const older: ChatSession[] = [];
     
     sessions.forEach(session => {
-      const age = now - session.timestamp;
+      const age = now - (session.createdAt || session.timestamp);
       if (age < oneDay) today.push(session);
       else if (age < 2 * oneDay) yesterday.push(session);
-      else if (age < sevenDays) lastWeek.push(session);
-      else if (age < thirtyDays) lastMonth.push(session);
       else older.push(session);
     });
     
     let html = '';
     
-    function renderSection(title: string, sessions: ChatSession[]) {
+    function renderSection(title: string, sessions: ChatSession[], sectionId: string, isOthersSection = false, defaultCollapsed = false) {
       if (sessions.length === 0) return '';
-      let section = `<div class="history-section-title">${title}</div>`;
+      
+      // Check if section is collapsed (stored in localStorage, otherwise use default)
+      const storedCollapsed = localStorage.getItem(`section_collapsed_${sectionId}`);
+      const isCollapsed = storedCollapsed !== null ? storedCollapsed === 'true' : defaultCollapsed;
+      
+      let section = `
+        <div class="history-section-title${isOthersSection ? ' others-section' : ''}" data-section-id="${sectionId}">
+          <span>${title}</span>
+          <button class="section-toggle-btn" data-section-id="${sectionId}" title="${isCollapsed ? 'Expand' : 'Collapse'}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-icon ${isCollapsed ? 'collapsed' : ''}">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="history-section-content ${isCollapsed ? 'collapsed' : ''}" data-section-id="${sectionId}">
+      `;
+      
       sessions.forEach(session => {
-        const isActive = session.id === sessionId;
+        const isActive = session.id === activeSessionId;
         section += `
-          <div class="history-item ${isActive ? 'active' : ''}" data-session-id="${session.id}">
+          <div class="history-item ${isActive ? 'active' : ''}${isOthersSection ? ' others-item' : ''}" data-session-id="${session.id}"${isOthersSection ? ' data-is-others="true"' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
             </svg>
             <span class="history-item-title">${session.title}</span>
-            <button class="history-item-delete" data-session-id="${session.id}" title="Delete chat">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
+            ${!isOthersSection ? `
+            <button class="history-item-delete" data-session-id="${session.id}" title="Delete chat">×</button>` : ''}
           </div>
         `;
       });
+      
+      section += '</div>';
       return section;
     }
     
-    html += renderSection('Today', today);
-    html += renderSection('Yesterday', yesterday);
-    html += renderSection('Previous 7 Days', lastWeek);
-    html += renderSection('Previous 30 Days', lastMonth);
-    html += renderSection('Older', older);
+    if (sessions.length === 0) {
+      html = '<div class="no-history">No chat history yet</div>';
+    } else {
+      html += renderSection('Today', today, 'today', false, false);
+      html += renderSection('Yesterday', yesterday, 'yesterday', false, true);
+      html += renderSection('Older', older, 'older', false, true);
+    }
     
     sidebarHistory.innerHTML = html;
     
-    // Add click handlers
-    sidebarHistory.querySelectorAll('.history-item').forEach(item => {
+    // Fetch and render others' chats in separate section
+    const othersHistory = document.getElementById('others-history');
+    let othersHtml = '';
+    
+    const othersChats = await fetchAllUsersChats();
+    if (othersChats.length > 0) {
+      // Render all others' chats without date grouping
+      othersChats.forEach(chat => {
+        const displayTitle = chat.title.length > 40 ? chat.title.substring(0, 40) + '...' : chat.title;
+        const isActive = chat.session_id === activeSessionId;
+        othersHtml += `
+          <div class="history-item others-item ${isActive ? 'active' : ''}" data-session-id="${chat.session_id}" data-is-others="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="history-item-title">${displayTitle}</span>
+          </div>
+        `;
+      });
+    } else {
+      othersHtml = '<div class="no-history">No others\' chats yet</div>';
+    }
+    
+    if (othersHistory) {
+      othersHistory.innerHTML = othersHtml;
+    }
+    
+    // Add click handlers for both my chats and others' chats
+    const allHistoryItems = [...Array.from(sidebarHistory.querySelectorAll('.history-item')), 
+                             ...(othersHistory ? Array.from(othersHistory.querySelectorAll('.history-item')) : [])];
+    
+    allHistoryItems.forEach(item => {
       const sessionEl = item as HTMLElement;
       const sid = sessionEl.dataset.sessionId;
+      const isOthers = sessionEl.dataset.isOthers === 'true';
       
       sessionEl.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
         if (target.closest('.history-item-delete')) return;
         
-        const session = sessions.find(s => s.id === sid);
-        if (session) {
-          loadSession(session);
+        // Update active state immediately for visual feedback
+        allHistoryItems.forEach(item => {
+          (item as HTMLElement).classList.remove('active');
+        });
+        sessionEl.classList.add('active');
+        
+        if (isOthers) {
+          // For others' chats, load in read-only mode
+          loadOthersSession(sid!);
+        } else {
+          const session = sessions.find(s => s.id === sid);
+          if (session) {
+            loadSession(session, false);
+          }
         }
       });
     });
@@ -722,13 +1232,59 @@ function initializeChatApp() {
         deleteSession(sid!);
       });
     });
+    
+    // Add toggle handlers for section collapse/expand
+    sidebarHistory.querySelectorAll('.section-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sectionId = (btn as HTMLElement).dataset.sectionId;
+        if (!sectionId) return;
+        
+        const content = sidebarHistory.querySelector(`.history-section-content[data-section-id="${sectionId}"]`);
+        const icon = btn.querySelector('.toggle-icon');
+        
+        if (content && icon) {
+          const isCollapsed = content.classList.contains('collapsed');
+          
+          if (isCollapsed) {
+            content.classList.remove('collapsed');
+            icon.classList.remove('collapsed');
+            localStorage.removeItem(`section_collapsed_${sectionId}`);
+            btn.setAttribute('title', 'Collapse');
+          } else {
+            content.classList.add('collapsed');
+            icon.classList.add('collapsed');
+            localStorage.setItem(`section_collapsed_${sectionId}`, 'true');
+            btn.setAttribute('title', 'Expand');
+          }
+        }
+      });
+    });
   }
   
-  // Delete a session
+  // Delete a session (soft delete - moves to deleted collection)
   function deleteSession(sid: string) {
     if (!confirm('Delete this chat?')) return;
     
     let sessions = getAllSessions();
+    const sessionToDelete = sessions.find(s => s.id === sid);
+    
+    if (sessionToDelete) {
+      // Add deleted timestamp to the session
+      const deletedSession = {
+        ...sessionToDelete,
+        deletedAt: Date.now()
+      };
+      
+      // Move to deleted collection
+      const deletedSessions = getDeletedSessions();
+      deletedSessions.push(deletedSession);
+      saveDeletedSessions(deletedSessions);
+      
+      console.log('[DELETED_SESSIONS] Moved session to deleted collection:', sid);
+    }
+    
+    // Remove from active sessions
     sessions = sessions.filter(s => s.id !== sid);
     saveAllSessions(sessions);
     
@@ -736,7 +1292,7 @@ function initializeChatApp() {
     if (sid === sessionId) {
       handleNewChat();
     } else {
-      renderSessionHistory();
+      renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
     }
   }
 
@@ -927,16 +1483,68 @@ function initializeChatApp() {
       html = window.marked.parse(text);
     } else {
       // Fallback: basic markdown-like formatting
-      html = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/`(.*?)`/g, '<code>$1</code>')
-        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-        .replace(/^\* (.*$)/gim, '<li>$1</li>')
-        .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
-        .replace(/\n/g, '<br>');
+      const lines = text.split('\n');
+      let inList = false;
+      let inOrderedList = false;
+      let result = [];
+      
+      for (let line of lines) {
+        // Check for unordered list item
+        if (line.match(/^\* /)) {
+          if (!inList) {
+            result.push('<ul>');
+            inList = true;
+          }
+          result.push(line.replace(/^\* (.*)$/, '<li>$1</li>'));
+        }
+        // Check for ordered list item
+        else if (line.match(/^\d+\. /)) {
+          if (!inOrderedList) {
+            result.push('<ol>');
+            inOrderedList = true;
+          }
+          result.push(line.replace(/^\d+\. (.*)$/, '<li>$1</li>'));
+        }
+        // Not a list item
+        else {
+          // Close any open lists
+          if (inList) {
+            result.push('</ul>');
+            inList = false;
+          }
+          if (inOrderedList) {
+            result.push('</ol>');
+            inOrderedList = false;
+          }
+          
+          // Format the line
+          let formattedLine = line
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/`(.*?)`/g, '<code>$1</code>');
+          
+          // Handle headings
+          if (line.match(/^### /)) {
+            formattedLine = line.replace(/^### (.*)$/, '<h3>$1</h3>');
+          } else if (line.match(/^## /)) {
+            formattedLine = line.replace(/^## (.*)$/, '<h2>$1</h2>');
+          } else if (line.match(/^# /)) {
+            formattedLine = line.replace(/^# (.*)$/, '<h1>$1</h1>');
+          } else if (line.trim() !== '') {
+            formattedLine = '<p>' + formattedLine + '</p>';
+          } else {
+            formattedLine = '';
+          }
+          
+          if (formattedLine) result.push(formattedLine);
+        }
+      }
+      
+      // Close any remaining open lists
+      if (inList) result.push('</ul>');
+      if (inOrderedList) result.push('</ol>');
+      
+      html = result.join('\n');
     }
     
     // Add target="_blank" and rel="noopener noreferrer" to all links
@@ -979,8 +1587,25 @@ function initializeChatApp() {
   }
 
   async function sendMessage() {
+    // Prevent multiple simultaneous requests
+    if (isGenerating) return;
+    
     const question = input.value.trim();
     if (!question) return;
+
+    // Validate prompt length
+    if (question.length > MAX_PROMPT_LENGTH) {
+      const tokens = Math.round(question.length / 4);
+      alert(`⚠️ Message is too long!\n\nYour message: ~${tokens.toLocaleString()} tokens (${question.length.toLocaleString()} characters)\nMaximum allowed: 5,000 tokens (20,000 characters)\n\nPlease shorten your message or split it into multiple parts.`);
+      return;
+    }
+    
+    // Show warning for large prompts
+    if (question.length > WARN_PROMPT_LENGTH) {
+      const tokens = Math.round(question.length / 4);
+      const proceed = confirm(`⚠️ Large Message Warning\n\nYour message is approximately ${tokens.toLocaleString()} tokens (${question.length.toLocaleString()} characters).\n\nLarge messages may:\n• Take longer to process\n• Produce less focused responses\n\nDo you want to continue?`);
+      if (!proceed) return;
+    }
 
     // Remove all previous recommended questions when user types a new query
     const allRecommendations = messagesDiv!.querySelectorAll('.recommended-questions');
@@ -991,6 +1616,10 @@ function initializeChatApp() {
     // Reset textarea height after sending
     input.style.height = '24px';
     
+    // Hide character counter after sending
+    const counter = document.getElementById('char-counter');
+    if (counter) counter.style.display = 'none';
+    
     // Save session after user message
     saveCurrentSession();
     
@@ -999,49 +1628,34 @@ function initializeChatApp() {
 
   async function sendMessageText(question: string) {
     if (!question) return;
+    
+    // Prevent multiple simultaneous requests
+    if (isGenerating) return;
+    
+    // Disable send buttons while generating
+    setGeneratingState(true);
 
     const botDiv = addMessageHTML("", "bot", null);
     
-    // Create status streaming matching the existing "Thinking..." style
-    let currentStatusText = '';
+    // Status update function - simplified for better performance
     let isStreamingStatus = false;
     
-    const streamStatusText = async (text: string) => {
-      isStreamingStatus = true;
-      currentStatusText = '';
+    const updateThinkingStatus = (status: string, message: string) => {
+      // Skip if already showing content or if we're done with thinking phase
+      if (isStreamingStatus) return;
       
-      // Stream word by word
-      const words = text.split(' ');
-      for (let i = 0; i < words.length; i++) {
-        currentStatusText += (i > 0 ? ' ' : '') + words[i];
-        botDiv.innerHTML = `
-          <div class="thinking">
-            ${currentStatusText}
-            <span class="thinking-dots">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-          </div>
-        `;
-        
-        // Small delay for streaming effect
-        await new Promise(resolve => setTimeout(resolve, 30));
-        autoScrollToBottom();
-      }
-      
-      // Hold the completed message briefly before next one
-      await new Promise(resolve => setTimeout(resolve, 300));
-      isStreamingStatus = false;
-    };
-    
-    const updateThinkingStatus = async (status: string, message: string) => {
-      // Wait if currently streaming
-      while (isStreamingStatus) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
-      
-      await streamStatusText(message);
+      // Update status immediately without word-by-word animation
+      botDiv.innerHTML = `
+        <div class="thinking">
+          ${message}
+          <span class="thinking-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </div>
+      `;
+      autoScrollToBottom();
     };
     
     // Initial "Thinking" state - wait for first status from backend
@@ -1113,9 +1727,11 @@ function initializeChatApp() {
               const data = JSON.parse(line.slice(6));
               
               if (data.type === 'status') {
-                // Update thinking status with backend progress (don't await, let it stream async)
-                updateThinkingStatus(data.status, data.message).catch(e => console.error('Status update error:', e));
+                // Update thinking status with backend progress
+                updateThinkingStatus(data.status, data.message);
               } else if (data.type === 'thinking_complete') {
+                // Mark that we're done with thinking phase and starting content
+                isStreamingStatus = true;
                 botDiv.innerHTML = `<div class="message-content"></div>`;
               } else if (data.type === 'sources') {
                 console.log("[CONSOLE]", data.sources);
@@ -1176,6 +1792,9 @@ function initializeChatApp() {
                 // Save session after bot response
                 saveCurrentSession();
                 
+                // Re-enable send buttons after response complete
+                setGeneratingState(false);
+                
                 return;
               } else if (data.type === 'error') {
                 throw new Error(data.error);
@@ -1190,6 +1809,8 @@ function initializeChatApp() {
     } catch (error) {
       console.error("Error sending message:", error);
       botDiv.innerHTML = "Sorry, there was an error. Please try again.";
+      // Re-enable send buttons after error
+      setGeneratingState(false);
     }
   }
 
@@ -1229,6 +1850,9 @@ function initializeChatApp() {
   }
 
   function askRecommendedQuestion(button: HTMLElement) {
+    // Prevent multiple simultaneous requests
+    if (isGenerating) return;
+    
     const question = button.getAttribute('data-question');
     if (question) {
       // Remove ALL previous recommended questions from the DOM
@@ -1554,6 +2178,9 @@ function initializeChatApp() {
   }
 
   function saveEdit(button: HTMLElement) {
+    // Prevent multiple simultaneous requests
+    if (isGenerating) return;
+    
     const wrapper = button.closest('.user-message-wrapper');
     if (!wrapper) return;
     
@@ -1625,6 +2252,112 @@ function initializeChatApp() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).submitDetailedFeedback = submitDetailedFeedback;
 
+  // ============================================================================
+  // DYNAMIC SUGGESTED QUESTIONS SYSTEM
+  // ============================================================================
+  
+  // Fetch suggested questions from API
+  async function loadSuggestedQuestions() {
+    try {
+      console.log('[QUESTIONS] Loading dynamic suggested questions...');
+      const response = await fetch(`${getApiBase()}/api/suggested-questions?limit=4`);
+      
+      if (!response.ok) {
+        console.error('[QUESTIONS] Failed to load questions:', response.status);
+        return;
+      }
+      
+      const questions = await response.json();
+      console.log('[QUESTIONS] Loaded', questions.length, 'questions');
+      updateSuggestedQuestions(questions);
+    } catch (error) {
+      console.error('[QUESTIONS] Error loading questions:', error);
+    }
+  }
+  
+  // Update both suggested questions containers
+  function updateSuggestedQuestions(questions: any[]) {
+    const containers = [
+      document.getElementById('suggested-questions-empty'),
+      document.getElementById('suggested-questions-main')
+    ];
+    
+    containers.forEach(container => {
+      if (!container || !questions || questions.length === 0) return;
+      
+      const html = questions.map((q: any) => `
+        <button class="suggested-question-btn" 
+                data-question="${q.question_text.replace(/"/g, '&quot;')}"
+                data-question-id="${q.id}">
+          ${q.question_text}
+        </button>
+      `).join('');
+      
+      container.innerHTML = html;
+    });
+    
+    // Re-attach event listeners for new buttons
+    attachSuggestedQuestionListeners();
+  }
+  
+  // Attach click handlers to suggested question buttons
+  function attachSuggestedQuestionListeners() {
+    const buttons = document.querySelectorAll('.suggested-question-btn');
+    
+    buttons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const button = e.target as HTMLButtonElement;
+        const question = button.getAttribute('data-question');
+        const questionId = button.getAttribute('data-question-id');
+        
+        if (question) {
+          // Track click for analytics
+          if (questionId) {
+            trackQuestionClick(questionId);
+          }
+          
+          // Remove all previous recommended questions
+          const allRecommendations = messagesDiv!.querySelectorAll('.recommended-questions');
+          allRecommendations.forEach(rec => rec.remove());
+          
+          // Add user message to chat
+          addMessage(question, "user");
+          
+          // Clear input fields
+          if (input) {
+            input.value = "";
+            input.style.height = '24px';
+          }
+          if (inputEmptyState) {
+            inputEmptyState.value = "";
+            inputEmptyState.style.height = '24px';
+          }
+          
+          // Send the question
+          sendMessageText(question);
+        }
+      });
+    });
+  }
+  
+  // Track question click for analytics (optional - silently fails if endpoint not available)
+  function trackQuestionClick(questionId: string) {
+    // Disabled for now - analytics endpoint not implemented yet
+    // fetch(`${getApiBase()}/api/suggested-questions/analytics`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({
+    //     action: 'click',
+    //     question_id: questionId
+    //   })
+    // }).catch(err => console.error('[ANALYTICS] Failed to track click:', err));
+    console.log('[ANALYTICS] Question clicked:', questionId);
+  }
+  
+  // ============================================================================
+  // AUTHENTICATION & INITIALIZATION
+  // ============================================================================
+  
   // Initialize auth - simplified since auth check is done at component level
   function initAuth() {
     const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -1634,8 +2367,14 @@ function initializeChatApp() {
     if (user && user.access_token) {
     updateUserInfo(user);
       
-      // Load session history in sidebar
-      renderSessionHistory();
+      // Add test data for UI testing (comment out in production)
+      addTestSessions();
+      
+      // Load dynamic suggested questions
+      loadSuggestedQuestions();
+      
+      // Load session history in sidebar (async)
+      renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
       
       // Load current session if it exists in localStorage
       const sessions = getAllSessions();
@@ -1770,17 +2509,18 @@ function initializeChatApp() {
     
     // Create new session
     sessionId = createNewSession();
+    activeSessionId = sessionId;
     currentSessionTitle = '';
-    localStorage.setItem('chatbot_session_id', sessionId);
+    localStorage.setItem(getUserStorageKey('chatbot_session_id'), sessionId);
     
     // Clear messages
     messagesDiv!.innerHTML = '';
     updateEmptyState();
     
-    // Update sidebar to show new session is active
-    renderSessionHistory();
+    // Update sidebar to show new session is active (async with error handling)
+    renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
     
-    // Show success state briefly
+    // Show success state briefly with visual feedback
     if (newChatBtn) {
       console.log('[NEW CHAT] Showing success state');
       newChatBtn.innerHTML = `
@@ -1826,12 +2566,56 @@ function initializeChatApp() {
   }
   
   if (input) {
-    // Note: Enter key is already handled by React's onKeyDown in the JSX
-    // This is just a fallback
+    // Auto-expand textarea and handle character validation
+    input.addEventListener("input", (e) => {
+      const target = e.target as HTMLTextAreaElement;
+      target.style.height = '24px';
+      target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+      
+      // Character counter and button validation
+      const counter = document.getElementById('char-counter');
+      const sendButton = document.getElementById('send-btn') as HTMLButtonElement;
+      const tooltip = document.getElementById('tooltip-main');
+      const length = target.value.length;
+      const exceeded = length >= MAX_PROMPT_LENGTH;
+      
+      // Show counter when approaching limit
+      if (counter && length >= WARN_PROMPT_LENGTH) {
+        counter.textContent = `${length.toLocaleString()} / ${MAX_PROMPT_LENGTH.toLocaleString()}`;
+        counter.style.display = 'block';
+        // Color coding: red when exceeded, orange when close, gray otherwise
+        counter.style.color = exceeded ? '#ef4444' : (length > 18000 ? '#f59e0b' : '#6b7280');
+      } else if (counter) {
+        counter.style.display = 'none';
+      }
+      
+      // Disable button if limit exceeded
+      if (sendButton) {
+        sendButton.disabled = exceeded;
+        sendButton.style.opacity = exceeded ? '0.5' : '1';
+        sendButton.style.cursor = exceeded ? 'not-allowed' : 'pointer';
+        sendButton.style.backgroundColor = exceeded ? '#9ca3af' : '';
+        
+        // Show tooltip on hover when disabled
+        if (exceeded) {
+          sendButton.onmouseenter = () => { if (tooltip) tooltip.style.display = 'block'; };
+          sendButton.onmouseleave = () => { if (tooltip) tooltip.style.display = 'none'; };
+        } else {
+          sendButton.onmouseenter = null;
+          sendButton.onmouseleave = null;
+          if (tooltip) tooltip.style.display = 'none';
+        }
+      }
+    });
+    
+    // Handle Enter key
     input.addEventListener("keydown", (e) => { 
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        const btn = document.getElementById('send-btn') as HTMLButtonElement;
+        if (btn && !btn.disabled) {
+          btn.click();
+        }
       }
     });
   }
@@ -1839,12 +2623,34 @@ function initializeChatApp() {
   // Event listeners for empty state input (center)
   if (sendBtnEmptyState) {
     sendBtnEmptyState.addEventListener("click", () => {
+      // Prevent multiple simultaneous requests
+      if (isGenerating) return;
+      
       if (inputEmptyState) {
         const question = inputEmptyState.value.trim();
         if (question) {
+          // Validate prompt length
+          if (question.length > MAX_PROMPT_LENGTH) {
+            const tokens = Math.round(question.length / 4);
+            alert(`⚠️ Message is too long!\n\nYour message: ~${tokens.toLocaleString()} tokens (${question.length.toLocaleString()} characters)\nMaximum allowed: 5,000 tokens (20,000 characters)\n\nPlease shorten your message or split it into multiple parts.`);
+            return;
+          }
+          
+          // Show warning for large prompts
+          if (question.length > WARN_PROMPT_LENGTH) {
+            const tokens = Math.round(question.length / 4);
+            const proceed = confirm(`⚠️ Large Message Warning\n\nYour message is approximately ${tokens.toLocaleString()} tokens (${question.length.toLocaleString()} characters).\n\nLarge messages may:\n• Take longer to process\n• Produce less focused responses\n\nDo you want to continue?`);
+            if (!proceed) return;
+          }
+          
           addMessage(question, "user");
           inputEmptyState.value = "";
           inputEmptyState.style.height = '24px';
+          
+          // Hide character counter after sending
+          const counter = document.getElementById('char-counter-empty');
+          if (counter) counter.style.display = 'none';
+          
           sendMessageText(question);
         }
       }
@@ -1852,19 +2658,55 @@ function initializeChatApp() {
   }
   
   if (inputEmptyState) {
-    // Auto-expand textarea
+    // Auto-expand textarea and handle character validation
     inputEmptyState.addEventListener("input", (e) => {
       const target = e.target as HTMLTextAreaElement;
       target.style.height = '24px';
       target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+      
+      // Character counter and button validation
+      const counter = document.getElementById('char-counter-empty');
+      const sendButton = document.getElementById('send-btn-empty') as HTMLButtonElement;
+      const tooltip = document.getElementById('tooltip-empty');
+      const length = target.value.length;
+      const exceeded = length >= MAX_PROMPT_LENGTH;
+      
+      // Show counter when approaching limit
+      if (counter && length >= WARN_PROMPT_LENGTH) {
+        counter.textContent = `${length.toLocaleString()} / ${MAX_PROMPT_LENGTH.toLocaleString()}`;
+        counter.style.display = 'block';
+        // Color coding: red when exceeded, orange when close, gray otherwise
+        counter.style.color = exceeded ? '#ef4444' : (length > 18000 ? '#f59e0b' : '#6b7280');
+      } else if (counter) {
+        counter.style.display = 'none';
+      }
+      
+      // Disable button if limit exceeded
+      if (sendButton) {
+        sendButton.disabled = exceeded;
+        sendButton.style.opacity = exceeded ? '0.5' : '1';
+        sendButton.style.cursor = exceeded ? 'not-allowed' : 'pointer';
+        sendButton.style.backgroundColor = exceeded ? '#9ca3af' : '';
+        
+        // Show tooltip on hover when disabled
+        if (exceeded) {
+          sendButton.onmouseenter = () => { if (tooltip) tooltip.style.display = 'block'; };
+          sendButton.onmouseleave = () => { if (tooltip) tooltip.style.display = 'none'; };
+        } else {
+          sendButton.onmouseenter = null;
+          sendButton.onmouseleave = null;
+          if (tooltip) tooltip.style.display = 'none';
+        }
+      }
     });
     
     // Handle Enter key
     inputEmptyState.addEventListener("keydown", (e) => { 
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (sendBtnEmptyState) {
-          sendBtnEmptyState.click();
+        const btn = sendBtnEmptyState as HTMLButtonElement;
+        if (btn && !btn.disabled) {
+          btn.click();
         }
       }
     });
@@ -1874,6 +2716,9 @@ function initializeChatApp() {
   const suggestedQuestionBtns = document.querySelectorAll('.suggested-question-btn');
   suggestedQuestionBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
+      // Prevent multiple simultaneous requests
+      if (isGenerating) return;
+      
       const button = e.target as HTMLButtonElement;
       const question = button.getAttribute('data-question');
       if (question) {

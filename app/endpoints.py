@@ -13,7 +13,11 @@ from datetime import datetime
 
 from app.llm import setup_qa_chain
 from app.vectorstore import retriever, vectorstore, bm25_retriever
-from app.mongodb_memory import add_to_conversation, get_conversation_context, get_user_chat_history, clear_user_chat_history
+from app.mongodb_memory import (
+    add_to_conversation, get_conversation_context, get_user_chat_history, 
+    clear_user_chat_history, save_session, get_all_sessions, get_user_sessions, 
+    get_session_by_id
+)
 from app.helpers import strip_markdown, preserve_markdown
 from app.langfuse_integration import langfuse_tracker
 from app.auth import verify_user_access, require_admin
@@ -2004,6 +2008,165 @@ async def rebuild_chat_history(
     except Exception as e:
         return {"error": str(e)}
 
+# ---------------- Chat Session Endpoints ----------------
+
+@router.post("/chat/sessions/save")
+async def save_chat_session(
+    request: Request,
+    auth_user: dict = Depends(require_auth)
+):
+    """Save or update a chat session metadata."""
+    try:
+        data = await request.json()
+        
+        session_data = {
+            "session_id": data.get("session_id"),
+            "user_id": auth_user["user_id"],
+            "user_email": auth_user["email"],
+            "user_name": auth_user["name"],
+            "title": data.get("title"),
+            "created_at": data.get("created_at"),
+            "updated_at": data.get("updated_at", data.get("created_at")),
+            "message_count": data.get("message_count", 0)
+        }
+        
+        if not session_data["session_id"] or not session_data["title"] or not session_data["created_at"]:
+            raise HTTPException(status_code=400, detail="session_id, title, and created_at are required")
+        
+        await save_session(session_data)
+        
+        return {"message": "Session saved successfully", "session_id": session_data["session_id"]}
+        
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/chat/sessions/all")
+async def get_all_chat_sessions(
+    limit: int = 15,
+    auth_user: dict = Depends(require_auth)
+):
+    """Get recent chat sessions from all users (one most recent chat per user)."""
+    try:
+        from app.mongodb_memory import mongodb_memory
+        
+        await mongodb_memory.connect()
+        
+        # Get all users who have chat history (sorted by last activity)
+        users_cursor = mongodb_memory.collection.find(
+            {"messages": {"$exists": True, "$ne": []}},
+            {"user_id": 1, "messages": 1, "last_updated": 1}
+        ).sort("last_updated", -1).limit(limit + 10)  # Fetch extra to account for filtering
+        
+        sessions = []
+        current_user_id = auth_user["user_id"]
+        
+        async for user_doc in users_cursor:
+            user_id = user_doc.get("user_id")
+            
+            # Skip current user
+            if user_id == current_user_id:
+                continue
+                
+            messages = user_doc.get("messages", [])
+            if not messages:
+                continue
+            
+            # Get first user message as title
+            first_message = next((msg for msg in messages if msg.get("role") == "user"), None)
+            title = first_message["content"][:50] + "..." if first_message else "Chat conversation"
+            
+            # Get timestamp
+            last_updated = user_doc.get("last_updated")
+            timestamp = int(last_updated.timestamp() * 1000) if last_updated else 0
+            
+            sessions.append({
+                "session_id": f"user_chat_{user_id}",
+                "user_id": user_id,
+                "user_email": user_id,  # Using user_id as email for now
+                "user_name": user_id.split("@")[0] if "@" in user_id else user_id,
+                "title": title,
+                "created_at": timestamp,
+                "updated_at": timestamp,
+                "message_count": len(messages)
+            })
+            
+            if len(sessions) >= limit:
+                break
+        
+        return {"sessions": sessions, "count": len(sessions)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/chat/sessions/user/{user_id}")
+async def get_user_chat_sessions(
+    user_id: str,
+    limit: int = 50,
+    current_user: dict = Depends(verify_user_access)
+):
+    """Get chat sessions for a specific user. Protected against IDOR."""
+    try:
+        sessions = await get_user_sessions(user_id, limit)
+        return {"sessions": sessions, "count": len(sessions)}
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/chat/sessions/{session_id}")
+async def get_chat_session(
+    session_id: str,
+    auth_user: dict = Depends(require_auth)
+):
+    """Get a specific chat session by ID."""
+    try:
+        session = await get_session_by_id(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return session
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.get("/chat/sessions/messages/{user_id}")
+async def get_user_chat_messages(
+    user_id: str,
+    auth_user: dict = Depends(require_auth)
+):
+    """Get chat messages for a specific user (for read-only viewing)."""
+    try:
+        from app.mongodb_memory import mongodb_memory
+        
+        await mongodb_memory.connect()
+        
+        # Get user's chat history
+        user_doc = await mongodb_memory.collection.find_one({"user_id": user_id})
+        
+        if not user_doc:
+            return {"messages": [], "title": "No chat history"}
+        
+        messages = user_doc.get("messages", [])
+        
+        # Get title from first user message
+        first_message = next((msg for msg in messages if msg.get("role") == "user"), None)
+        title = first_message["content"][:50] + "..." if first_message else "Chat conversation"
+        
+        # Format messages for frontend
+        formatted_messages = []
+        for msg in messages:
+            formatted_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        
+        return {
+            "messages": formatted_messages,
+            "title": title,
+            "user_id": user_id,
+            "message_count": len(formatted_messages)
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 # ---------------- Feedback Endpoint ----------------
 
 @router.post("/feedback")
@@ -2595,14 +2758,13 @@ The previous response was marked as poor quality. Using ONLY the information fro
 5. Is clear, professional, and helpful
 6. Includes relevant CloudFuze links.
 7. Uses proper Markdown formatting as specified in the system prompt
-8. Concludes with a helpful suggestion to contact CloudFuze with the contact link
 
 CRITICAL RULES:
 - Base your answer STRICTLY on the knowledge base context provided above
 - Use the EXACT same style, tone, and formatting as the system prompt requires
 - Include relevant CloudFuze links naturally in the response
 - DO NOT invent information not in the knowledge base context
-- If information is not in the context, say "I don't have specific information about that and  Concludes with a helpful suggestion to contact CloudFuze with the contact link"
+- If information is not in the context, say "I don't have specific information about that"
 
 Improved response:
 """

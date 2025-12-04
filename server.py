@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.endpoints import router as chat_router
+from app.routes.suggested_questions import router as questions_router
 from app.mongodb_memory import close_mongodb_connection
 import uvicorn
 import asyncio
@@ -51,6 +52,7 @@ async def health_check():
     return {"status": "healthy", "message": "Server is running"}
 
 app.include_router(chat_router)
+app.include_router(questions_router)
 
 # Mount static directories for images and other assets
 app.mount("/images", StaticFiles(directory="images"), name="images")

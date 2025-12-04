@@ -89,6 +89,14 @@ class MongoDBMemoryManager:
             await self.collection.create_index("user_id", unique=True)
             # Index on timestamp for sorting
             await self.collection.create_index("last_updated")
+            
+            # Create indexes for sessions collection
+            sessions_collection = self.database["chat_sessions"]
+            await sessions_collection.create_index("session_id", unique=True)
+            await sessions_collection.create_index("user_id")
+            await sessions_collection.create_index("created_at")
+            await sessions_collection.create_index([("created_at", -1)])
+            
             logger.info("MongoDB indexes created successfully")
         except Exception as e:
             logger.warning(f"Could not create indexes: {e}")
@@ -239,6 +247,119 @@ class MongoDBMemoryManager:
         except Exception as e:
             logger.error(f"Error getting conversation stats: {e}")
             return {"error": str(e)}
+    
+    async def save_session(self, session_data: Dict):
+        """Save or update a chat session."""
+        await self.connect()
+        
+        try:
+            sessions_collection = self.database["chat_sessions"]
+            
+            # Prepare session document
+            session_doc = {
+                "session_id": session_data["session_id"],
+                "user_id": session_data["user_id"],
+                "user_email": session_data.get("user_email", ""),
+                "user_name": session_data.get("user_name", ""),
+                "title": session_data["title"],
+                "created_at": datetime.fromtimestamp(session_data["created_at"] / 1000),
+                "updated_at": datetime.fromtimestamp(session_data.get("updated_at", session_data["created_at"]) / 1000),
+                "message_count": session_data.get("message_count", 0)
+            }
+            
+            # Upsert session
+            await sessions_collection.update_one(
+                {"session_id": session_data["session_id"]},
+                {"$set": session_doc},
+                upsert=True
+            )
+            
+            logger.info(f"Saved session {session_data['session_id']} for user {session_data['user_id']}")
+            
+        except Exception as e:
+            logger.error(f"Error saving session: {e}")
+            raise e
+    
+    async def get_all_sessions(self, limit: int = 30) -> List[Dict]:
+        """Get recent sessions from all users."""
+        await self.connect()
+        
+        try:
+            sessions_collection = self.database["chat_sessions"]
+            
+            # Get recent sessions sorted by created_at
+            cursor = sessions_collection.find({}).sort("created_at", -1).limit(limit)
+            sessions = []
+            
+            async for doc in cursor:
+                sessions.append({
+                    "session_id": doc["session_id"],
+                    "user_id": doc["user_id"],
+                    "user_email": doc.get("user_email", ""),
+                    "user_name": doc.get("user_name", ""),
+                    "title": doc["title"],
+                    "created_at": int(doc["created_at"].timestamp() * 1000),
+                    "updated_at": int(doc["updated_at"].timestamp() * 1000),
+                    "message_count": doc.get("message_count", 0)
+                })
+            
+            return sessions
+            
+        except Exception as e:
+            logger.error(f"Error getting all sessions: {e}")
+            return []
+    
+    async def get_user_sessions(self, user_id: str, limit: int = 50) -> List[Dict]:
+        """Get sessions for a specific user."""
+        await self.connect()
+        
+        try:
+            sessions_collection = self.database["chat_sessions"]
+            
+            cursor = sessions_collection.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
+            sessions = []
+            
+            async for doc in cursor:
+                sessions.append({
+                    "session_id": doc["session_id"],
+                    "user_id": doc["user_id"],
+                    "title": doc["title"],
+                    "created_at": int(doc["created_at"].timestamp() * 1000),
+                    "updated_at": int(doc["updated_at"].timestamp() * 1000),
+                    "message_count": doc.get("message_count", 0)
+                })
+            
+            return sessions
+            
+        except Exception as e:
+            logger.error(f"Error getting user sessions: {e}")
+            return []
+    
+    async def get_session_by_id(self, session_id: str) -> Optional[Dict]:
+        """Get a specific session by ID."""
+        await self.connect()
+        
+        try:
+            sessions_collection = self.database["chat_sessions"]
+            doc = await sessions_collection.find_one({"session_id": session_id})
+            
+            if doc:
+                return {
+                    "session_id": doc["session_id"],
+                    "user_id": doc["user_id"],
+                    "user_email": doc.get("user_email", ""),
+                    "user_name": doc.get("user_name", ""),
+                    "title": doc["title"],
+                    "created_at": int(doc["created_at"].timestamp() * 1000),
+                    "updated_at": int(doc["updated_at"].timestamp() * 1000),
+                    "message_count": doc.get("message_count", 0)
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting session {session_id}: {e}")
+            return None
 
 # Global instance
 mongodb_memory = MongoDBMemoryManager()
@@ -276,3 +397,20 @@ async def get_conversation_stats() -> Dict:
 async def close_mongodb_connection():
     """Close MongoDB connection."""
     await mongodb_memory.disconnect()
+
+# Session management functions
+async def save_session(session_data: Dict):
+    """Save or update a chat session."""
+    await mongodb_memory.save_session(session_data)
+
+async def get_all_sessions(limit: int = 30) -> List[Dict]:
+    """Get recent sessions from all users."""
+    return await mongodb_memory.get_all_sessions(limit)
+
+async def get_user_sessions(user_id: str, limit: int = 50) -> List[Dict]:
+    """Get sessions for a specific user."""
+    return await mongodb_memory.get_user_sessions(user_id, limit)
+
+async def get_session_by_id(session_id: str) -> Optional[Dict]:
+    """Get a specific session by ID."""
+    return await mongodb_memory.get_session_by_id(session_id)

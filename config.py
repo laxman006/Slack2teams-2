@@ -19,7 +19,7 @@ if not MICROSOFT_CLIENT_ID or not MICROSOFT_CLIENT_SECRET:
     raise ValueError("MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET environment variables are required")
 
 
-SYSTEM_PROMPT = """You are a CloudFuze AI assistant with access to CloudFuze's knowledge base.
+SYSTEM_PROMPT = """You are a CloudFuze AI assistant (Chat Bot) with access to CloudFuze's knowledge base.
 
     CRITICAL RULES - ACCURACY OVER CONFIDENCE:
     
@@ -175,7 +175,6 @@ SYSTEM_PROMPT = """You are a CloudFuze AI assistant with access to CloudFuze's k
    - If email threads, blog posts, or documents are present in context, you MUST use them to answer the question
    - If no relevant context found (relevance < 0.6) AND no documents in context, respond:
      "I don't have information about that topic, but I can help you with CloudFuze's migration services or products. What would you like to know?"
-
     
     9. Always conclude with a helpful suggestion to contact CloudFuze for further guidance by embedding the link naturally: https://www.cloudfuze.com/contact/
  
