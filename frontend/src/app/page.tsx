@@ -626,6 +626,7 @@ function initializeChatApp() {
   }
   
   // Add test data for all time periods (for UI testing)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function addTestSessions() {
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -982,7 +983,7 @@ function initializeChatApp() {
     
     if (hasHtmlTags) {
       // Text already has HTML formatting, just ensure links open in new tab
-      let processed = text.replace(/<a\s+href="([^"]+)"(?![^>]*target=)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer"');
+      const processed = text.replace(/<a\s+href="([^"]+)"(?![^>]*target=)/gi, '<a href="$1" target="_blank" rel="noopener noreferrer"');
       return processed;
     }
     
@@ -1167,7 +1168,14 @@ function initializeChatApp() {
             </svg>
             <span class="history-item-title">${session.title}</span>
             ${!isOthersSection ? `
-            <button class="history-item-delete" data-session-id="${session.id}" title="Delete chat">×</button>` : ''}
+            <button class="history-item-menu" data-session-id="${session.id}" title="Delete chat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>` : ''}
           </div>
         `;
       });
@@ -1224,7 +1232,8 @@ function initializeChatApp() {
       
       sessionEl.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-        if (target.closest('.history-item-delete')) return;
+        // Don't trigger if clicking on menu button or dropdown
+        if (target.closest('.history-item-menu') || target.closest('.history-item-dropdown')) return;
         
         // Update active state immediately for visual feedback
         allHistoryItems.forEach(item => {
@@ -1244,12 +1253,94 @@ function initializeChatApp() {
       });
     });
     
-    // Add delete handlers
-    sidebarHistory.querySelectorAll('.history-item-delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+    // Use event delegation for delete button handlers (trash bin icon)
+    // This ensures it works even when chat history is dynamically updated
+    sidebarHistory.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      
+      // Check if clicked on delete button or its child (SVG)
+      const menuBtn = target.closest('.history-item-menu') as HTMLElement;
+      if (menuBtn) {
+        e.preventDefault();
         e.stopPropagation();
-        const sid = (btn as HTMLElement).dataset.sessionId;
-        deleteSession(sid!);
+        const sid = menuBtn.dataset.sessionId;
+        
+        console.log('[DELETE] Trash icon clicked for session:', sid);
+        
+        // Close all other dropdowns first
+        document.querySelectorAll('.history-item-dropdown').forEach(d => {
+          d.remove();
+        });
+        
+        // Create dropdown element
+        const dropdown = document.createElement('div');
+        dropdown.className = 'history-item-dropdown';
+        dropdown.dataset.sessionId = sid!;
+        dropdown.innerHTML = `
+          <div class="delete-confirmation-text">Delete this chat?</div>
+          <div class="delete-confirmation-buttons">
+            <button class="confirm-yes-option" data-session-id="${sid}">
+              <span>Yes</span>
+            </button>
+            <button class="confirm-no-option" data-session-id="${sid}">
+              <span>No</span>
+            </button>
+          </div>
+        `;
+        
+        // Append to body to avoid overflow clipping
+        document.body.appendChild(dropdown);
+        
+        // Position dropdown relative to button
+        const rect = menuBtn.getBoundingClientRect();
+        
+        // Calculate position
+        const dropdownWidth = 160;
+        const dropdownHeight = 75; // Approximate height for text + Yes/No buttons
+        let top = rect.bottom + 4;
+        let left = rect.right - dropdownWidth + 145; // Positioned to the right
+        
+        // Check if dropdown would go off bottom of screen
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        
+        // If not enough space below but more space above, show above
+        if (spaceBelow < dropdownHeight + 10 && spaceAbove > dropdownHeight + 10) {
+          top = rect.top - dropdownHeight - 4; // Show above button
+        }
+        
+        // Ensure dropdown doesn't go off right edge
+        if (left + dropdownWidth > window.innerWidth - 10) {
+          left = window.innerWidth - dropdownWidth - 10;
+        }
+        
+        // Ensure dropdown doesn't go off left edge
+        if (left < 10) {
+          left = 10;
+        }
+        
+        // Ensure dropdown doesn't go off top
+        if (top < 10) {
+          top = 10;
+        }
+        
+        // Ensure dropdown doesn't go off bottom
+        if (top + dropdownHeight > window.innerHeight - 10) {
+          top = window.innerHeight - dropdownHeight - 10;
+        }
+        
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
+        console.log('[DELETE] Confirmation opened at:', { top, left, spaceBelow, spaceAbove });
+        
+        return;
+      }
+    });
+    
+    // Close dropdowns when sidebar scrolls
+    sidebarHistory.addEventListener('scroll', () => {
+      document.querySelectorAll('.history-item-dropdown').forEach(dropdown => {
+        dropdown.remove();
       });
     });
     
@@ -1284,7 +1375,7 @@ function initializeChatApp() {
   
   // Delete a session (soft delete - moves to deleted collection)
   function deleteSession(sid: string) {
-    if (!confirm('Delete this chat?')) return;
+    // No confirm dialog - Yes/No buttons in dropdown handle confirmation
     
     let sessions = getAllSessions();
     const sessionToDelete = sessions.find(s => s.id === sid);
@@ -1308,11 +1399,67 @@ function initializeChatApp() {
     sessions = sessions.filter(s => s.id !== sid);
     saveAllSessions(sessions);
     
-    // If deleted current session, create new one
+    // If deleted current session, clear the chat area immediately (like ChatGPT)
     if (sid === sessionId) {
-      handleNewChat();
+      console.log('[DELETE] Deleted current session, clearing chat area');
+      
+      // INSTANT: Clear the messages immediately
+      const messagesList = document.getElementById('messages');
+      if (messagesList) {
+        messagesList.innerHTML = '';
+      }
+      
+      // DON'T create a new session immediately - wait until user sends a message (like ChatGPT)
+      // Check if there are any remaining sessions
+      const remainingSessions = getAllSessions();
+      
+      if (remainingSessions.length === 0) {
+        // This was the last chat - clear session and wait for user to start typing
+        console.log('[DELETE] Last chat deleted - showing welcome screen');
+        sessionId = ''; // Clear session ID
+        localStorage.removeItem('currentSessionId');
+        
+        // Show welcome screen with example prompts
+        updateEmptyState();
+      } else {
+        // There are other chats, but we're not auto-loading them - just create a new empty session
+        const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const randomId = Math.random().toString(36).substr(2, 9);
+        sessionId = `cf.conversation.${date}.${randomId}`;
+        localStorage.setItem('currentSessionId', sessionId);
+        
+        // Show welcome screen
+        updateEmptyState();
+      }
+      
+      // INSTANT: Update the history list synchronously (don't wait for async)
+      const sidebarHistory = document.querySelector('.sidebar-history');
+      if (sidebarHistory) {
+        // Quick update: just remove the deleted item from DOM
+        const deletedItem = sidebarHistory.querySelector(`[data-session-id="${sid}"]`);
+        if (deletedItem) {
+          deletedItem.remove();
+        }
+      }
+      
+      // Background: Do full re-render in background (non-blocking)
+      setTimeout(() => {
+        renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
+      }, 0);
     } else {
-      renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
+      // INSTANT: Just remove the deleted item from DOM
+      const sidebarHistory = document.querySelector('.sidebar-history');
+      if (sidebarHistory) {
+        const deletedItem = sidebarHistory.querySelector(`[data-session-id="${sid}"]`);
+        if (deletedItem) {
+          deletedItem.remove();
+        }
+      }
+      
+      // Background: Do full re-render in background (non-blocking)
+      setTimeout(() => {
+        renderSessionHistory().catch(err => console.error('[SESSION] Failed to render history:', err));
+      }, 0);
     }
   }
 
@@ -1379,6 +1526,7 @@ function initializeChatApp() {
   }
 
   // Helper function to remove edit button from previous user messages
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function removeAllEditButtons() {
     const allWrappers = messagesDiv!.querySelectorAll('.user-message-wrapper');
     allWrappers.forEach(wrapper => {
@@ -1419,8 +1567,8 @@ function initializeChatApp() {
 
   function addMessage(content: string, sender: string) {
     if (sender === "user") {
-      // Remove edit button from any previous user messages
-      removeAllEditButtons();
+      // Keep edit/copy buttons on all user messages
+      // removeAllEditButtons(); // Commented out to show buttons on all messages
       
       // For user messages, create wrapper with message and edit button below
       const wrapper = document.createElement("div");
@@ -1506,9 +1654,9 @@ function initializeChatApp() {
       const lines = text.split('\n');
       let inList = false;
       let inOrderedList = false;
-      let result = [];
+      const result = [];
       
-      for (let line of lines) {
+      for (const line of lines) {
         // Check for unordered list item
         if (line.match(/^\* /)) {
           if (!inList) {
@@ -2276,6 +2424,12 @@ function initializeChatApp() {
   // DYNAMIC SUGGESTED QUESTIONS SYSTEM
   // ============================================================================
   
+  // Type for suggested questions
+  interface SuggestedQuestion {
+    id: string;
+    question_text: string;
+  }
+  
   // Fetch suggested questions from API
   async function loadSuggestedQuestions() {
     try {
@@ -2296,7 +2450,7 @@ function initializeChatApp() {
   }
   
   // Update both suggested questions containers
-  function updateSuggestedQuestions(questions: any[]) {
+  function updateSuggestedQuestions(questions: SuggestedQuestion[]) {
     const containers = [
       document.getElementById('suggested-questions-empty'),
       document.getElementById('suggested-questions-main')
@@ -2305,7 +2459,7 @@ function initializeChatApp() {
     containers.forEach(container => {
       if (!container || !questions || questions.length === 0) return;
       
-      const html = questions.map((q: any) => `
+      const html = questions.map((q: SuggestedQuestion) => `
         <button class="suggested-question-btn" 
                 data-question="${q.question_text.replace(/"/g, '&quot;')}"
                 data-question-id="${q.id}">
@@ -2828,6 +2982,14 @@ function initializeChatApp() {
         dropdown.classList.remove('show');
       }
     }
+    
+    // Close history item dropdowns when clicking outside
+    const target = event.target as HTMLElement;
+    if (!target.closest('.history-item-menu') && !target.closest('.history-item-dropdown')) {
+      document.querySelectorAll('.history-item-dropdown').forEach(dropdown => {
+        (dropdown as HTMLElement).style.display = 'none';
+      });
+    }
   });
 
   // Feedback modal event listeners
@@ -2865,6 +3027,48 @@ function initializeChatApp() {
   if (feedbackSubmitBtn) {
     feedbackSubmitBtn.addEventListener('click', submitDetailedFeedback);
   }
+
+  // ============================================================================
+  // GLOBAL EVENT LISTENERS (SET UP ONCE)
+  // ============================================================================
+  
+  // Handle Yes/No button clicks for delete confirmation (dropdown appended to body)
+  document.body.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    
+    // Check if clicked on YES button
+    const yesBtn = target.closest('.confirm-yes-option') as HTMLElement;
+    if (yesBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      const sid = yesBtn.dataset.sessionId;
+      console.log('[DELETE] YES clicked - deleting session:', sid);
+      deleteSession(sid!);
+      // Remove dropdown
+      document.querySelectorAll('.history-item-dropdown').forEach(d => d.remove());
+      return;
+    }
+    
+    // Check if clicked on NO button
+    const noBtn = target.closest('.confirm-no-option') as HTMLElement;
+    if (noBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      const sid = noBtn.dataset.sessionId;
+      console.log('[DELETE] NO clicked - cancelled delete for session:', sid);
+      // Remove dropdown
+      document.querySelectorAll('.history-item-dropdown').forEach(d => d.remove());
+      return;
+    }
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.history-item-dropdown') && !target.closest('.history-item-menu')) {
+      document.querySelectorAll('.history-item-dropdown').forEach(d => d.remove());
+    }
+  });
 
   initAuth();
 }
