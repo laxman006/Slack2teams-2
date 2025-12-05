@@ -1467,6 +1467,31 @@ async def chat_stream(request: Request, auth_user: dict = Depends(require_auth))
                 print(f"[DEBUG] Retrieved {len(final_docs)} documents from search")
                 print(f"[DEBUG] Documents by tag: {retrieved_sources}")
                 
+                # Add detailed document logging
+                print(f"\n[SOURCES] Detailed document breakdown:")
+                for i, (doc, score) in enumerate(doc_results[:10]):  # Log top 10
+                    metadata = doc.metadata if hasattr(doc, 'metadata') else {}
+                    
+                    # Extract metadata
+                    tag = metadata.get('tag', 'N/A')
+                    source_type = metadata.get('source_type', 'N/A')
+                    
+                    # Get title from various possible fields
+                    title = metadata.get('post_title') or metadata.get('title') or metadata.get('file_name') or 'N/A'
+                    
+                    # Get URL or file path
+                    url = metadata.get('url') or metadata.get('file_path') or metadata.get('source') or 'N/A'
+                    
+                    # Content preview
+                    content_preview = doc.page_content[:150] if hasattr(doc, 'page_content') else 'N/A'
+                    
+                    print(f"  [{i+1}] Score: {score:.4f}")
+                    print(f"      Type: {tag} | Source: {source_type}")
+                    print(f"      Title: {title[:80]}")
+                    print(f"      URL/Path: {url[:100]}")
+                    print(f"      Preview: {content_preview}...")
+                    print()
+                
                 # Send status: Reading from sources
                 source_list = []
                 if retrieved_sources.get('blog', 0) > 0:
