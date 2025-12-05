@@ -44,90 +44,102 @@ async def get_suggested_questions(
     - Uses context keywords for relevance
     - Weights by priority and click-through rate
     - Returns randomized selection
+    - ALWAYS returns questions (uses fallback if DB fails)
     
     **Examples:**
     - GET /api/suggested-questions?limit=4
     - GET /api/suggested-questions?category=migration&limit=6
     - GET /api/suggested-questions?context=slack,teams&limit=4
     """
-    # Ensure database connection is established
-    if mongodb_memory.database is None:
-        await mongodb_memory.connect()
-    
-    db = mongodb_memory.database
-    
-    if db is None:
-        # Return default questions if DB connection fails
-        return _get_default_questions(limit)
-    
-    # Build query
-    query = {"status": QuestionStatus.ACTIVE.value}
-    
-    if category:
-        query["category"] = category.value
-    
-    # Fetch questions
-    cursor = db.suggested_questions.find(query)
-    questions = await cursor.to_list(length=None)
-    
-    if not questions:
-        # Return default fallback questions if none in DB
-        return _get_default_questions(limit)
-    
-    # Context-aware filtering
-    if context and questions:
-        context_keywords = [k.strip().lower() for k in context.split(',')]
+    try:
+        # Ensure database connection is established
+        if mongodb_memory.database is None:
+            await mongodb_memory.connect()
         
-        # Score questions based on keyword matching
-        scored_questions = []
-        for q in questions:
-            score = q.get('priority', 50)
-            
-            # Boost score if keywords match
-            q_keywords = q.get('keywords', [])
-            if q_keywords:
-                matching_keywords = set(context_keywords) & set([k.lower() for k in q_keywords])
-                score += len(matching_keywords) * 20
-            
-            # Boost high-performing questions
-            click_rate = q.get('click_rate', 0)
-            score += click_rate * 0.5
-            
-            scored_questions.append((score, q))
+        db = mongodb_memory.database
         
-        # Sort by score and take top candidates
-        scored_questions.sort(reverse=True, key=lambda x: x[0])
-        questions = [q for _, q in scored_questions[:limit * 2]]  # Take 2x for randomization
+        if db is None:
+            # Return default questions if DB connection fails
+            print("[QUESTIONS] DB connection failed, using fallback questions")
+            return _get_default_questions(limit)
+        
+        # Build query
+        query = {"status": QuestionStatus.ACTIVE.value}
+        
+        if category:
+            query["category"] = category.value
+        
+        # Fetch questions
+        cursor = db.suggested_questions.find(query)
+        questions = await cursor.to_list(length=None)
+        
+        if not questions:
+            # Return default fallback questions if none in DB
+            print("[QUESTIONS] No questions in DB, using fallback questions")
+            return _get_default_questions(limit)
+        
+        # Context-aware filtering
+        if context and questions:
+            context_keywords = [k.strip().lower() for k in context.split(',')]
+            
+            # Score questions based on keyword matching
+            scored_questions = []
+            for q in questions:
+                score = q.get('priority', 50)
+                
+                # Boost score if keywords match
+                q_keywords = q.get('keywords', [])
+                if q_keywords:
+                    matching_keywords = set(context_keywords) & set([k.lower() for k in q_keywords])
+                    score += len(matching_keywords) * 20
+                
+                # Boost high-performing questions
+                click_rate = q.get('click_rate', 0)
+                score += click_rate * 0.5
+                
+                scored_questions.append((score, q))
+            
+            # Sort by score and take top candidates
+            scored_questions.sort(reverse=True, key=lambda x: x[0])
+            questions = [q for _, q in scored_questions[:limit * 2]]  # Take 2x for randomization
+        
+        # Randomize from top candidates (ensure no duplicates)
+        if len(questions) > limit:
+            # Use sample for no duplicates, then sort by priority to maintain quality
+            available_pool = questions[:min(len(questions), limit * 3)]  # Top 3x for better variety
+            selected = random.sample(available_pool, min(limit, len(available_pool)))
+        else:
+            selected = questions[:limit]
+        
+        # Update display count asynchronously (don't fail if this errors)
+        try:
+            for q in selected:
+                await db.suggested_questions.update_one(
+                    {"_id": q["_id"]},
+                    {
+                        "$inc": {"display_count": 1},
+                        "$set": {"updated_at": datetime.utcnow()}
+                    }
+                )
+        except Exception as update_error:
+            print(f"[QUESTIONS] Warning: Failed to update display count: {update_error}")
+        
+        # Format response
+        return [
+            QuestionResponse(
+                id=str(q["_id"]),
+                question_text=q["question_text"],
+                category=q.get("category", "general"),
+                priority=q.get("priority", 50),
+                click_rate=q.get("click_rate", 0.0)
+            )
+            for q in selected
+        ]
     
-    # Randomize from top candidates (ensure no duplicates)
-    if len(questions) > limit:
-        # Use sample for no duplicates, then sort by priority to maintain quality
-        available_pool = questions[:min(len(questions), limit * 3)]  # Top 3x for better variety
-        selected = random.sample(available_pool, min(limit, len(available_pool)))
-    else:
-        selected = questions[:limit]
-    
-    # Update display count asynchronously
-    for q in selected:
-        await db.suggested_questions.update_one(
-            {"_id": q["_id"]},
-            {
-                "$inc": {"display_count": 1},
-                "$set": {"updated_at": datetime.utcnow()}
-            }
-        )
-    
-    # Format response
-    return [
-        QuestionResponse(
-            id=str(q["_id"]),
-            question_text=q["question_text"],
-            category=q.get("category", "general"),
-            priority=q.get("priority", 50),
-            click_rate=q.get("click_rate", 0.0)
-        )
-        for q in selected
-    ]
+    except Exception as e:
+        # CRITICAL: Always return questions, even on error
+        print(f"[QUESTIONS] Error fetching from DB: {e}, using fallback questions")
+        return _get_default_questions(limit)
 
 
 @router.post("/analytics")
@@ -341,51 +353,171 @@ async def delete_question(question_id: str):
 # ============================================================================
 
 def _get_default_questions(limit: int = 4) -> List[QuestionResponse]:
-    """Return default fallback questions if DB is empty"""
+    """Return default fallback questions if DB is empty or connection fails.
+    
+    This ensures questions ALWAYS show, even if MongoDB is unavailable.
+    Questions are randomly selected from a comprehensive pool.
+    """
+    # Comprehensive fallback question pool (matches seed script)
     default_questions = [
+        # Top Priority Questions (90-95)
         QuestionResponse(
-            id="default-1",
+            id="fallback-1",
+            question_text="How do I migrate from Google Drive to OneDrive?",
+            category="migration",
+            priority=95,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-2",
             question_text="Can I migrate Slack channels to Microsoft Teams?",
             category="migration",
             priority=92,
             click_rate=0.0
         ),
         QuestionResponse(
-            id="default-2",
+            id="fallback-3",
+            question_text="How secure is my data during migration?",
+            category="security",
+            priority=90,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-4",
+            question_text="What's the fastest way to migrate SharePoint Online?",
+            category="migration",
+            priority=88,
+            click_rate=0.0
+        ),
+        # High Priority Questions (80-89)
+        QuestionResponse(
+            id="fallback-5",
+            question_text="Can I migrate from Box to Google Drive?",
+            category="migration",
+            priority=85,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-6",
             question_text="How do I preserve permissions during migration?",
             category="features",
             priority=83,
             click_rate=0.0
         ),
         QuestionResponse(
-            id="default-3",
-            question_text="How do I track my migration progress?",
+            id="fallback-7",
+            question_text="Can I schedule migrations to run automatically?",
             category="features",
             priority=80,
             click_rate=0.0
         ),
         QuestionResponse(
-            id="default-4",
+            id="fallback-8",
+            question_text="How do I track my migration progress?",
+            category="features",
+            priority=80,
+            click_rate=0.0
+        ),
+        # Medium-High Priority Questions (70-79)
+        QuestionResponse(
+            id="fallback-9",
+            question_text="Which cloud platforms does CloudFuze support?",
+            category="integration",
+            priority=78,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-10",
+            question_text="Can I migrate large files over 5GB?",
+            category="features",
+            priority=75,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-11",
+            question_text="How long does a typical migration take?",
+            category="general",
+            priority=73,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-12",
             question_text="Can I do a trial migration before the full migration?",
             category="features",
             priority=70,
             click_rate=0.0
         ),
+        # Additional Popular Questions
         QuestionResponse(
-            id="default-5",
-            question_text="How does CloudFuze pricing work?",
-            category="pricing",
-            priority=60,
+            id="fallback-13",
+            question_text="Does CloudFuze support Office 365 tenant-to-tenant migration?",
+            category="migration",
+            priority=86,
             click_rate=0.0
         ),
         QuestionResponse(
-            id="default-6",
-            question_text="What platforms does CloudFuze support?",
-            category="integration",
-            priority=55,
+            id="fallback-14",
+            question_text="Can I migrate Gmail to Office 365?",
+            category="migration",
+            priority=84,
             click_rate=0.0
-        )
+        ),
+        QuestionResponse(
+            id="fallback-15",
+            question_text="What happens if my migration fails?",
+            category="support",
+            priority=82,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-16",
+            question_text="How do I migrate from Dropbox Business to SharePoint?",
+            category="migration",
+            priority=81,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-17",
+            question_text="Can CloudFuze migrate Google Workspace to Microsoft 365?",
+            category="migration",
+            priority=87,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-18",
+            question_text="Will metadata and timestamps be preserved?",
+            category="features",
+            priority=72,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-19",
+            question_text="Can I migrate incremental changes after initial migration?",
+            category="features",
+            priority=77,
+            click_rate=0.0
+        ),
+        QuestionResponse(
+            id="fallback-20",
+            question_text="What's included in the free trial?",
+            category="pricing",
+            priority=68,
+            click_rate=0.0
+        ),
     ]
     
-    return random.sample(default_questions, min(limit, len(default_questions)))
+    # Randomly select questions, ensuring variety
+    # Sort by priority first, then randomize from top candidates
+    sorted_questions = sorted(default_questions, key=lambda x: x.priority, reverse=True)
+    
+    # Take top 2x limit for better variety, then randomize
+    top_candidates = sorted_questions[:min(limit * 2, len(sorted_questions))]
+    
+    # Randomly select from top candidates
+    if len(top_candidates) >= limit:
+        selected = random.sample(top_candidates, limit)
+    else:
+        selected = top_candidates
+    
+    return selected
 
