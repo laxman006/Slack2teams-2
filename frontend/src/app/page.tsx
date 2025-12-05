@@ -2289,8 +2289,8 @@ function initializeChatApp() {
       const apiBase = getApiBase();
       const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const apiUrl = isLocalDev 
-        ? `${apiBase}/api/suggested-questions?limit=4`
-        : '/api/suggested-questions?limit=4';
+        ? `${apiBase}/api/suggested-questions/?limit=4`
+        : '/api/suggested-questions/?limit=4';
       
       const response = await fetch(apiUrl);
       
