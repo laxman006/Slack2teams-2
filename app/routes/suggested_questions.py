@@ -9,6 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
 import random
+import logging
 
 from app.models.suggested_question import (
     SuggestedQuestion,
@@ -21,6 +22,9 @@ from app.models.suggested_question import (
 )
 from app.mongodb_memory import mongodb_memory
 from app.auth import verify_user_access
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/suggested-questions", tags=["Suggested Questions"])
 
@@ -51,36 +55,53 @@ async def get_suggested_questions(
     - GET /api/suggested-questions?category=migration&limit=6
     - GET /api/suggested-questions?context=slack,teams&limit=4
     """
+    logger.info(f"[QUESTIONS] Request received - limit={limit}, category={category}, context={context}")
+    
     try:
         # Ensure database connection is established
+        logger.debug("[QUESTIONS] Checking MongoDB connection...")
         if mongodb_memory.database is None:
+            logger.info("[QUESTIONS] MongoDB not connected, attempting connection...")
             await mongodb_memory.connect()
         
         db = mongodb_memory.database
         
         if db is None:
             # Return default questions if DB connection fails
-            print("[QUESTIONS] DB connection failed, using fallback questions")
-            return _get_default_questions(limit)
+            logger.warning("[QUESTIONS] ❌ DB connection failed, using fallback questions")
+            fallback_questions = _get_default_questions(limit)
+            logger.info(f"[QUESTIONS] ✅ Returning {len(fallback_questions)} fallback questions")
+            return fallback_questions
+        
+        logger.info("[QUESTIONS] ✅ MongoDB connection successful")
         
         # Build query
         query = {"status": QuestionStatus.ACTIVE.value}
         
         if category:
             query["category"] = category.value
+            logger.debug(f"[QUESTIONS] Filtering by category: {category.value}")
+        
+        logger.debug(f"[QUESTIONS] Query: {query}")
         
         # Fetch questions
+        logger.debug("[QUESTIONS] Fetching questions from database...")
         cursor = db.suggested_questions.find(query)
         questions = await cursor.to_list(length=None)
         
+        logger.info(f"[QUESTIONS] Found {len(questions)} active questions in database")
+        
         if not questions:
             # Return default fallback questions if none in DB
-            print("[QUESTIONS] No questions in DB, using fallback questions")
-            return _get_default_questions(limit)
+            logger.warning("[QUESTIONS] ⚠️  No questions in DB, using fallback questions")
+            fallback_questions = _get_default_questions(limit)
+            logger.info(f"[QUESTIONS] ✅ Returning {len(fallback_questions)} fallback questions")
+            return fallback_questions
         
         # Context-aware filtering
         if context and questions:
             context_keywords = [k.strip().lower() for k in context.split(',')]
+            logger.debug(f"[QUESTIONS] Context filtering with keywords: {context_keywords}")
             
             # Score questions based on keyword matching
             scored_questions = []
@@ -102,17 +123,26 @@ async def get_suggested_questions(
             # Sort by score and take top candidates
             scored_questions.sort(reverse=True, key=lambda x: x[0])
             questions = [q for _, q in scored_questions[:limit * 2]]  # Take 2x for randomization
+            logger.debug(f"[QUESTIONS] After context filtering: {len(questions)} candidates")
         
         # Randomize from top candidates (ensure no duplicates)
         if len(questions) > limit:
             # Use sample for no duplicates, then sort by priority to maintain quality
             available_pool = questions[:min(len(questions), limit * 3)]  # Top 3x for better variety
             selected = random.sample(available_pool, min(limit, len(available_pool)))
+            logger.debug(f"[QUESTIONS] Randomly selected {len(selected)} from {len(available_pool)} candidates")
         else:
             selected = questions[:limit]
+            logger.debug(f"[QUESTIONS] Selected all {len(selected)} questions (pool size <= limit)")
+        
+        # Log selected questions
+        logger.info(f"[QUESTIONS] Selected {len(selected)} questions:")
+        for i, q in enumerate(selected, 1):
+            logger.info(f"  {i}. [{q.get('priority', 50)}] {q.get('question_text', 'N/A')[:60]}...")
         
         # Update display count asynchronously (don't fail if this errors)
         try:
+            update_count = 0
             for q in selected:
                 await db.suggested_questions.update_one(
                     {"_id": q["_id"]},
@@ -121,11 +151,13 @@ async def get_suggested_questions(
                         "$set": {"updated_at": datetime.utcnow()}
                     }
                 )
+                update_count += 1
+            logger.debug(f"[QUESTIONS] Updated display_count for {update_count} questions")
         except Exception as update_error:
-            print(f"[QUESTIONS] Warning: Failed to update display count: {update_error}")
+            logger.warning(f"[QUESTIONS] ⚠️  Failed to update display count: {update_error}")
         
         # Format response
-        return [
+        response = [
             QuestionResponse(
                 id=str(q["_id"]),
                 question_text=q["question_text"],
@@ -135,11 +167,17 @@ async def get_suggested_questions(
             )
             for q in selected
         ]
+        
+        logger.info(f"[QUESTIONS] ✅ Successfully returning {len(response)} questions from database")
+        return response
     
     except Exception as e:
         # CRITICAL: Always return questions, even on error
-        print(f"[QUESTIONS] Error fetching from DB: {e}, using fallback questions")
-        return _get_default_questions(limit)
+        logger.error(f"[QUESTIONS] ❌ Error fetching from DB: {type(e).__name__}: {e}", exc_info=True)
+        logger.warning("[QUESTIONS] Using fallback questions due to error")
+        fallback_questions = _get_default_questions(limit)
+        logger.info(f"[QUESTIONS] ✅ Returning {len(fallback_questions)} fallback questions")
+        return fallback_questions
 
 
 @router.post("/analytics")
@@ -518,6 +556,11 @@ def _get_default_questions(limit: int = 4) -> List[QuestionResponse]:
         selected = random.sample(top_candidates, limit)
     else:
         selected = top_candidates
+    
+    logger.info(f"[QUESTIONS] 🔄 Fallback mode: Selected {len(selected)} from {len(default_questions)} fallback questions")
+    logger.debug(f"[QUESTIONS] Fallback questions selected:")
+    for i, q in enumerate(selected, 1):
+        logger.debug(f"  {i}. [{q.priority}] {q.question_text[:60]}...")
     
     return selected
 

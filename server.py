@@ -10,6 +10,15 @@ import uvicorn
 import asyncio
 from contextlib import asynccontextmanager
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,22 +26,24 @@ async def lifespan(app: FastAPI):
     # Startup
     from app.mongodb_memory import mongodb_memory
     try:
+        logger.info("[STARTUP] Initializing MongoDB memory storage...")
         await mongodb_memory.connect()
-        print("[OK] MongoDB memory storage initialized successfully")
+        logger.info("[STARTUP] ✅ MongoDB memory storage initialized successfully")
         
         # Auto-seed suggested questions if database is empty
         await auto_seed_questions()
     except Exception as e:
-        print(f"[ERROR] Failed to initialize MongoDB memory storage: {e}")
+        logger.error(f"[STARTUP] ❌ Failed to initialize MongoDB memory storage: {e}", exc_info=True)
     
     yield
     
     # Shutdown
     try:
+        logger.info("[SHUTDOWN] Closing MongoDB memory storage...")
         await close_mongodb_connection()
-        print("[OK] MongoDB memory storage closed")
+        logger.info("[SHUTDOWN] ✅ MongoDB memory storage closed")
     except Exception as e:
-        print(f"[WARNING] Error closing MongoDB memory storage: {e}")
+        logger.warning(f"[SHUTDOWN] ⚠️  Error closing MongoDB memory storage: {e}")
 
 
 async def auto_seed_questions():
@@ -41,8 +52,10 @@ async def auto_seed_questions():
         from app.mongodb_memory import mongodb_memory
         from datetime import datetime
         
+        logger.info("[SEED] Checking if suggested questions need to be seeded...")
+        
         if mongodb_memory.database is None:
-            print("[SEED] Skipping auto-seed: database not connected")
+            logger.warning("[SEED] ⚠️  Skipping auto-seed: database not connected")
             return
         
         db = mongodb_memory.database
@@ -52,13 +65,16 @@ async def auto_seed_questions():
         existing_count = await collection.count_documents({})
         
         if existing_count > 0:
-            print(f"[SEED] Suggested questions already seeded ({existing_count} questions found)")
+            logger.info(f"[SEED] ✅ Suggested questions already exist ({existing_count} questions in database)")
+            logger.debug(f"[SEED] Skipping auto-seed - questions already present")
             return
         
-        print("[SEED] No suggested questions found. Auto-seeding...")
+        logger.info("[SEED] 📦 No suggested questions found. Starting auto-seed...")
         
         # Import seed data from the seed script
         from scripts.seed_suggested_questions import INITIAL_QUESTIONS
+        
+        logger.info(f"[SEED] Imported {len(INITIAL_QUESTIONS)} questions from seed script")
         
         seeded_count = 0
         for q_data in INITIAL_QUESTIONS:
@@ -74,12 +90,23 @@ async def auto_seed_questions():
             }
             await collection.insert_one(question_doc)
             seeded_count += 1
+            logger.debug(f"[SEED]   ✓ Added: {q_data['question_text'][:50]}...")
         
-        print(f"[SEED] ✅ Successfully seeded {seeded_count} suggested questions")
+        # Verify seeding
+        final_count = await collection.count_documents({})
+        logger.info(f"[SEED] ✅ Successfully seeded {seeded_count} suggested questions")
+        logger.info(f"[SEED] 📊 Total questions in database: {final_count}")
+        
+        # Log breakdown by category
+        from collections import Counter
+        category_counts = Counter()
+        async for q in collection.find({}, {"category": 1}):
+            category_counts[q.get("category", "unknown")] += 1
+        logger.info(f"[SEED] 📂 Questions by category: {dict(category_counts)}")
         
     except Exception as e:
-        print(f"[SEED] ⚠️  Warning: Failed to auto-seed questions: {e}")
-        print("[SEED] Application will continue with default fallback questions")
+        logger.error(f"[SEED] ❌ Failed to auto-seed questions: {type(e).__name__}: {e}", exc_info=True)
+        logger.warning("[SEED] Application will continue with default fallback questions")
 
 app = FastAPI(lifespan=lifespan)
 
